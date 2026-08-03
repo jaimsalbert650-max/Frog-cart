@@ -119,8 +119,8 @@ namespace FrogCart.Tests
 
             int before = _controller.Eaten;
 
-            // Ряд 0, столбец 6 — синий блок на верхушке шара, доступен снаружи сразу.
-            Assert.IsTrue(_controller.Eat(0, 6), "ход не состоялся");
+            LevelProbe.FindEdibleCell(_controller, out int r, out int c);
+            Assert.IsTrue(_controller.Eat(r, c), "ход не состоялся");
             yield return null;
 
             Assert.AreEqual(before + 1, _controller.Eaten);

@@ -75,21 +75,29 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>
+        /// Клетка растягивается на всю отведённую область.
+        ///
+        /// Отдельной ветки под форму из спеки больше нет и не нужно: 308/14 = 22 и
+        /// 432/16 = 27 — ровно те числа, что в 01-layout.md. Прежний вариант с
+        /// квадратной клеткой для всех прочих форм оставлял пустую полосу по одной
+        /// из сторон, а картинка после обрезки обязана занимать доску целиком.
+        ///
+        /// Клетка при этом неквадратная — как и в спеке. Но перекос ограничен:
+        /// узкая или низкая картинка иначе растянулась бы до неузнаваемости.
+        /// </summary>
         void Layout()
         {
-            bool specShape = Rows == 16 && Cols == 14;
+            const float MaxStretch = 1.35f;
 
-            if (specShape)
-            {
-                CellW = 22f;
-                CellH = 27f;
-            }
-            else
-            {
-                float cell = Mathf.Min(AreaW / Cols, AreaH / Rows);
-                CellW = cell;
-                CellH = cell;
-            }
+            float cellW = AreaW / Cols;
+            float cellH = AreaH / Rows;
+
+            if (cellW > cellH * MaxStretch) cellW = cellH * MaxStretch;
+            else if (cellH > cellW * MaxStretch) cellH = cellW * MaxStretch;
+
+            CellW = cellW;
+            CellH = cellH;
 
             OriginX = AreaX + (AreaW - CellW * Cols) * 0.5f;
             OriginY = AreaY + (AreaH - CellH * Rows) * 0.5f;

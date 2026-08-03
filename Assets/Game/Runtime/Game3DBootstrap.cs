@@ -275,7 +275,9 @@ namespace FrogCart.Runtime
             var shake = gameObject.AddComponent<ScreenShake>();
 
             _grid = gameObject.AddComponent<Grid3DView>();
-            _grid.Build(_world, palette, tween, level.Rows.Length, level.Rows[0].Length);
+            // Размеры доски берутся от обрезанной картинки — той же, что строит GameController.
+            var rows = LevelCrop.Trim(level.Rows);
+            _grid.Build(_world, palette, tween, rows.Length, rows[0].Length);
 
             var carts = new Cart3DView[5];
             var frogs = new Frog3DView[5];

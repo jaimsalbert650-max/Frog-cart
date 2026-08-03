@@ -49,6 +49,16 @@ namespace FrogCart.Runtime
         LoopPath _path;
         GridModel _grid;
         Exposure _exposure;
+
+        /// <summary>Картинка уровня после обрезки пустых полей. Именно она на доске.</summary>
+        string[] _rows;
+
+        /// <summary>
+        /// Картинка после обрезки. Открыта наружу, потому что координаты клетки на
+        /// доске больше не совпадают с координатами в ассете уровня, и тестам нужен
+        /// способ узнать, где на самом деле лежит блок.
+        /// </summary>
+        public string[] Rows => _rows;
         Slot[] _slots;
         List<LevelData.CartDef> _queue;
         int _queueIndex;
@@ -82,7 +92,12 @@ namespace FrogCart.Runtime
             StopAllCoroutines();
             Tween.CancelAll();
 
-            _grid = GridModel.FromRows(Level.Rows);
+            // Картинка обрезается по своим же границам: в данных уровня вокруг
+            // рисунка обычно остаются пустые ряды и столбцы, и на доске он лежал
+            // бы в углу большого пустого листа.
+            _rows = LevelCrop.Trim(Level.Rows);
+
+            _grid = GridModel.FromRows(_rows);
             _exposure = new Exposure(_grid);
             _total = _grid.TotalBlocks;
             _eaten = 0;
@@ -433,13 +448,13 @@ namespace FrogCart.Runtime
             });
 
             // 2. Силуэт: 1.2 c плоскими блоками.
-            Grid.ShowSilhouette(Level.Rows, true);
+            Grid.ShowSilhouette(_rows, true);
 
             // 4. Конфетти.
             Confetti.Play();
 
             yield return new WaitForSecondsRealtime(Config.winSilhouette);
-            Grid.ShowSilhouette(Level.Rows, false);
+            Grid.ShowSilhouette(_rows, false);
 
             yield return new WaitForSecondsRealtime(
                 Mathf.Max(0f, Config.winPanelDelay - Config.winSilhouette));

@@ -56,9 +56,8 @@ namespace FrogCart.Tests
         {
             int before = _controller.Eaten;
 
-            // Ряд 0, столбцы 6 и 7 — синий флажок на верхушке шара: он на самом краю
-            // картинки, поэтому доступен снаружи с первого кадра.
-            _input.OnPointerDown(At(0, 6));
+            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+            _input.OnPointerDown(At(r, c));
             yield return null;
 
             Assert.AreEqual(before + 1, _controller.Eaten, "тап не съел блок");
@@ -67,13 +66,15 @@ namespace FrogCart.Tests
         [UnityTest]
         public IEnumerator DragIsThrottledByChainDelay()
         {
-            _input.OnPointerDown(At(0, 6));
+            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+
+            _input.OnPointerDown(At(r, c));
             yield return null;
 
             int afterFirst = _controller.Eaten;
 
             // Сразу же — второй блок протяжкой. Должен быть отклонён троттлингом.
-            _input.OnDrag(At(0, 7));
+            _input.OnDrag(At(r, c + 1));
             yield return null;
 
             Assert.AreEqual(afterFirst, _controller.Eaten,
@@ -82,7 +83,7 @@ namespace FrogCart.Tests
             // Выждали задержку — теперь тот же жест обязан сработать.
             yield return new WaitForSecondsRealtime(_controller.ChainDelay + 0.05f);
 
-            _input.OnDrag(At(0, 7));
+            _input.OnDrag(At(r, c + 1));
             yield return null;
 
             Assert.AreEqual(afterFirst + 1, _controller.Eaten,
@@ -92,16 +93,18 @@ namespace FrogCart.Tests
         [UnityTest]
         public IEnumerator PointerUpResetsTheChain()
         {
-            _input.OnPointerDown(At(0, 6));
+            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+
+            _input.OnPointerDown(At(r, c));
             yield return null;
 
             int afterFirst = _controller.Eaten;
 
-            _input.OnPointerUp(At(0, 6));
+            _input.OnPointerUp(At(r, c));
             yield return null;
 
             // Отпустили — счётчик задержки сброшен, следующая протяжка проходит сразу.
-            _input.OnDrag(At(0, 7));
+            _input.OnDrag(At(r, c + 1));
             yield return null;
 
             Assert.AreEqual(afterFirst + 1, _controller.Eaten,

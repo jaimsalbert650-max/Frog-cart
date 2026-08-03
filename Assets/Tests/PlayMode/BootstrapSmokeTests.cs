@@ -62,8 +62,13 @@ namespace FrogCart.Tests
                 if (child.name.StartsWith("Socket_")) sockets++;
             }
 
-            Assert.AreEqual(224, blocks, "должно быть 14x16 блоков");
-            Assert.AreEqual(224, sockets, "и столько же гнёзд под ними");
+            // Не 224: картинка обрезается по своим границам, и размер доски теперь
+            // задаёт сам рисунок. Сверяем с тем, что доска о себе заявляет.
+            var grid = Object.FindAnyObjectByType<GridView>();
+            int cells = grid.Rows * grid.Cols;
+
+            Assert.AreEqual(cells, blocks, "блоков меньше, чем клеток");
+            Assert.AreEqual(cells, sockets, "и столько же гнёзд под ними");
         }
 
         [UnityTest]
@@ -114,14 +119,20 @@ namespace FrogCart.Tests
 
             var controller = _root.GetComponent<GameController>();
 
-            // Ряд 12, столбец 5 — корзина шара, цвет 1 (чёрный).
-            // Чёрная вагонетка на контуре есть с самого старта.
-            controller.Eat(12, 5);
+            var percent = GameObject.Find("Percent");
+            Assert.IsNotNull(percent, "текст процента не найден");
+
+            int before = controller.Eaten;
+
+            LevelProbe.FindEdibleCell(controller, out int r, out int c);
+
+            // Раньше тест звал Eat по захардкоженной клетке и не проверял результат:
+            // после обрезки картинки он бы молча остался зелёным, ничего не проверяя.
+            Assert.IsTrue(controller.Eat(r, c), "ход не состоялся");
 
             yield return null;
 
-            var percent = GameObject.Find("Percent");
-            Assert.IsNotNull(percent, "текст процента не найден");
+            Assert.AreEqual(before + 1, controller.Eaten, "прогресс не сдвинулся");
         }
 
         [UnityTest]

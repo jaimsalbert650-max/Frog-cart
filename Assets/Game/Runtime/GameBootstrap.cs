@@ -165,7 +165,9 @@ namespace FrogCart.Runtime
 
             // Размер сетки диктует уровень: 14x16 своих или 35x35 из Food Hunt.
             var grid = gameObject.AddComponent<GridView>();
-            grid.Build(gridRoot, palette, tween, level.Rows.Length, level.Rows[0].Length);
+            // Размеры доски берутся от обрезанной картинки — той же, что строит GameController.
+            var rows = LevelCrop.Trim(level.Rows);
+            grid.Build(gridRoot, palette, tween, rows.Length, rows[0].Length);
 
             var flash = NewImage("FlashOverlay", _game, 37f, 100f, 316f, 496f);
             flash.sprite = ProcSprite.Make(ProcSprite.Rounded.Flat(316, 496, 20f, Color.white, "flash"));

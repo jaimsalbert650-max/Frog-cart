@@ -852,7 +852,7 @@ namespace FrogCart.Runtime
                 float exit = _slots[i].ExitT;
                 float enter = _slots[i].EnterT;
 
-                float scale = (1f - exit * 0.5f) * (1f - enter * 0.45f);
+                float scale = (1f - exit * 0.5f) * (1f - enter * 0.45f) * RecoilScale(i);
                 float alpha = (1f - exit) * (1f - enter);
                 float lift = exit * 30f - enter * 46f;
 
@@ -867,12 +867,26 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>
+        /// Точка вагонетки на контуре.
+        ///
+        /// Отдача выстрела здесь больше не участвует. Раньше она вычиталась из
+        /// пройденного пути, то есть буквально толкала вагонетку назад по рельсу.
+        /// При старой механике выстрел был редким, и толчок читался акцентом;
+        /// с автоукусом раз в 0.28 с отдача не успевает погаснуть между укусами,
+        /// вагонетка постоянно висит позади своего места и дёргается. Теперь
+        /// отдача — сжатие корпуса, а не сдвиг: см. RecoilScale.
+        /// </summary>
         void Sample(int slot, out Vector2 pos, out float angle)
         {
             float offset = slot * _path.Perimeter / _slots.Length + 60f;
             float exitExtra = _slots[slot].ExitT * 90f;
-            _path.Sample(_dist + offset - _slots[slot].Recoil + exitExtra, out pos, out angle);
+            _path.Sample(_dist + offset + exitExtra, out pos, out angle);
         }
+
+        /// <summary>Отдача как приседание корпуса: 1 в покое, меньше — сразу после выстрела.</summary>
+        float RecoilScale(int slot)
+            => 1f - Mathf.Clamp01(_slots[slot].Recoil / Mathf.Max(1f, Config.recoilImpulse)) * 0.12f;
 
         static float Decay(float value, float rate, float dt)
             => value <= 0f ? 0f : Mathf.Max(0f, value - value * rate * dt - 0.001f);

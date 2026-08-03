@@ -45,6 +45,20 @@ namespace FrogCart.Runtime
             _dim.color = new Color(35f / 255f, 18f / 255f, 4f / 255f, 0.62f);
             _dim.raycastTarget = true;
 
+            // Затемнение обязано накрыть весь экран, а не макет.
+            //
+            // Родитель растянут по прямоугольнику 390x844 — это опорный макет, а не
+            // экран. На экране, который шире по пропорции, затемнение выходило узкой
+            // вертикальной полосой посередине, и по бокам оставалось яркое дерево.
+            // Растягиваем по родителю и добавляем по 1500 единиц во все стороны:
+            // столько не бывает ни на одном соотношении сторон.
+            var dimRect = _dim.rectTransform;
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.pivot = new Vector2(0.5f, 0.5f);
+            dimRect.offsetMin = new Vector2(-1500f, -1500f);
+            dimRect.offsetMax = new Vector2(1500f, 1500f);
+
             var card = NewImage("Card", _root, 50f, 250f, 290f, 340f);
             card.sprite = ProcSprite.Make(new ProcSprite.Rounded
             {
@@ -81,6 +95,14 @@ namespace FrogCart.Runtime
             retryIcon.sprite = ProcSprite.Arc(30, 6f, Color.white, 90f, 0f, "iconRetry");
             retryIcon.color = ProcSprite.Hex("7A4D1F");
             retryIcon.rectTransform.localEulerAngles = new Vector3(0f, 0f, -40f);
+
+            // Наконечник на конце дуги. Без него разомкнутое кольцо читается буквой
+            // «C», а не стрелкой: направление задаёт именно остриё, и на кнопке
+            // в 30 пикселей это единственное, что отличает «повторить» от значка.
+            var retryHead = NewChild("Head", _retryButton, 13f, 13f, new Vector2(11f, 7f));
+            retryHead.sprite = ProcSprite.Triangle(13, 13, Color.white, "iconRetryHead");
+            retryHead.color = ProcSprite.Hex("7A4D1F");
+            retryHead.rectTransform.localEulerAngles = new Vector3(0f, 0f, 118f);
 
             _resumeButton = NewRoundButton(_card, 46f, -112f, ProcSprite.Hex("8FE05A"),
                                            ProcSprite.Hex("4FAE2C"), onResume);
@@ -119,9 +141,15 @@ namespace FrogCart.Runtime
 
             _heroMouth = NewChild("Mouth", rt, 44f, 22f, new Vector2(0f, -18f)).rectTransform;
 
+            // Знак запрета с белой обводкой.
+            //
+            // Без обводки он был красным кружком на красной голове — а герой на
+            // поражении именно красный, цвет 2. На кадре от него оставался один
+            // белый штрих, висящий сбоку от рта непонятно чем. Обводка отделяет
+            // значок от головы любого цвета, а не только этого.
             _banBadge = NewChild("Ban", rt, 38f, 38f, new Vector2(34f, -24f));
             _banBadge.sprite = ProcSprite.Circle(38, ProcSprite.Hex("FF5B4E"), ProcSprite.Hex("C9261C"),
-                                                 0f, Color.clear, "banBadge");
+                                                 3f, Color.white, "banBadge");
 
             var slash = NewChild("Slash", _banBadge.rectTransform, 20f, 5f, Vector2.zero);
             slash.sprite = ProcSprite.White();

@@ -313,9 +313,9 @@ namespace FrogCart.Runtime
             // Полотно под рельсами: куски шире шага и потому смыкаются в сплошную
             // ленту. Без него между шпалами просвечивал стол.
             //
-            // Сужено с 38 до 26 и осветлено. Широкий тёмный контур обводил доску
-            // жирной рамой и спорил с картинкой за внимание; на референсе вокруг
-            // карточки чистое дерево. Дорога должна читаться дорогой, а не рамкой.
+            // Полотно 48 в ширину: под колею вагонетки, у которой колёса разведены
+            // на +-20. Прежние 26 были подобраны под узкую колею, и вагонетка
+            // свисала с полотна обоими бортами.
             var bedMesh = ProcMesh.RoundedBox(Space3D.Size(9f), Space3D.Size(2f),
                                               Space3D.Size(48f), Space3D.Size(1f), "railBed3D");
             var bedMaterial = ProcMesh.Glossy(ProcSprite.Hex("B98A57"), "mat_railBed", 0.05f);
@@ -324,8 +324,12 @@ namespace FrogCart.Runtime
                                                   Space3D.Size(42f), Space3D.Size(1f), "sleeper3D");
             var sleeperMaterial = ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_sleeper", 0.1f);
 
-            var railMesh = ProcMesh.RoundedBox(Space3D.Size(3f), Space3D.Size(3f),
-                                               Space3D.Size(3f), Space3D.Size(1f), "railPiece3D");
+            // Кусок нити длиннее шага раскладки: 8 против 6. При длине 3 куски не
+            // смыкались, между ними оставался просвет в половину шага, и нить
+            // читалась пунктиром, а не рельсом. На узкой колее это терялось,
+            // на широкой стало видно.
+            var railMesh = ProcMesh.RoundedBox(Space3D.Size(8f), Space3D.Size(3f),
+                                               Space3D.Size(3.5f), Space3D.Size(1f), "railPiece3D");
             var railMaterial = ProcMesh.Metal(ProcSprite.Hex("CFD6DA"), "mat_rail");
 
             const float step = 6f;
@@ -347,7 +351,7 @@ namespace FrogCart.Runtime
                     sleeper.transform.rotation = rotation;
                 }
 
-                // Две нити: смещение поперёк пути на ±8 в spec-единицах.
+                // Две нити: смещение поперёк пути на ±20 — это колея вагонетки.
                 foreach (float offset in new[] { -20f, 20f })
                 {
                     var ar = angle * Mathf.Deg2Rad;
@@ -461,11 +465,13 @@ namespace FrogCart.Runtime
 
             var flashGo = new GameObject("Flash", typeof(RectTransform), typeof(Image));
             flashGo.transform.SetParent(rt, false);
+            // Вспышка победы, как и затемнение панели, накрывает весь экран, а не
+            // прямоугольник макета 390x844: на широком экране она была бы полосой.
             var flashRt = (RectTransform)flashGo.transform;
             flashRt.anchorMin = Vector2.zero;
             flashRt.anchorMax = Vector2.one;
-            flashRt.offsetMin = Vector2.zero;
-            flashRt.offsetMax = Vector2.zero;
+            flashRt.offsetMin = new Vector2(-1500f, -1500f);
+            flashRt.offsetMax = new Vector2(1500f, 1500f);
 
             flash = flashGo.GetComponent<Image>();
             flash.sprite = ProcSprite.White();

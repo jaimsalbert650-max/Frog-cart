@@ -137,13 +137,30 @@ namespace FrogCart.Runtime
 
         void FrameWorld()
         {
-            // Наклон 38, а не 50. На крупных кирпичах завал был незаметен, на
-            // пиксель-арте 35x35 он съедал рисунок: дальние ряды сжимались вдвое,
-            // и картинка читалась трапецией. Объём при этом никуда не делся.
-            const float Tilt = 38f;
-            const float Margin = 0.03f;   // доля кадра, оставленная по краям
+            // Наклон 58.
+            //
+            // Раньше здесь стояло 38 с объяснением «дальние ряды сжимались вдвое».
+            // Объяснение было неверным, и правка сделала хуже: доска лежит в плоскости
+            // XZ, поэтому её высота на экране идёт как sin(наклона). При 38 это 0.62,
+            // то есть квадратная картинка 45x41 превращалась в приплюснутую ленту.
+            // При 58 — 0.85, и клетка снова читается квадратом.
+            //
+            // Выше 58 не поднимаю: при почти отвесном взгляде пропадают лица жаб и
+            // объём вагонеток, ради которых сцена и объёмная.
+            const float Tilt = 58f;
+            // Поле 5%, а не 3%: сверху лежит планка HUD, и содержимое, вплотную
+            // подведённое к краю, уезжало под неё.
+            const float Margin = 0.05f;
 
             Vector3 center = Space3D.ToWorld((WorldMin + WorldMax) * 0.5f);
+
+            // Восемь точек, а не четыре: у области есть высота.
+            //
+            // Раньше вписывались только углы на уровне земли, и при пологом наклоне
+            // запаса хватало случайно. На 58° запас кончился, и первым вылезло то,
+            // что выше всего, — таблички счётчиков на высоте 98. У чёрной вагонетки
+            // табличка ушла под HUD, у синей срезалась верхним краем экрана.
+            float top = Space3D.Size(112f);
 
             var corners = new[]
             {
@@ -151,6 +168,11 @@ namespace FrogCart.Runtime
                 Space3D.ToWorld(WorldMax.x, WorldMin.y),
                 Space3D.ToWorld(WorldMin.x, WorldMax.y),
                 Space3D.ToWorld(WorldMax.x, WorldMax.y),
+
+                Space3D.ToWorld(WorldMin.x, WorldMin.y, top),
+                Space3D.ToWorld(WorldMax.x, WorldMin.y, top),
+                Space3D.ToWorld(WorldMin.x, WorldMax.y, top),
+                Space3D.ToWorld(WorldMax.x, WorldMax.y, top),
             };
 
             _camera.transform.rotation = Quaternion.Euler(Tilt, 0f, 0f);
@@ -161,6 +183,7 @@ namespace FrogCart.Runtime
             for (int step = 0; step < 400; step++)
             {
                 _camera.transform.position = center + back * distance;
+                CenterVertically(corners, distance);
 
                 if (AllCornersVisible(corners, Margin)) return;
 
@@ -168,6 +191,48 @@ namespace FrogCart.Runtime
             }
 
             Debug.LogWarning("[Game3D] Не удалось вписать сцену в кадр — окно слишком узкое.");
+        }
+
+        /// <summary>
+        /// Сдвинуть камеру так, чтобы область встала по центру кадра **по проекции**,
+        /// а не по геометрии.
+        ///
+        /// Наводка на геометрический центр верна только для отвесного взгляда. При
+        /// наклоне ближняя половина области занимает на экране заметно больше места,
+        /// чем дальняя, поэтому картинка уезжает вверх: на наклоне 58° под доской
+        /// оставалась пустая треть кадра, и камера отходила дальше, чем нужно, лишь
+        /// бы уместить съехавший верх.
+        ///
+        /// Считается по спроецированным углам: берётся середина их вертикального
+        /// разброса и камера сдвигается вдоль своего «вверх» на разницу с серединой
+        /// кадра. Пересчёт мира в доли кадра — через высоту усечённой пирамиды на
+        /// текущем расстоянии.
+        /// </summary>
+        void CenterVertically(Vector3[] corners, float distance)
+        {
+            float worldHeight = 2f * distance * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+
+            // Пары шагов хватает: сдвиг камеры почти не меняет сам разброс,
+            // меняется только его положение в кадре.
+            for (int pass = 0; pass < 2; pass++)
+            {
+                float min = float.MaxValue;
+                float max = float.MinValue;
+
+                foreach (var corner in corners)
+                {
+                    Vector3 viewport = _camera.WorldToViewportPoint(corner);
+                    if (viewport.z <= 0f) return;   // угол за спиной — сдвигать бессмысленно
+
+                    if (viewport.y < min) min = viewport.y;
+                    if (viewport.y > max) max = viewport.y;
+                }
+
+                float error = 0.5f - (min + max) * 0.5f;
+                if (Mathf.Abs(error) < 0.002f) return;
+
+                _camera.transform.position -= _camera.transform.up * (error * worldHeight);
+            }
         }
 
         bool AllCornersVisible(Vector3[] corners, float margin)

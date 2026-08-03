@@ -53,6 +53,9 @@ namespace FrogCart.Runtime
         /// <summary>Картинка уровня после обрезки пустых полей. Именно она на доске.</summary>
         string[] _rows;
 
+        /// <summary>Прочность и скрытость клеток — механики, взятые из оригинала.</summary>
+        CellLayers _layers;
+
         /// <summary>
         /// Картинка после обрезки. Открыта наружу, потому что координаты клетки на
         /// доске больше не совпадают с координатами в ассете уровня, и тестам нужен
@@ -95,7 +98,16 @@ namespace FrogCart.Runtime
             // Картинка обрезается по своим же границам: в данных уровня вокруг
             // рисунка обычно остаются пустые ряды и столбцы, и на доске он лежал
             // бы в углу большого пустого листа.
-            _rows = LevelCrop.Trim(Level.Rows);
+            //
+            // Окно считается один раз по картинке и применяется ко всем слоям:
+            // у слоя прочности своя форма, и посчитай его границы отдельно —
+            // слои разъехались бы относительно картинки на пару клеток.
+            var window = LevelCrop.Measure(Level.Rows);
+            _rows = LevelCrop.Apply(Level.Rows, window);
+
+            _layers = CellLayers.Build(_rows,
+                LevelCrop.Apply(Level.HpRows, window),
+                LevelCrop.Apply(Level.HiddenRows, window));
 
             _grid = GridModel.FromRows(_rows);
             _exposure = new Exposure(_grid);
@@ -130,7 +142,15 @@ namespace FrogCart.Runtime
 
             for (int r = 0; r < Grid.Rows; r++)
             for (int c = 0; c < Grid.Cols; c++)
+            {
                 Grid.SetCell(r, c, _grid.Get(r, c));
+                Grid.SetCellArmour(r, c, _layers.Hp(r, c));
+                Grid.SetCellHidden(r, c, _layers.IsHidden(r, c));
+            }
+
+            // Скрытые клетки, оказавшиеся у края с самого начала, открываются сразу:
+            // прятать то, до чего язык дотягивается первым же ходом, бессмысленно.
+            RevealExposedCells();
 
             Queue.Rebuild(_queue, _queueIndex);
             Confetti.StopAndHide();
@@ -144,6 +164,35 @@ namespace FrogCart.Runtime
 
             // Один раз через 0.4 c после старта — проверка заведомо непроходимого уровня.
             StartCoroutine(DelayedStartLoseCheck());
+        }
+
+        /// <summary>
+        /// Открыть скрытые клетки, до которых язык теперь дотягивается.
+        ///
+        /// В оригинале скрытый пиксель показывает цвет, когда становится достижим —
+        /// это и есть смысл механики: игрок не может планировать наперёд ту часть
+        /// картинки, до которой ещё не добрался.
+        ///
+        /// Проход по всей доске, а не по соседям снятой клетки: снятие одного блока
+        /// иногда вскрывает целый карман, и скрытые клетки на его дальней стенке
+        /// тоже стали видимыми. Проход стоит четыре проверки на клетку и делается
+        /// только на уровнях, где скрытые клетки вообще есть.
+        /// </summary>
+        void RevealExposedCells()
+        {
+            if (!_layers.HasHidden) return;
+
+            for (int r = 0; r < _grid.Rows; r++)
+            for (int c = 0; c < _grid.Cols; c++)
+            {
+                if (!_layers.IsHidden(r, c)) continue;
+                if (!_exposure.IsExposed(r, c)) continue;
+
+                _layers.Reveal(r, c);
+                Grid.SetCellHidden(r, c, false);
+                Grid.SetCell(r, c, _grid.Get(r, c));
+                Grid.SetCellArmour(r, c, _layers.Hp(r, c));
+            }
         }
 
         IEnumerator DelayedStartLoseCheck()
@@ -192,6 +241,16 @@ namespace FrogCart.Runtime
                 return false;
             }
 
+            // По скрытой клетке жаба не бьёт: цвет ещё не известен, значит и вагонетку
+            // выбрать нельзя. На деле сюда почти не попадают — скрытая клетка
+            // открывается ровно в тот момент, когда выходит наружу, — но правило нужно
+            // как страховка, если порядок вызовов когда-нибудь поменяется.
+            if (_layers.IsHidden(r, c))
+            {
+                Grid.Wobble(r, c, Config.wobbleDuration);
+                return false;
+            }
+
             Vector2 target = Grid.CellCenter(r, c);
             int slot = FindNearestCart(color, target);
 
@@ -216,13 +275,24 @@ namespace FrogCart.Runtime
             Tongues[slot].Fire(target, SideFor(Frogs[slot].MouthSpecPos, target),
                                Config.tongueOut, Config.tongueBack);
 
-            _eaten++;
-            Hud.SetProgress(_eaten / (float)_total, instant: false);
+            // Прочную клетку язык за раз не уносит. Ёмкость вагонетки тратится на
+            // каждый удар, а прогресс двигается только когда блок действительно
+            // исчезнет — иначе полоса дошла бы до конца при целой картинке.
+            //
+            // Проверять прочность можно прямо здесь, до попадания языка: пока клетка
+            // в _reserved, второй удар по ней не пройдёт, и значение не изменится.
+            bool willBreak = _layers.Hp(r, c) <= 1;
 
-            if (_eaten % Config.shakeEvery == 0)
+            if (willBreak)
             {
-                Shake.Shake(Config.shakeDuration);
-                if (Config.vibrate) Vibrate();
+                _eaten++;
+                Hud.SetProgress(_eaten / (float)_total, instant: false);
+
+                if (_eaten % Config.shakeEvery == 0)
+                {
+                    Shake.Shake(Config.shakeDuration);
+                    if (Config.vibrate) Vibrate();
+                }
             }
 
             StartCoroutine(RemoveBlockWhenTongueArrives(r, c, key, color, slot));
@@ -244,15 +314,32 @@ namespace FrogCart.Runtime
         {
             yield return new WaitForSecondsRealtime(Config.tongueOut);
 
-            _grid.Clear(r, c);
-            Grid.SetCell(r, c, 0);
+            bool broken = _layers.Damage(r, c);
+
             _reserved.Remove(key);
             _reservedPerColor[color]--;
-
-            // Убрали блок — открылось то, что было за ним.
-            _exposure.Recompute();
-
             _slots[slot].Squash = 1f;
+
+            if (!broken)
+            {
+                // Клетка выстояла: она осталась на месте, картинка не изменилась,
+                // проходимость тоже. Показываем только новую прочность.
+                Grid.SetCellArmour(r, c, _layers.Hp(r, c));
+                Grid.Wobble(r, c, Config.wobbleDuration);
+
+                if (State == GameState.Play) CheckLose();
+                yield break;
+            }
+
+            _grid.Clear(r, c);
+            Grid.SetCell(r, c, 0);
+
+            // Убрали блок — открылось то, что было за ним. Дозаливка от этой клетки,
+            // а не полный пересчёт: на доске 35x35 полная заливка после каждого хода
+            // давала больше миллиона проходов на партию.
+            _exposure.OnCleared(r, c);
+
+            RevealExposedCells();
 
             // Проверка Exiting обязательна. Счётчик уменьшается в момент тапа, а сюда
             // управление приходит 0.20 c спустя. Два блока, съеденные подряд быстрее

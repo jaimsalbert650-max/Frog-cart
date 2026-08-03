@@ -20,6 +20,13 @@ namespace FrogCart.Runtime
         Vector2 CellCenter(int r, int c);
 
         void SetCell(int r, int c, int colorId);
+
+        /// <summary>Прочность клетки: 1 — обычная, больше — её надо пробивать.</summary>
+        void SetCellArmour(int r, int c, int hp);
+
+        /// <summary>Скрытая клетка показывает не свой цвет, а заглушку.</summary>
+        void SetCellHidden(int r, int c, bool hidden);
+
         void Wobble(int r, int c, float duration);
         void ShowSilhouette(string[] rows, bool visible);
     }

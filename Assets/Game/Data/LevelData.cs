@@ -15,8 +15,14 @@ namespace FrogCart.Data
 
         [SerializeField] int levelNumber = 1;
 
-        [Tooltip("16 строк по 14 символов; цифра — индекс цвета, 0 — пусто")]
+        [Tooltip("Строки картинки; цифра — индекс цвета, 0 — пусто")]
         [SerializeField] string[] rows;
+
+        [Tooltip("Прочность клетки той же формы, что картинка. Пусто — везде 1")]
+        [SerializeField] string[] hpRows;
+
+        [Tooltip("Скрытые клетки: 1 — цвет не показан, пока не откроется. Пусто — нет таких")]
+        [SerializeField] string[] hiddenRows;
 
         [Tooltip("Вагонетки на контуре, слоты 0..4")]
         [SerializeField] CartDef[] loopCarts = new CartDef[5];
@@ -26,6 +32,13 @@ namespace FrogCart.Data
 
         public int LevelNumber => levelNumber;
         public string[] Rows => rows;
+
+        /// <summary>Слой прочности. Может быть пустым — тогда прочность везде 1.</summary>
+        public string[] HpRows => hpRows;
+
+        /// <summary>Слой скрытости. Может быть пустым — тогда скрытых клеток нет.</summary>
+        public string[] HiddenRows => hiddenRows;
+
         public CartDef[] LoopCarts => loopCarts;
         public CartDef[] Queue => queue;
 
@@ -35,6 +48,13 @@ namespace FrogCart.Data
             rows = levelRows;
             loopCarts = loop;
             queue = queueDefs;
+        }
+
+        /// <summary>Заполнение вместе со слоями механик.</summary>
+        public void FillLayers(string[] hp, string[] hidden)
+        {
+            hpRows = hp;
+            hiddenRows = hidden;
         }
     }
 }

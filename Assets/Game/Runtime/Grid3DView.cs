@@ -39,7 +39,16 @@ namespace FrogCart.Runtime
 
         Transform[,] _blocks;
         MeshRenderer[,] _renderers;
+
+        // Состояние клетки держится здесь, а не вычитывается из сцены: цвет,
+        // прочность и скрытость приходят тремя независимыми вызовами, и каждому
+        // нужны остальные два, чтобы собрать итоговый вид.
+        int[,] _colors;
+        int[,] _hp;
+        bool[,] _hidden;
+
         Material[] _materials;
+        Material _hiddenMaterial;
         Mesh _blockMesh;
         float _blockHeight;
 
@@ -70,6 +79,9 @@ namespace FrogCart.Runtime
 
             _blocks = new Transform[Rows, Cols];
             _renderers = new MeshRenderer[Rows, Cols];
+            _colors = new int[Rows, Cols];
+            _hp = new int[Rows, Cols];
+            _hidden = new bool[Rows, Cols];
 
             for (int r = 0; r < Rows; r++)
             for (int c = 0; c < Cols; c++)
@@ -159,6 +171,10 @@ namespace FrogCart.Runtime
             _blockMesh = ProcMesh.RoundedBox(w, _blockHeight, d, Mathf.Min(w, d) * 0.18f,
                                              $"block{Rows}x{Cols}", topScale: 0.86f);
 
+            // Заглушка для скрытой клетки: нейтральный серый, который не спутать
+            // ни с одним цветом палитры.
+            _hiddenMaterial = ProcMesh.Glossy(ProcSprite.Hex("9AA1A8"), "mat_blockHidden", 0.08f);
+
             _materials = new Material[GridModel.MaxColor + 1];
             for (int color = 1; color <= _palette.Count && color <= GridModel.MaxColor; color++)
                 _materials[color] = ProcMesh.Glossy(_palette.Get(color).baseColor, $"mat_block{color}", 0.06f);
@@ -171,13 +187,59 @@ namespace FrogCart.Runtime
             if (colorId <= 0 || colorId >= _materials.Length || _materials[colorId] == null)
             {
                 block.gameObject.SetActive(false);
+                _colors[r, c] = 0;
                 return;
             }
 
             block.gameObject.SetActive(true);
-            block.localScale = Vector3.one;
             block.localRotation = Quaternion.identity;
-            _renderers[r, c].sharedMaterial = _materials[colorId];
+            _colors[r, c] = colorId;
+
+            ApplySkin(r, c);
+        }
+
+        /// <summary>
+        /// Прочная клетка выше обычной, и с каждым ударом оседает.
+        ///
+        /// Высота выбрана вместо трещин и цифр намеренно: на клетке в восемь единиц
+        /// ни текст, ни узор не читаются, а разницу в высоте видно с любого края
+        /// доски и без подписи. Заодно сразу понятно, сколько ударов осталось.
+        /// </summary>
+        public void SetCellArmour(int r, int c, int hp)
+        {
+            _hp[r, c] = hp;
+            if (_colors[r, c] != 0 || _hidden[r, c]) ApplySkin(r, c);
+        }
+
+        public void SetCellHidden(int r, int c, bool hidden)
+        {
+            _hidden[r, c] = hidden;
+
+            if (hidden)
+            {
+                _blocks[r, c].gameObject.SetActive(true);
+                _blocks[r, c].localRotation = Quaternion.identity;
+            }
+
+            ApplySkin(r, c);
+        }
+
+        void ApplySkin(int r, int c)
+        {
+            var block = _blocks[r, c];
+            if (!block.gameObject.activeSelf) return;
+
+            // Скрытая клетка серая: цвет не показываем, но саму клетку — обязательно,
+            // иначе в картинке зияла бы дыра и игрок счёл бы её пустой.
+            _renderers[r, c].sharedMaterial = _hidden[r, c]
+                ? _hiddenMaterial
+                : _materials[_colors[r, c]];
+
+            // Прибавка 0.28 на жизнь, а не 0.55: при 0.55 клетка в девять жизней
+            // вырастала в пять с половиной раз, отбрасывала тень на полдоски и
+            // читалась башней, а не толстым блоком.
+            float armour = Mathf.Max(1, _hp[r, c]);
+            block.localScale = new Vector3(1f, 1f + (armour - 1f) * 0.28f, 1f);
         }
 
         /// <summary>Отказ: блок подпрыгивает и качается, оставаясь на месте.</summary>

@@ -34,6 +34,9 @@ namespace FrogCart.Runtime
 
         Image[,] _blocks;
         Sprite _socketSprite;
+        int[,] _colors;
+        int[,] _hp;
+        bool[,] _hidden;
         Sprite[] _blockSprites;
 
         public int Rows { get; private set; }
@@ -61,6 +64,9 @@ namespace FrogCart.Runtime
             BuildSprites();
 
             _blocks = new Image[Rows, Cols];
+            _colors = new int[Rows, Cols];
+            _hp = new int[Rows, Cols];
+            _hidden = new bool[Rows, Cols];
 
             float blockW = CellW - 2f;
             float blockH = CellH - 2f;
@@ -166,10 +172,45 @@ namespace FrogCart.Runtime
 
             block.enabled = true;
             block.sprite = _blockSprites[colorId];
-            block.color = Color.white;
+            block.color = _hidden[r, c] ? HiddenTint : Color.white;
             ((RectTransform)block.transform).localScale = Vector3.one;
             ((RectTransform)block.transform).localEulerAngles = Vector3.zero;
+            _colors[r, c] = colorId;
         }
+
+        /// <summary>
+        /// Прочность на плоской доске показывается яркостью, а не высотой: высоты
+        /// здесь нет. Чем больше ударов осталось, тем темнее клетка.
+        /// </summary>
+        public void SetCellArmour(int r, int c, int hp)
+        {
+            _hp[r, c] = hp;
+            ApplyTint(r, c);
+        }
+
+        public void SetCellHidden(int r, int c, bool hidden)
+        {
+            _hidden[r, c] = hidden;
+            ApplyTint(r, c);
+        }
+
+        void ApplyTint(int r, int c)
+        {
+            var block = _blocks[r, c];
+            if (!block.enabled) return;
+
+            if (_hidden[r, c])
+            {
+                block.color = HiddenTint;
+                return;
+            }
+
+            float armour = Mathf.Max(1, _hp[r, c]);
+            float shade = Mathf.Clamp01(1f - (armour - 1f) * 0.09f);
+            block.color = new Color(shade, shade, shade, 1f);
+        }
+
+        static readonly Color HiddenTint = new Color(0.62f, 0.65f, 0.68f, 1f);
 
         /// <summary>
         /// Негативное дрожание: тап по цвету, для которого нет вагонетки на контуре,

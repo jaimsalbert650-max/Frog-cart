@@ -14,17 +14,26 @@ namespace FrogCart.Core
     /// </summary>
     public static class LevelCrop
     {
-        /// <summary>
-        /// Тот же рисунок без пустых полей по краям.
-        ///
-        /// Возвращает исходный массив, если обрезать нечего или если рисунка нет
-        /// вовсе: пустая сетка — это испорченные данные уровня, и превращать её
-        /// в массив нулевого размера значит уронить игру дальше по цепочке, вместо
-        /// того чтобы показать пустую доску.
-        /// </summary>
-        public static string[] Trim(string[] rows)
+        /// <summary>Прямоугольник, оставшийся от сетки после обрезки.</summary>
+        public struct Window
         {
-            if (rows == null || rows.Length == 0) return rows;
+            public int Top, Left, Height, Width;
+
+            /// <summary>Обрезать нечего: окно совпадает с исходной сеткой.</summary>
+            public bool IsWhole;
+        }
+
+        /// <summary>
+        /// Границы рисунка. Вынесено отдельно от <see cref="Apply"/>, потому что
+        /// слоёв у уровня теперь несколько — прочность и скрытость идут такими же
+        /// строками, — и обрезать их надо ровно тем же окном. Считать окно по
+        /// каждому слою нельзя: у слоя прочности своя форма, и картинка разъехалась бы.
+        /// </summary>
+        public static Window Measure(string[] rows)
+        {
+            var window = new Window { IsWhole = true };
+
+            if (rows == null || rows.Length == 0) return window;
 
             int top = -1, bottom = -1, left = int.MaxValue, right = -1;
 
@@ -44,26 +53,45 @@ namespace FrogCart.Core
                 }
             }
 
-            if (top < 0) return rows;   // ни одного блока
+            if (top < 0) return window;   // ни одного блока
 
             int height = bottom - top + 1;
             int width = right - left + 1;
 
             if (top == 0 && left == 0 && height == rows.Length && width == rows[0].Length)
-                return rows;            // обрезать нечего
+                return window;
 
-            var cropped = new string[height];
-
-            for (int r = 0; r < height; r++)
+            return new Window
             {
-                string row = rows[top + r] ?? string.Empty;
-                var chars = new char[width];
+                Top = top,
+                Left = left,
+                Height = height,
+                Width = width,
+                IsWhole = false,
+            };
+        }
 
-                for (int c = 0; c < width; c++)
+        /// <summary>
+        /// Вырезать окно из любого слоя. Недостающие клетки добиваются нулями:
+        /// строки слоёв бывают короче картинки, и это законно — значит «по умолчанию».
+        /// </summary>
+        public static string[] Apply(string[] rows, Window window)
+        {
+            if (rows == null || rows.Length == 0 || window.IsWhole) return rows;
+
+            var cropped = new string[window.Height];
+
+            for (int r = 0; r < window.Height; r++)
+            {
+                int source = window.Top + r;
+                string row = source < rows.Length ? rows[source] ?? string.Empty : string.Empty;
+
+                var chars = new char[window.Width];
+
+                for (int c = 0; c < window.Width; c++)
                 {
-                    int source = left + c;
-                    // Строки уровня бывают короче остальных: недостающие клетки — пустые.
-                    chars[c] = source < row.Length ? row[source] : '0';
+                    int index = window.Left + c;
+                    chars[c] = index < row.Length ? row[index] : '0';
                 }
 
                 cropped[r] = new string(chars);
@@ -71,5 +99,15 @@ namespace FrogCart.Core
 
             return cropped;
         }
+
+        /// <summary>
+        /// Тот же рисунок без пустых полей по краям.
+        ///
+        /// Возвращает исходный массив, если обрезать нечего или если рисунка нет
+        /// вовсе: пустая сетка — это испорченные данные уровня, и превращать её
+        /// в массив нулевого размера значит уронить игру дальше по цепочке, вместо
+        /// того чтобы показать пустую доску.
+        /// </summary>
+        public static string[] Trim(string[] rows) => Apply(rows, Measure(rows));
     }
 }

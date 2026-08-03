@@ -15,7 +15,7 @@ using FrogCart.Data;
 /// </summary>
 public static class LevelImageImporter
 {
-    const string PalettePath = "Assets/Game/Data/Palette.asset";
+    static string PalettePath => $"{FrogCartPaths.DataDir()}/Palette.asset";
 
     [MenuItem("Frog Cart/Import Level From Image %#i")]
     public static void ImportSelected()

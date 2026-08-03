@@ -11,54 +11,10 @@ using FrogCart.Runtime;
 /// </summary>
 public static class Scene3DSetup
 {
-    /// <summary>
-    /// Пути ищутся, а не задаются константами.
-    ///
-    /// Этот файл живёт в двух проектах сразу: в «Frog Cart», где игра лежит прямо
-    /// в `Assets/Game`, и в справочном «pixel Puzzles», где она целиком убрана
-    /// в `Assets/_FrogCart`. Константы верны ровно для одного из них, и при
-    /// синхронизации файла второй молча ломался: `Build 3D Scene` падал с
-    /// «Ассеты не найдены», сцена оставалась старой, а выглядело это так, будто
-    /// правки кода не действуют.
-    ///
-    /// Опорная точка — сам ассет конфига: он в проекте один, и по его папке
-    /// восстанавливается вся раскладка.
-    /// </summary>
-    static string DataDir()
-    {
-        foreach (string guid in AssetDatabase.FindAssets("t:GameConfig"))
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (AssetDatabase.LoadAssetAtPath<GameConfig>(path) == null) continue;
-
-            return Path.GetDirectoryName(path).Replace('\\', '/');
-        }
-
-        return "Assets/Game/Data";
-    }
-
-    /// <summary>
-    /// Путь объёмной сцены. Если рядом уже лежит сцена с «3D» в имени — пишем
-    /// в неё, а не заводим вторую: у пользователя открыта именно она, и новый
-    /// файл рядом означал бы, что он продолжает смотреть на старую.
-    /// </summary>
-    static string ScenePath()
-    {
-        // DataDir — это <корень>/Game/Data, значит корень на два уровня выше.
-        string root = Path.GetDirectoryName(Path.GetDirectoryName(DataDir())).Replace('\\', '/');
-        string sceneDir = $"{root}/Scenes";
-
-        if (AssetDatabase.IsValidFolder(sceneDir))
-        {
-            foreach (string guid in AssetDatabase.FindAssets("t:Scene", new[] { sceneDir }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (Path.GetFileNameWithoutExtension(path).Contains("3D")) return path;
-            }
-        }
-
-        return $"{sceneDir}/Game3D.unity";
-    }
+    // Пути берутся из FrogCartPaths: они одинаковы для всех редакторных
+    // скриптов, и держать их копию в каждом — верный способ разойтись.
+    static string DataDir() => FrogCartPaths.DataDir();
+    static string ScenePath() => FrogCartPaths.Scene3D();
 
     /// <summary>
     /// Standard создаётся кодом через Shader.Find, а в билде такие шейдеры вырезаются:

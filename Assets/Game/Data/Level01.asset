@@ -30,25 +30,47 @@ MonoBehaviour:
   - 00000111100000
   - 00000111100000
   - 00000000000000
+  hpRows: []
+  hiddenRows: []
   loopCarts:
   - colorId: 1
     capacity: 5
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 3
     capacity: 50
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 2
     capacity: 28
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 4
     capacity: 24
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 5
     capacity: 2
+    frozenCount: 0
+    linkGroup: 0
   queue:
   - colorId: 1
     capacity: 8
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 2
     capacity: 4
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 4
     capacity: 6
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 1
     capacity: 6
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 3
     capacity: 8
+    frozenCount: 0
+    linkGroup: 0

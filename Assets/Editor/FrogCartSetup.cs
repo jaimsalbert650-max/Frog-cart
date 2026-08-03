@@ -14,9 +14,32 @@ using FrogCart.Runtime;
 /// </summary>
 public static class FrogCartSetup
 {
-    const string DataDir = "Assets/Game/Data";
-    const string SceneDir = "Assets/Scenes";
-    const string ScenePath = SceneDir + "/Game.unity";
+    // Пути через FrogCartPaths: жёсткие константы верны только для одной
+    // раскладки и молча ломают вторую при синхронизации файла между проектами.
+    static string DataDir => FrogCartPaths.DataDir();
+    static string SceneDir => $"{FrogCartPaths.Root()}/Scenes";
+
+    /// <summary>
+    /// Плоская сцена. Если рядом уже лежит сцена без «3D» в имени — пишем в неё,
+    /// чтобы не заводить вторую рядом с той, что открыта у пользователя.
+    /// </summary>
+    static string ScenePath
+    {
+        get
+        {
+            if (AssetDatabase.IsValidFolder(SceneDir))
+            {
+                foreach (string guid in AssetDatabase.FindAssets("t:Scene", new[] { SceneDir }))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (!System.IO.Path.GetFileNameWithoutExtension(path).Contains("3D"))
+                        return path;
+                }
+            }
+
+            return $"{SceneDir}/Game.unity";
+        }
+    }
 
     // Уровень 1 «воздушный шар» — docs/unity-spec/03-level-data.md, дословно.
     static readonly string[] Level1Rows =

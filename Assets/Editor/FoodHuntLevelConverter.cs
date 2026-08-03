@@ -21,7 +21,7 @@ public static class FoodHuntLevelConverter
     const string SourceAsset =
         @"D:\Unity Projects\pixel Puzzles\Assets\_LevelViewer\Resources\Levels\Level_0087.asset";
 
-    const string OutputPath = "Assets/Game/Data/Level0087.asset";
+
 
     [MenuItem("Frog Cart/Convert Food Hunt Level 87")]
     public static void Convert()
@@ -117,13 +117,13 @@ public static class FoodHuntLevelConverter
         var level = ScriptableObject.CreateInstance<LevelData>();
         level.Fill(87, rows, loop.ToArray(), queue.ToArray());
 
-        if (AssetDatabase.LoadAssetAtPath<LevelData>(OutputPath) != null)
-            AssetDatabase.DeleteAsset(OutputPath);
+        if (AssetDatabase.LoadAssetAtPath<LevelData>($"{FrogCartPaths.DataDir()}/Level0087.asset") != null)
+            AssetDatabase.DeleteAsset($"{FrogCartPaths.DataDir()}/Level0087.asset");
 
-        AssetDatabase.CreateAsset(level, OutputPath);
+        AssetDatabase.CreateAsset(level, $"{FrogCartPaths.DataDir()}/Level0087.asset");
         AssetDatabase.SaveAssets();
 
-        Debug.Log($"[FoodHunt] Сохранено: {OutputPath}. На контуре {loop.Count}, в очереди {queue.Count}.");
+        Debug.Log($"[FoodHunt] Сохранено: {$"{FrogCartPaths.DataDir()}/Level0087.asset"}. На контуре {loop.Count}, в очереди {queue.Count}.");
     }
 
     static int ReadInt(string text, string field)

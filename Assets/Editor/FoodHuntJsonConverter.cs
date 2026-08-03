@@ -26,7 +26,7 @@ public static class FoodHuntJsonConverter
     const string JsonDir =
         @"D:\Unity Projects\pixel Puzzles\_reverse\extracted\levels_json";
 
-    const string OutputDir = "Assets/Game/Data";
+
 
     /// <summary>
     /// Уровень 106 выбран не случайно: в нём есть обе механики сразу —
@@ -257,7 +257,7 @@ public static class FoodHuntJsonConverter
         level.Fill(levelId, picture, loop.ToArray(), queue.ToArray());
         level.FillLayers(hpRows, hiddenRows);
 
-        string output = $"{OutputDir}/Level{levelId:0000}.asset";
+        string output = $"{FrogCartPaths.DataDir()}/Level{levelId:0000}.asset";
 
         if (AssetDatabase.LoadAssetAtPath<LevelData>(output) != null)
             AssetDatabase.DeleteAsset(output);

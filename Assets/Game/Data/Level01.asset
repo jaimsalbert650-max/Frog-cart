@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7491263f5b5340d4bbd168cdadd8e8de, type: 3}
+  m_Name: Level01
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData
+  levelNumber: 1
+  rows:
+  - 00000055000000
+  - 00000322300000
+  - 00034322343000
+  - 00234322343200
+  - 00234322343200
+  - 00234322343200
+  - 00234322343200
+  - 00034322343000
+  - 00004322340000
+  - 00000322300000
+  - 00000022000000
+  - 00000100100000
+  - 00000111100000
+  - 00000111100000
+  - 00000111100000
+  - 00000000000000
+  loopCarts:
+  - colorId: 1
+    capacity: 5
+  - colorId: 3
+    capacity: 50
+  - colorId: 2
+    capacity: 28
+  - colorId: 4
+    capacity: 24
+  - colorId: 5
+    capacity: 2
+  queue:
+  - colorId: 1
+    capacity: 8
+  - colorId: 2
+    capacity: 4
+  - colorId: 4
+    capacity: 6
+  - colorId: 1
+    capacity: 6
+  - colorId: 3
+    capacity: 8

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 649538aea84fada42917c5aa182c4e03, type: 3}
+  m_Name: Config
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig
+  railSpeed: 19
+  chainDelay: 0.09
+  shakeEvery: 10
+  vibrate: 1
+  tongueOut: 0.2
+  tongueBack: 0.13
+  squashDecay: 9
+  recoilDecay: 11
+  recoilImpulse: 9
+  cartExit: 0.34
+  cartEnter: 0.3
+  emptyToExit: 0.38
+  exitToDock: 0.34
+  queueShift: 0.3
+  winDelay: 0.26
+  loseDelay: 0.34
+  startLoseCheckDelay: 0.4
+  winFlash: 0.5
+  winSilhouette: 1.2
+  winPanelDelay: 1.1
+  shakeDuration: 0.28
+  wobbleDuration: 0.34
+  numberPop: 0.22
+  panelAppear: 0.3
+  progressTween: 0.18

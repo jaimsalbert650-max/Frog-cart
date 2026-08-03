@@ -1,0 +1,258 @@
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+using FrogCart.Data;
+
+namespace FrogCart.Runtime
+{
+    /// <summary>
+    /// Одна панель, три состояния: победа, поражение, пауза.
+    /// В панелях нет текста — только иконки (docs/unity-spec/02-art.md, 07-checklist.md).
+    /// </summary>
+    public sealed class PanelView : MonoBehaviour
+    {
+        RectTransform _root;
+        RectTransform _card;
+        Image _dim;
+        Image[] _stars;
+        Image _heroHead;
+        RectTransform _heroMouth;
+        RectTransform _heroPupilL, _heroPupilR;
+        Image _banBadge;
+        RectTransform _resumeButton;
+        Tweener _tween;
+        ColorPalette _palette;
+
+        float _bobPhase;
+
+        public void Build(RectTransform parent, ColorPalette palette, Tweener tween,
+                          Action onRetry, Action onResume)
+        {
+            _palette = palette;
+            _tween = tween;
+
+            var go = new GameObject("PanelLayer", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            _root = (RectTransform)go.transform;
+            _root.anchorMin = Vector2.zero;
+            _root.anchorMax = Vector2.one;
+            _root.offsetMin = Vector2.zero;
+            _root.offsetMax = Vector2.zero;
+
+            _dim = NewImage("Dim", _root, 0f, 0f, 390f, 844f);
+            _dim.sprite = ProcSprite.White();
+            _dim.color = new Color(35f / 255f, 18f / 255f, 4f / 255f, 0.62f);
+            _dim.raycastTarget = true;
+
+            var card = NewImage("Card", _root, 50f, 250f, 290f, 340f);
+            card.sprite = ProcSprite.Make(new ProcSprite.Rounded
+            {
+                w = 290, h = 340,
+                radii = new Vector4(30f, 30f, 30f, 30f),
+                gradientAngleDeg = 180f,
+                c0 = ProcSprite.Hex("FDF5E2"),
+                c1 = ProcSprite.Hex("F7EACE"),
+                c2 = ProcSprite.Hex("F0DFBA"),
+                midStop = 0.5f,
+                insetBottom = 10f,
+                insetBottomColor = new Color(90f / 255f, 54f / 255f, 20f / 255f, 0.5f),
+                key = "panelCard",
+            });
+            _card = card.rectTransform;
+            SpecRect.AnchorCenter(_card);
+            _card.anchoredPosition = new Vector2(195f, -420f);
+
+            _stars = new Image[3];
+            _stars[0] = NewStar(_card, -70f, -100f, 44f);
+            _stars[1] = NewStar(_card, 0f, -112f, 58f);
+            _stars[2] = NewStar(_card, 70f, -100f, 44f);
+
+            BuildHero();
+
+            var retry = NewRoundButton(_card, -46f, 110f, ProcSprite.Hex("FFD52E"),
+                                       ProcSprite.Hex("E9A600"), onRetry);
+            retry.name = "Retry";
+
+            _resumeButton = NewRoundButton(_card, 46f, 110f, ProcSprite.Hex("8FE05A"),
+                                           ProcSprite.Hex("4FAE2C"), onResume);
+            _resumeButton.name = "Resume";
+
+            _root.gameObject.SetActive(false);
+        }
+
+        void BuildHero()
+        {
+            var hero = new GameObject("Hero", typeof(RectTransform));
+            hero.transform.SetParent(_card, false);
+
+            var rt = (RectTransform)hero.transform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(96f, 86f);
+            rt.anchoredPosition = new Vector2(0f, 10f);
+
+            _heroHead = NewChild("Head", rt, 96f, 86f, Vector2.zero);
+
+            var eyeL = NewChild("EyeL", rt, 30f, 30f, new Vector2(-20f, 18f));
+            eyeL.sprite = ProcSprite.Circle(30, Color.white, ProcSprite.Hex("E0E4E9"), 0f, Color.clear, "heroEye");
+            _heroPupilL = NewChild("Pupil", eyeL.rectTransform, 14f, 14f, Vector2.zero).rectTransform;
+            _heroPupilL.GetComponent<Image>().sprite =
+                ProcSprite.Circle(14, ProcSprite.Hex("1D2127"), ProcSprite.Hex("1D2127"), 0f, Color.clear, "heroPupil");
+
+            var eyeR = NewChild("EyeR", rt, 30f, 30f, new Vector2(20f, 18f));
+            eyeR.sprite = ProcSprite.Circle(30, Color.white, ProcSprite.Hex("E0E4E9"), 0f, Color.clear, "heroEye");
+            _heroPupilR = NewChild("Pupil", eyeR.rectTransform, 14f, 14f, Vector2.zero).rectTransform;
+            _heroPupilR.GetComponent<Image>().sprite =
+                ProcSprite.Circle(14, ProcSprite.Hex("1D2127"), ProcSprite.Hex("1D2127"), 0f, Color.clear, "heroPupil");
+
+            _heroMouth = NewChild("Mouth", rt, 44f, 22f, new Vector2(0f, -18f)).rectTransform;
+
+            _banBadge = NewChild("Ban", rt, 38f, 38f, new Vector2(34f, -24f));
+            _banBadge.sprite = ProcSprite.Circle(38, ProcSprite.Hex("FF5B4E"), ProcSprite.Hex("C9261C"),
+                                                 0f, Color.clear, "banBadge");
+
+            var slash = NewChild("Slash", _banBadge.rectTransform, 20f, 5f, Vector2.zero);
+            slash.sprite = ProcSprite.White();
+            slash.color = Color.white;
+            slash.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
+        }
+
+        public void ShowWin()
+        {
+            Configure(gold: true, hero: 4, gazeY: -6f, mouthW: 44f, mouthH: 22f,
+                      mouthRadii: new Vector4(6f, 6f, 24f, 24f), ban: false, resume: false);
+            Appear();
+        }
+
+        public void ShowLose()
+        {
+            Configure(gold: false, hero: 2, gazeY: 5f, mouthW: 36f, mouthH: 12f,
+                      mouthRadii: new Vector4(18f, 18f, 4f, 4f), ban: true, resume: false);
+            Appear();
+        }
+
+        public void ShowPause()
+        {
+            Configure(gold: true, hero: 4, gazeY: 0f, mouthW: 40f, mouthH: 16f,
+                      mouthRadii: new Vector4(10f, 10f, 16f, 16f), ban: false, resume: true);
+            Appear();
+        }
+
+        public void Hide() => _root.gameObject.SetActive(false);
+
+        void Configure(bool gold, int hero, float gazeY, float mouthW, float mouthH,
+                       Vector4 mouthRadii, bool ban, bool resume)
+        {
+            Color starColor = gold ? ProcSprite.Hex("FFD52E") : ProcSprite.Hex("CBB78F");
+            foreach (var star in _stars) star.color = starColor;
+
+            var entry = _palette.Get(hero);
+            _heroHead.sprite = ProcSprite.Make(new ProcSprite.Rounded
+            {
+                w = 96, h = 86,
+                radii = new Vector4(46f, 46f, 36f, 36f),
+                gradientAngleDeg = 170f,
+                c0 = entry.light, c1 = entry.baseColor, c2 = entry.dark,
+                midStop = 0.55f,
+                insetTop = 6f,
+                insetTopColor = new Color(1f, 1f, 1f, 0.4f),
+                outline = 3f,
+                outlineColor = new Color(46f / 255f, 26f / 255f, 10f / 255f, 0.5f),
+                key = $"heroHead{hero}",
+            });
+
+            _heroPupilL.anchoredPosition = new Vector2(0f, -gazeY);
+            _heroPupilR.anchoredPosition = new Vector2(0f, -gazeY);
+
+            _heroMouth.sizeDelta = new Vector2(mouthW, mouthH);
+            _heroMouth.GetComponent<Image>().sprite = ProcSprite.Make(new ProcSprite.Rounded
+            {
+                w = Mathf.RoundToInt(mouthW), h = Mathf.RoundToInt(mouthH),
+                radii = mouthRadii,
+                gradientAngleDeg = 180f,
+                c0 = ProcSprite.Hex("5C2130"), c1 = ProcSprite.Hex("77293B"), c2 = ProcSprite.Hex("8D3346"),
+                midStop = 0.5f,
+                key = $"heroMouth{mouthW}x{mouthH}",
+            });
+
+            _banBadge.gameObject.SetActive(ban);
+            _resumeButton.gameObject.SetActive(resume);
+        }
+
+        void Appear()
+        {
+            _root.gameObject.SetActive(true);
+            _bobPhase = 0f;
+
+            _tween.Run(0.30f, Tweener.Overshoot,
+                       t => _card.localScale = Vector3.one * Mathf.Lerp(0.7f, 1f, t));
+        }
+
+        void Update()
+        {
+            if (!_root.gameObject.activeSelf) return;
+
+            // «Дыхание» героя: ±4 px за 1.6 c, бесконечно.
+            _bobPhase += Time.unscaledDeltaTime;
+            float bob = Mathf.Sin(_bobPhase * Mathf.PI * 2f / 1.6f) * 4f;
+            _heroHead.transform.parent.localPosition = new Vector3(0f, bob, 0f);
+        }
+
+        static Image NewStar(RectTransform parent, float x, float y, float size)
+        {
+            var star = NewChild("Star", parent, size, size, new Vector2(x, y));
+            star.sprite = ProcSprite.Make(new ProcSprite.Rounded
+            {
+                w = Mathf.RoundToInt(size), h = Mathf.RoundToInt(size),
+                radii = new Vector4(size * 0.5f, size * 0.5f, size * 0.5f, size * 0.5f),
+                gradientAngleDeg = 180f,
+                c0 = Color.white, c1 = Color.white, c2 = Color.white,
+                midStop = 0.5f,
+                key = $"star{size}",
+            });
+            return star;
+        }
+
+        static RectTransform NewRoundButton(RectTransform parent, float x, float y,
+                                            Color top, Color bottom, Action onClick)
+        {
+            var button = NewChild("Button", parent, 64f, 64f, new Vector2(x, -y + 170f));
+            button.sprite = ProcSprite.Circle(64, top, bottom, 0f, Color.clear,
+                                              $"btn{ColorUtility.ToHtmlStringRGB(top)}");
+            button.raycastTarget = true;
+
+            var component = button.gameObject.AddComponent<Button>();
+            component.targetGraphic = button;
+            component.onClick.AddListener(() => onClick?.Invoke());
+
+            return button.rectTransform;
+        }
+
+        static Image NewImage(string name, RectTransform parent, float x, float y, float w, float h)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            SpecRect.Place((RectTransform)go.transform, x, y, w, h);
+
+            var image = go.GetComponent<Image>();
+            image.raycastTarget = false;
+            return image;
+        }
+
+        static Image NewChild(string name, RectTransform parent, float w, float h, Vector2 offset)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = offset;
+
+            var image = go.GetComponent<Image>();
+            image.raycastTarget = false;
+            return image;
+        }
+    }
+}

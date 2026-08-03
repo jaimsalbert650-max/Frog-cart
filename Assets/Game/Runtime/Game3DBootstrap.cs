@@ -88,9 +88,21 @@ namespace FrogCart.Runtime
             _camera = cameraGo.GetComponent<Camera>();
             _camera.clearFlags = CameraClearFlags.SolidColor;
             _camera.backgroundColor = ProcSprite.Hex("2A1A0C");
-            // Узкий угол вместо широкого: перспектива почти не заваливает дальний край,
-            // и доска остаётся читаемой. Головоломке важнее ровная сетка, чем глубина.
-            _camera.fieldOfView = 24f;
+
+            // Ортографическая проекция.
+            //
+            // До этого стояла перспективная с полем зрения 24°. Узкий угол делал её
+            // почти ортографической на вид, но «почти» здесь и мешало: клетки на
+            // дальнем краю доски всё равно оставались мельче ближних, и ровной сетки
+            // не получалось. В ортографии клетка одинакова в любом углу картинки —
+            // для головоломки, где игрок целится в конкретный пиксель, это важнее
+            // ощущения глубины.
+            //
+            // Дальняя плоскость с запасом: камера отходит на 200 единиц, а под ней
+            // ещё стол размером 6000.
+            _camera.orthographic = true;
+            _camera.nearClipPlane = 0.1f;
+            _camera.farClipPlane = 2000f;
 
             FrameWorld();
 
@@ -176,65 +188,57 @@ namespace FrogCart.Runtime
             };
 
             _camera.transform.rotation = Quaternion.Euler(Tilt, 0f, 0f);
-            Vector3 back = -_camera.transform.forward;
             _framedFor = new Vector2Int(Screen.width, Screen.height);
 
-            float distance = 20f;
-            for (int step = 0; step < 400; step++)
+            // Камера отходит на фиксированное расстояние. В ортографии оно на размер
+            // картинки не влияет вовсе — важно лишь, чтобы вся сцена оказалась перед
+            // ближней плоскостью.
+            const float Distance = 200f;
+            _camera.transform.position = center - _camera.transform.forward * Distance;
+
+            // Дальше всё считается точно, без подбора: ортографическая проекция
+            // линейна, поэтому достаточно найти габарит области в системе координат
+            // камеры. Перспективная требовала итераций именно потому, что размер
+            // картинки там зависел от расстояния, а расстояние — от размера.
+            var toCamera = _camera.transform.worldToLocalMatrix;
+
+            float minX = float.MaxValue, maxX = float.MinValue;
+            float minY = float.MaxValue, maxY = float.MinValue;
+
+            foreach (var corner in corners)
             {
-                _camera.transform.position = center + back * distance;
-                CenterVertically(corners, distance);
+                Vector3 local = toCamera.MultiplyPoint3x4(corner);
 
-                if (AllCornersVisible(corners, Margin)) return;
-
-                distance *= 1.04f;
+                if (local.x < minX) minX = local.x;
+                if (local.x > maxX) maxX = local.x;
+                if (local.y < minY) minY = local.y;
+                if (local.y > maxY) maxY = local.y;
             }
 
-            Debug.LogWarning("[Game3D] Не удалось вписать сцену в кадр — окно слишком узкое.");
+            float halfWidth = (maxX - minX) * 0.5f;
+            float halfHeight = (maxY - minY) * 0.5f;
+            float aspect = _camera.aspect > 0.01f ? _camera.aspect : 1f;
+
+            // orthographicSize — это половина высоты кадра. По ширине ограничение
+            // пересчитывается через соотношение сторон, иначе на узком окне область
+            // вылезет за боковые края.
+            _camera.orthographicSize =
+                Mathf.Max(halfHeight, halfWidth / aspect) / (1f - Margin * 2f);
+
+            // Центрирование: сдвигаем камеру так, чтобы середина габарита попала
+            // в середину кадра. Именно этого не хватало перспективной версии —
+            // там наводка целилась в геометрический центр области, а он при наклоне
+            // не совпадает с серединой того, что видно.
+            _camera.transform.position +=
+                _camera.transform.right * ((minX + maxX) * 0.5f)
+              + _camera.transform.up * ((minY + maxY) * 0.5f);
         }
 
         /// <summary>
-        /// Сдвинуть камеру так, чтобы область встала по центру кадра **по проекции**,
-        /// а не по геометрии.
-        ///
-        /// Наводка на геометрический центр верна только для отвесного взгляда. При
-        /// наклоне ближняя половина области занимает на экране заметно больше места,
-        /// чем дальняя, поэтому картинка уезжает вверх: на наклоне 58° под доской
-        /// оставалась пустая треть кадра, и камера отходила дальше, чем нужно, лишь
-        /// бы уместить съехавший верх.
-        ///
-        /// Считается по спроецированным углам: берётся середина их вертикального
-        /// разброса и камера сдвигается вдоль своего «вверх» на разницу с серединой
-        /// кадра. Пересчёт мира в доли кадра — через высоту усечённой пирамиды на
-        /// текущем расстоянии.
+        /// Все ли точки области попали в кадр. Наводка теперь считается точно и
+        /// в проверке не нуждается, но метод оставлен: им пользуется дымовой тест
+        /// Bootstrap3DSmokeTests, и он же ловит будущие правки наводки.
         /// </summary>
-        void CenterVertically(Vector3[] corners, float distance)
-        {
-            float worldHeight = 2f * distance * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-
-            // Пары шагов хватает: сдвиг камеры почти не меняет сам разброс,
-            // меняется только его положение в кадре.
-            for (int pass = 0; pass < 2; pass++)
-            {
-                float min = float.MaxValue;
-                float max = float.MinValue;
-
-                foreach (var corner in corners)
-                {
-                    Vector3 viewport = _camera.WorldToViewportPoint(corner);
-                    if (viewport.z <= 0f) return;   // угол за спиной — сдвигать бессмысленно
-
-                    if (viewport.y < min) min = viewport.y;
-                    if (viewport.y > max) max = viewport.y;
-                }
-
-                float error = 0.5f - (min + max) * 0.5f;
-                if (Mathf.Abs(error) < 0.002f) return;
-
-                _camera.transform.position -= _camera.transform.up * (error * worldHeight);
-            }
-        }
-
         bool AllCornersVisible(Vector3[] corners, float margin)
         {
             foreach (var corner in corners)

@@ -141,6 +141,7 @@ namespace FrogCart.Runtime
 
             _heroMouth = NewChild("Mouth", rt, 44f, 22f, new Vector2(0f, -18f)).rectTransform;
 
+
             // Знак запрета с белой обводкой.
             //
             // Без обводки он был красным кружком на красной голове — а герой на
@@ -159,29 +160,34 @@ namespace FrogCart.Runtime
 
         public void ShowWin()
         {
-            Configure(gold: true, hero: 4, gazeY: -6f, mouthW: 44f, mouthH: 22f,
-                      mouthRadii: new Vector4(6f, 6f, 24f, 24f), ban: false, resume: false);
+            // Рот 56x13, а не 44x22: широкая мелкая улыбка. Прежний был почти
+            // круглым, и вместе с круглыми глазами читался открытым от испуга.
+            Configure(gold: true, hero: 4, gazeY: -6f, mouthW: 56f, mouthH: 13f,
+                      mouthRadii: new Vector4(3f, 3f, 26f, 26f), ban: false,
+                      resume: false, smile: true);
             Appear();
         }
 
         public void ShowLose()
         {
             Configure(gold: false, hero: 2, gazeY: 5f, mouthW: 36f, mouthH: 12f,
-                      mouthRadii: new Vector4(18f, 18f, 4f, 4f), ban: true, resume: false);
+                      mouthRadii: new Vector4(18f, 18f, 4f, 4f), ban: true,
+                      resume: false, smile: false);
             Appear();
         }
 
         public void ShowPause()
         {
             Configure(gold: true, hero: 4, gazeY: 0f, mouthW: 40f, mouthH: 16f,
-                      mouthRadii: new Vector4(10f, 10f, 16f, 16f), ban: false, resume: true);
+                      mouthRadii: new Vector4(10f, 10f, 16f, 16f), ban: false,
+                      resume: true, smile: false);
             Appear();
         }
 
         public void Hide() => _root.gameObject.SetActive(false);
 
         void Configure(bool gold, int hero, float gazeY, float mouthW, float mouthH,
-                       Vector4 mouthRadii, bool ban, bool resume)
+                       Vector4 mouthRadii, bool ban, bool resume, bool smile)
         {
             Color starColor = gold ? ProcSprite.Hex("FFD52E") : ProcSprite.Hex("CBB78F");
             foreach (var star in _stars) star.color = starColor;
@@ -204,16 +210,39 @@ namespace FrogCart.Runtime
             _heroPupilL.anchoredPosition = new Vector2(0f, -gazeY);
             _heroPupilR.anchoredPosition = new Vector2(0f, -gazeY);
 
-            _heroMouth.sizeDelta = new Vector2(mouthW, mouthH);
-            _heroMouth.GetComponent<Image>().sprite = ProcSprite.Make(new ProcSprite.Rounded
+            var mouth = _heroMouth.GetComponent<Image>();
+
+            if (smile)
             {
-                w = Mathf.RoundToInt(mouthW), h = Mathf.RoundToInt(mouthH),
-                radii = mouthRadii,
-                gradientAngleDeg = 180f,
-                c0 = ProcSprite.Hex("5C2130"), c1 = ProcSprite.Hex("77293B"), c2 = ProcSprite.Hex("8D3346"),
-                midStop = 0.5f,
-                key = $"heroMouth{mouthW}x{mouthH}",
-            });
+                // Улыбка дугой, а не заливкой.
+                //
+                // Любая сплошная фигура на месте рта читается открытым ртом, то есть
+                // испугом: круглые глаза плюс тёмное пятно снизу — это «ох», а не
+                // «ура». Я дважды пробовал спасти положение пропорциями — делал рот
+                // шире и ниже — и оба раза выходило то же самое. Радость даёт
+                // не форма пятна, а линия, изогнутая вверх концами.
+                //
+                // Дуга берётся нижней половиной кольца: пропуск 180° сверху.
+                _heroMouth.sizeDelta = new Vector2(46f, 46f);
+                _heroMouth.anchoredPosition = new Vector2(0f, -4f);
+                mouth.sprite = ProcSprite.Arc(46, 7f, Color.white, 180f, 0f, "heroSmile");
+                mouth.color = ProcSprite.Hex("77293B");
+            }
+            else
+            {
+                _heroMouth.sizeDelta = new Vector2(mouthW, mouthH);
+                _heroMouth.anchoredPosition = new Vector2(0f, -18f);
+                mouth.color = Color.white;
+                mouth.sprite = ProcSprite.Make(new ProcSprite.Rounded
+                {
+                    w = Mathf.RoundToInt(mouthW), h = Mathf.RoundToInt(mouthH),
+                    radii = mouthRadii,
+                    gradientAngleDeg = 180f,
+                    c0 = ProcSprite.Hex("5C2130"), c1 = ProcSprite.Hex("77293B"), c2 = ProcSprite.Hex("8D3346"),
+                    midStop = 0.5f,
+                    key = $"heroMouth{mouthW}x{mouthH}",
+                });
+            }
 
             _banBadge.gameObject.SetActive(ban);
             _resumeButton.gameObject.SetActive(resume);

@@ -83,7 +83,7 @@ namespace FrogCart.Runtime
         public static Sprite Circle(int diameter, Color inner, Color outer,
                                     float outlineWidth, Color outlineColor, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             var tex = new Texture2D(diameter, diameter, TextureFormat.RGBA32, false)
@@ -140,7 +140,7 @@ namespace FrogCart.Runtime
         public static Sprite Ring(int w, int h, float radius, float stroke, Color color,
                                   float dash = 0f, float gap = 0f, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             int pad = Mathf.CeilToInt(stroke * 0.5f) + 1;
@@ -216,7 +216,7 @@ namespace FrogCart.Runtime
         /// <summary>Мягкая эллиптическая тень — контактная тень под объектами.</summary>
         public static Sprite SoftEllipse(int w, int h, Color color, float blur, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
@@ -261,7 +261,7 @@ namespace FrogCart.Runtime
         public static Sprite Star(int size, Color top, Color bottom,
                                   float outlineWidth, Color outlineColor, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
@@ -335,7 +335,7 @@ namespace FrogCart.Runtime
         public static Sprite Arc(int size, float stroke, Color color,
                                  float gapDeg, float rotationDeg, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
@@ -386,7 +386,7 @@ namespace FrogCart.Runtime
         /// <summary>Треугольник остриём вправо — иконка «продолжить» на кнопке Resume.</summary>
         public static Sprite Triangle(int width, int height, Color color, string key = null)
         {
-            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 
             var tex = new Texture2D(width, height, TextureFormat.RGBA32, false)
@@ -456,6 +456,23 @@ namespace FrogCart.Runtime
         }
 
         public static void ClearCache() => Cache.Clear();
+
+        /// <summary>
+        /// Сброс кеша при старте каждой игровой сессии.
+        ///
+        /// В билде это лишнее — процесс новый, кеш пуст. Нужно в редакторе:
+        /// статические поля переживают выход из Play mode, а сами объекты Unity —
+        /// спрайты, материалы, меши, текстуры — при выходе уничтожаются. На втором
+        /// запуске из кеша доставались уничтоженные объекты, и всё, что ими
+        /// красится, становилось белым: головы жаб, таблички очереди, планка HUD.
+        /// В плеере при этом всё было в порядке, и разница «работает в билде,
+        /// сломано в редакторе» уводила поиск совсем не туда.
+        ///
+        /// SubsystemRegistration выполняется до первого Awake, поэтому к моменту
+        /// сборки сцены кеш заведомо чист.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetOnPlay() => ClearCache();
 
         // ── внутренности ─────────────────────────────────────────────────────────────
 

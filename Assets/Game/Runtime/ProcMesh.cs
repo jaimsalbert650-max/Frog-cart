@@ -36,7 +36,7 @@ namespace FrogCart.Runtime
         /// <summary>Глянцевый материал под casual-3D: мягкий блик, лёгкая металличность.</summary>
         public static Material Glossy(Color color, string key, float smoothness = 0.12f)
         {
-            if (Materials.TryGetValue(key, out var cached)) return cached;
+            if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var material = new Material(Standard);
             material.color = color;
@@ -54,7 +54,7 @@ namespace FrogCart.Runtime
         /// </summary>
         public static Material Emissive(Color color, string key)
         {
-            if (Materials.TryGetValue(key, out var cached)) return cached;
+            if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var material = new Material(Standard);
             material.color = color;
@@ -75,7 +75,7 @@ namespace FrogCart.Runtime
         /// </summary>
         public static Material Unlit(Color color, string key)
         {
-            if (Materials.TryGetValue(key, out var cached)) return cached;
+            if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var shader = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color") ?? Standard;
             var material = new Material(shader) { color = color };
@@ -92,7 +92,7 @@ namespace FrogCart.Runtime
         public static Material Textured(Texture texture, string key, float smoothness,
                                         Vector2 tiling)
         {
-            if (Materials.TryGetValue(key, out var cached)) return cached;
+            if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var material = new Material(Standard);
             material.color = Color.white;
@@ -107,7 +107,7 @@ namespace FrogCart.Runtime
 
         public static Material Metal(Color color, string key)
         {
-            if (Materials.TryGetValue(key, out var cached)) return cached;
+            if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var material = new Material(Standard);
             material.color = color;
@@ -134,7 +134,7 @@ namespace FrogCart.Runtime
         public static Mesh RoundedBox(float width, float height, float depth, float bevel,
                                       string key, float topScale = 1f)
         {
-            if (Meshes.TryGetValue(key, out var cached)) return cached;
+            if (Meshes.TryGetValue(key, out var cached) && cached != null) return cached;
 
             bevel = Mathf.Min(bevel, Mathf.Min(width, depth) * 0.45f);
 
@@ -263,7 +263,7 @@ namespace FrogCart.Runtime
         /// <summary>Лента вдоль контура: из неё делаются рельсы и шпалы.</summary>
         public static Mesh Ribbon(Vector3[] points, float width, float height, string key)
         {
-            if (Meshes.TryGetValue(key, out var cached)) return cached;
+            if (Meshes.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
@@ -306,5 +306,22 @@ namespace FrogCart.Runtime
             Meshes.Clear();
             Materials.Clear();
         }
+
+        /// <summary>
+        /// Сброс кеша при старте каждой игровой сессии.
+        ///
+        /// В билде это лишнее — процесс новый, кеш пуст. Нужно в редакторе:
+        /// статические поля переживают выход из Play mode, а сами объекты Unity —
+        /// спрайты, материалы, меши, текстуры — при выходе уничтожаются. На втором
+        /// запуске из кеша доставались уничтоженные объекты, и всё, что ими
+        /// красится, становилось белым: головы жаб, таблички очереди, планка HUD.
+        /// В плеере при этом всё было в порядке, и разница «работает в билде,
+        /// сломано в редакторе» уводила поиск совсем не туда.
+        ///
+        /// SubsystemRegistration выполняется до первого Awake, поэтому к моменту
+        /// сборки сцены кеш заведомо чист.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetOnPlay() => ClearCache();
     }
 }

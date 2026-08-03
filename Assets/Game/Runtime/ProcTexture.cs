@@ -22,7 +22,7 @@ namespace FrogCart.Runtime
         /// </summary>
         public static Texture2D Wood(Color light, Color dark, string key, int size = 512)
         {
-            if (Cache.TryGetValue(key, out var cached)) return cached;
+            if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, mipChain: true)
             {
@@ -105,5 +105,22 @@ namespace FrogCart.Runtime
         }
 
         public static void ClearCache() => Cache.Clear();
+
+        /// <summary>
+        /// Сброс кеша при старте каждой игровой сессии.
+        ///
+        /// В билде это лишнее — процесс новый, кеш пуст. Нужно в редакторе:
+        /// статические поля переживают выход из Play mode, а сами объекты Unity —
+        /// спрайты, материалы, меши, текстуры — при выходе уничтожаются. На втором
+        /// запуске из кеша доставались уничтоженные объекты, и всё, что ими
+        /// красится, становилось белым: головы жаб, таблички очереди, планка HUD.
+        /// В плеере при этом всё было в порядке, и разница «работает в билде,
+        /// сломано в редакторе» уводила поиск совсем не туда.
+        ///
+        /// SubsystemRegistration выполняется до первого Awake, поэтому к моменту
+        /// сборки сцены кеш заведомо чист.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetOnPlay() => ClearCache();
     }
 }

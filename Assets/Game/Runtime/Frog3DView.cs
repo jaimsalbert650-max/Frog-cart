@@ -74,6 +74,17 @@ namespace FrogCart.Runtime
             pupil.GetComponent<MeshRenderer>().sharedMaterial =
                 ProcMesh.Glossy(ProcSprite.Hex("1D2127"), "mat_frogPupil", 0.9f);
 
+            // Блик в зрачке. У персонажей оригинала он есть у всех, и именно он
+            // отличает живой глаз от чёрной точки. Материал самосветящийся: жаба
+            // часто оказывается в тени доски, и освещённый блик там гаснет.
+            var glint = NewSphere("Glint", pupil.transform, 1f);
+            glint.transform.localPosition = new Vector3(-0.24f, 0.26f, -0.34f);
+            glint.transform.localScale = Vector3.one * 0.42f;
+            glint.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Emissive(Color.white, "mat_frogGlint");
+            glint.GetComponent<MeshRenderer>().shadowCastingMode =
+                UnityEngine.Rendering.ShadowCastingMode.Off;
+
             return pupil.transform;
         }
 

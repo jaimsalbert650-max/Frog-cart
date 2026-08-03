@@ -125,8 +125,14 @@ namespace FrogCart.Runtime
         /// Скругление делается фаской по углам, а не сглаживанием — так дешевле
         /// и читается как «пухлая» форма из спеки.
         /// </summary>
+        /// <param name="topScale">
+        /// Во сколько раз верхняя грань уже нижней. Единица — прямая коробочка,
+        /// меньше — усечённая пирамида. Наклонная кромка ловит свет иначе, чем
+        /// верхняя грань, и по каждому пикселю идёт светлый кант: ровно то, чем
+        /// плитка оригинала отличается от параллелепипеда.
+        /// </param>
         public static Mesh RoundedBox(float width, float height, float depth, float bevel,
-                                      string key)
+                                      string key, float topScale = 1f)
         {
             if (Meshes.TryGetValue(key, out var cached)) return cached;
 
@@ -141,8 +147,9 @@ namespace FrogCart.Runtime
             // Скруглённый профиль: по четыре сегмента на угол. Срезанные углы из
             // восьмиугольника читались гранёными, а спека просит пухлую форму.
             var profile = RoundedProfile(hw, hd, bevel, segmentsPerCorner: 4);
+            var topProfile = topScale >= 0.999f ? profile : ScaleProfile(profile, topScale);
 
-            AddPrism(vertices, triangles, profile, 0f, height);
+            AddPrism(vertices, triangles, profile, topProfile, 0f, height);
 
             var mesh = new Mesh { name = key };
             mesh.SetVertices(vertices);
@@ -194,30 +201,43 @@ namespace FrogCart.Runtime
             return points.ToArray();
         }
 
-        static void AddPrism(List<Vector3> vertices, List<int> triangles,
-                             Vector2[] profile, float bottom, float top)
+        /// <summary>Контур, сжатый к своему центру: верхняя грань усечённой пирамиды.</summary>
+        static Vector2[] ScaleProfile(Vector2[] profile, float scale)
         {
-            int n = profile.Length;
+            var scaled = new Vector2[profile.Length];
+
+            for (int i = 0; i < profile.Length; i++) scaled[i] = profile[i] * scale;
+
+            return scaled;
+        }
+
+        static void AddPrism(List<Vector3> vertices, List<int> triangles,
+                             Vector2[] bottomProfile, Vector2[] topProfile,
+                             float bottom, float top)
+        {
+            int n = bottomProfile.Length;
 
             // Боковые грани: каждая своя пара треугольников с собственными вершинами,
             // иначе нормали усреднятся и фаска перестанет читаться.
             for (int i = 0; i < n; i++)
             {
-                Vector2 a = profile[i];
-                Vector2 b = profile[(i + 1) % n];
+                Vector2 a0 = bottomProfile[i];
+                Vector2 b0 = bottomProfile[(i + 1) % n];
+                Vector2 a1 = topProfile[i];
+                Vector2 b1 = topProfile[(i + 1) % n];
 
                 int baseIndex = vertices.Count;
-                vertices.Add(new Vector3(a.x, bottom, a.y));
-                vertices.Add(new Vector3(b.x, bottom, b.y));
-                vertices.Add(new Vector3(b.x, top, b.y));
-                vertices.Add(new Vector3(a.x, top, a.y));
+                vertices.Add(new Vector3(a0.x, bottom, a0.y));
+                vertices.Add(new Vector3(b0.x, bottom, b0.y));
+                vertices.Add(new Vector3(b1.x, top, b1.y));
+                vertices.Add(new Vector3(a1.x, top, a1.y));
 
                 triangles.Add(baseIndex + 0); triangles.Add(baseIndex + 2); triangles.Add(baseIndex + 1);
                 triangles.Add(baseIndex + 0); triangles.Add(baseIndex + 3); triangles.Add(baseIndex + 2);
             }
 
-            AddCap(vertices, triangles, profile, top, up: true);
-            AddCap(vertices, triangles, profile, bottom, up: false);
+            AddCap(vertices, triangles, topProfile, top, up: true);
+            AddCap(vertices, triangles, bottomProfile, bottom, up: false);
         }
 
         static void AddCap(List<Vector3> vertices, List<int> triangles,

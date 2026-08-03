@@ -60,22 +60,50 @@ namespace FrogCart.Runtime
             for (int i = 0; i < Visible; i++) _minis[i] = BuildMini(i);
         }
 
-        /// <summary>Короткий прямой рельс под очередью — чтобы вагонетки не висели в воздухе.</summary>
+        /// <summary>
+        /// Короткий прямой рельс под очередью — чтобы вагонетки не висели в воздухе.
+        ///
+        /// Меши строятся на условную длину 400, а реальная длина задаётся масштабом
+        /// в <see cref="FitDock"/>: док обязан быть ровно под занятыми слотами.
+        /// Фиксированные 400 торчали из-под контура рельсов пустой доской.
+        /// </summary>
+        const float DockMeshLength = 400f;
+
+        readonly List<Transform> _dockParts = new List<Transform>();
+
         void BuildDockRail()
         {
             var plank = NewPiece("DockPlank", _root,
-                ProcMesh.RoundedBox(Space3D.Size(400f), Space3D.Size(4f), Space3D.Size(34f),
+                ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(4f), Space3D.Size(34f),
                                     Space3D.Size(3f), "dockPlank3D"),
-                ProcMesh.Glossy(ProcSprite.Hex("7A4D28"), "mat_dockPlank", 0.1f));
-            plank.transform.position = Space3D.ToWorld(195f, SlotY + 6f, Space3D.Size(1f));
+                ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_dockPlank", 0.1f));
+            plank.transform.position = Space3D.ToWorld(DockCenterX, SlotY + 6f, Space3D.Size(1f));
+            _dockParts.Add(plank.transform);
 
             foreach (float offset in new[] { -8f, 8f })
             {
                 var rail = NewPiece($"DockRail{offset}", _root,
-                    ProcMesh.RoundedBox(Space3D.Size(380f), Space3D.Size(3f), Space3D.Size(3f),
+                    ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(3f), Space3D.Size(3f),
                                         Space3D.Size(1f), "dockRail3D"),
                     ProcMesh.Metal(ProcSprite.Hex("CFD6DA"), "mat_rail"));
-                rail.transform.position = Space3D.ToWorld(195f, SlotY + 6f + offset, Space3D.Size(3f));
+                rail.transform.position =
+                    Space3D.ToWorld(DockCenterX, SlotY + 6f + offset, Space3D.Size(3f));
+                _dockParts.Add(rail.transform);
+            }
+
+            FitDock(Visible);
+        }
+
+        /// <summary>Длина дока под число занятых слотов плюс небольшой выпуск по краям.</summary>
+        void FitDock(int count)
+        {
+            float length = count <= 0 ? 0f : (count - 1) * Step + 68f;
+            float scale = length / DockMeshLength;
+
+            foreach (var part in _dockParts)
+            {
+                part.gameObject.SetActive(count > 0);
+                part.localScale = new Vector3(scale, 1f, 1f);
             }
         }
 
@@ -203,6 +231,7 @@ namespace FrogCart.Runtime
         public void Rebuild(List<LevelData.CartDef> queue, int startIndex)
         {
             int count = VisibleCount(queue, startIndex);
+            FitDock(count);
 
             for (int i = 0; i < Visible; i++)
             {

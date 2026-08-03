@@ -19,10 +19,19 @@ namespace FrogCart.Runtime
     /// </summary>
     public sealed class Grid3DView : MonoBehaviour, IGridView
     {
-        public const float AreaX = 41f;
-        public const float AreaY = 132f;
-        public const float AreaW = 308f;
-        public const float AreaH = 432f;
+        /// <summary>
+        /// Область под картинку. Подобрана так, чтобы белая карточка целиком
+        /// помещалась внутри контура рельсов и не уезжала под него краями.
+        ///
+        /// Контур идёт по x 15 и 375, полотно шириной 26 занимает по 13 в каждую
+        /// сторону, значит свободно x от 28 до 362. Карточка — это картинка плюс
+        /// поле 24 с каждой стороны, отсюда предел ширины картинки в 276.
+        /// По вертикали запас больше: контур сверху 68, снизу 628.
+        /// </summary>
+        public const float AreaX = 57f;
+        public const float AreaY = 111f;
+        public const float AreaW = 276f;
+        public const float AreaH = 474f;
 
         Transform _root;
         ColorPalette _palette;
@@ -142,8 +151,13 @@ namespace FrogCart.Runtime
 
             // Скругление 0.18 вместо 0.28: угол должен читаться как пиксель со снятой
             // фаской, а не как окатыш.
+            //
+            // Верх уже низа на 14% — плитка, а не коробочка. Наклонная кромка ловит
+            // свет иначе, чем верхняя грань, и по каждому пикселю идёт светлый кант.
+            // На прямом бруске все пиксели были плоскими заливками, и картинка
+            // выглядела напечатанной, а не выложенной.
             _blockMesh = ProcMesh.RoundedBox(w, _blockHeight, d, Mathf.Min(w, d) * 0.18f,
-                                             $"block{Rows}x{Cols}");
+                                             $"block{Rows}x{Cols}", topScale: 0.86f);
 
             _materials = new Material[GridModel.MaxColor + 1];
             for (int color = 1; color <= _palette.Count && color <= GridModel.MaxColor; color++)

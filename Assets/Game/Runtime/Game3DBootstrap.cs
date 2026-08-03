@@ -100,7 +100,7 @@ namespace FrogCart.Runtime
             var light = lightGo.GetComponent<Light>();
             light.type = LightType.Directional;
             light.color = new Color(1f, 0.96f, 0.9f);
-            light.intensity = 0.95f;
+            light.intensity = 1.05f;
             light.shadows = LightShadows.Soft;
             light.shadowStrength = 0.45f;
             lightGo.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
@@ -108,12 +108,12 @@ namespace FrogCart.Runtime
             // Ровный неяркий ambient вместо трёхцветного: тот подсвечивал верхние грани
             // и вместе с бликом Standard выбеливал блоки до неразличимости цвета.
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = ProcSprite.Hex("746D62");
+            RenderSettings.ambientLight = ProcSprite.Hex("8A8175");
         }
 
         /// <summary>Область мира, которая обязана быть видна: контур рельсов и очередь.</summary>
-        static readonly Vector2 WorldMin = new Vector2(2f, 52f);
-        static readonly Vector2 WorldMax = new Vector2(388f, 712f);
+        static readonly Vector2 WorldMin = new Vector2(8f, 56f);
+        static readonly Vector2 WorldMax = new Vector2(382f, 706f);
 
         /// <summary>
         /// Наводка камеры подбором, а не формулой.
@@ -222,14 +222,14 @@ namespace FrogCart.Runtime
             var panel = NewBox("Panel", _world,
                 Space3D.Size(_placement.Width + Margin * 2f), Space3D.Size(5f),
                 Space3D.Size(_placement.Height + Margin * 2f),
-                ProcMesh.Glossy(ProcSprite.Hex("EFE7D9"), "mat_panel", 0.03f), 0.05f);
+                ProcMesh.Glossy(ProcSprite.Hex("EFE7D9"), "mat_panel", 0.03f), 0.07f);
             panel.transform.position =
                 Space3D.ToWorld(_placement.CenterX, _placement.CenterY, -Space3D.Size(2f));
 
             var frame = NewBox("Frame", _world,
                 Space3D.Size(_placement.Width + Margin * 2f + 20f), Space3D.Size(6f),
                 Space3D.Size(_placement.Height + Margin * 2f + 20f),
-                ProcMesh.Glossy(ProcSprite.Hex("FBF6EC"), "mat_frame", 0.03f), 0.06f);
+                ProcMesh.Glossy(ProcSprite.Hex("FBF6EC"), "mat_frame", 0.03f), 0.08f);
             frame.transform.position =
                 Space3D.ToWorld(_placement.CenterX, _placement.CenterY, -Space3D.Size(4f));
         }
@@ -243,13 +243,17 @@ namespace FrogCart.Runtime
 
             // Полотно под рельсами: куски шире шага и потому смыкаются в сплошную
             // ленту. Без него между шпалами просвечивал стол.
+            //
+            // Сужено с 38 до 26 и осветлено. Широкий тёмный контур обводил доску
+            // жирной рамой и спорил с картинкой за внимание; на референсе вокруг
+            // карточки чистое дерево. Дорога должна читаться дорогой, а не рамкой.
             var bedMesh = ProcMesh.RoundedBox(Space3D.Size(9f), Space3D.Size(2f),
-                                              Space3D.Size(38f), Space3D.Size(1f), "railBed3D");
-            var bedMaterial = ProcMesh.Glossy(ProcSprite.Hex("8D5B2D"), "mat_railBed", 0.05f);
+                                              Space3D.Size(26f), Space3D.Size(1f), "railBed3D");
+            var bedMaterial = ProcMesh.Glossy(ProcSprite.Hex("B98A57"), "mat_railBed", 0.05f);
 
-            var sleeperMesh = ProcMesh.RoundedBox(Space3D.Size(5f), Space3D.Size(3f),
-                                                  Space3D.Size(32f), Space3D.Size(1f), "sleeper3D");
-            var sleeperMaterial = ProcMesh.Glossy(ProcSprite.Hex("794922"), "mat_sleeper", 0.1f);
+            var sleeperMesh = ProcMesh.RoundedBox(Space3D.Size(4f), Space3D.Size(2.5f),
+                                                  Space3D.Size(22f), Space3D.Size(1f), "sleeper3D");
+            var sleeperMaterial = ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_sleeper", 0.1f);
 
             var railMesh = ProcMesh.RoundedBox(Space3D.Size(3f), Space3D.Size(3f),
                                                Space3D.Size(3f), Space3D.Size(1f), "railPiece3D");
@@ -275,7 +279,7 @@ namespace FrogCart.Runtime
                 }
 
                 // Две нити: смещение поперёк пути на ±8 в spec-единицах.
-                foreach (float offset in new[] { -8f, 8f })
+                foreach (float offset in new[] { -6f, 6f })
                 {
                     var ar = angle * Mathf.Deg2Rad;
                     var across = new Vector2(Mathf.Sin(ar), -Mathf.Cos(ar)) * offset;

@@ -137,6 +137,11 @@ public static class FrogCartSetup
             Entry("green",  "5BC236", "A6EE7F", "2E7D18"),
             Entry("purple", "9B5BD6", "C9A3F0", "5E2E8C"),
             Entry("cream",  "F2E3C8", "FFF8EA", "C9AE86"),
+            // Девятый цвет — предел GridModel.MaxColor: одна цифра на клетку
+            // в строках уровня. Палитра обязана покрывать его целиком, иначе
+            // уровень с большим числом красок теряет часть блоков и роняет
+            // сборку на первом же обращении за недостающим цветом.
+            Entry("teal",   "18B5A6", "76E4DA", "0B7A70"),
         });
 
         return Save(palette, $"{DataDir}/Palette.asset");

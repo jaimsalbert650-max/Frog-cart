@@ -175,8 +175,12 @@ namespace FrogCart.Runtime
             // ни с одним цветом палитры.
             _hiddenMaterial = ProcMesh.Glossy(ProcSprite.Hex("9AA1A8"), "mat_blockHidden", 0.08f);
 
+            // Материал заводится на каждый допустимый цвет, а не только на те,
+            // что нашлись в палитре. Прежнее ограничение по _palette.Count делало
+            // блоки лишних цветов невидимыми: на отставшей палитре с доски пропали
+            // два цвета сразу, и уровень стал непроходимым молча.
             _materials = new Material[GridModel.MaxColor + 1];
-            for (int color = 1; color <= _palette.Count && color <= GridModel.MaxColor; color++)
+            for (int color = 1; color <= GridModel.MaxColor; color++)
                 _materials[color] = ProcMesh.Glossy(_palette.Get(color).baseColor, $"mat_block{color}", 0.06f);
         }
 

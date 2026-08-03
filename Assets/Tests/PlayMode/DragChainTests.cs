@@ -56,7 +56,7 @@ namespace FrogCart.Tests
         {
             int before = _controller.Eaten;
 
-            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+            LevelProbe.PrepareBite(_controller, out int r, out int c);
             _input.OnPointerDown(At(r, c));
             yield return null;
 
@@ -66,7 +66,7 @@ namespace FrogCart.Tests
         [UnityTest]
         public IEnumerator DragIsThrottledByChainDelay()
         {
-            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+            LevelProbe.PrepareBite(_controller, out int r, out int c);
 
             _input.OnPointerDown(At(r, c));
             yield return null;
@@ -93,7 +93,7 @@ namespace FrogCart.Tests
         [UnityTest]
         public IEnumerator PointerUpResetsTheChain()
         {
-            LevelProbe.FindEdiblePair(_controller, out int r, out int c);
+            LevelProbe.PrepareBite(_controller, out int r, out int c);
 
             _input.OnPointerDown(At(r, c));
             yield return null;

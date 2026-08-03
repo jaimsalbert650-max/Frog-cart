@@ -27,7 +27,9 @@ namespace FrogCart.Tests
             var rows = controller.Rows;
             Assert.IsNotNull(rows, "картинка уровня ещё не построена");
 
-            var carts = controller.Level.LoopCarts;
+            // Цвет ищем в живой очереди: контур стартует пустым, и вагонеток
+            // на нём нет ни одной, пока игрок не запустит.
+            var carts = controller.QueueCarts;
 
             for (int r = 0; r < rows.Length; r++)
             for (int c = 0; c + 1 < rows[r].Length; c++)
@@ -51,13 +53,49 @@ namespace FrogCart.Tests
 
             row = col = -1;
             Assert.Fail("на картинке нет открытой сверху пары соседних блоков, "
-                      + "чей цвет есть у вагонеток на контуре");
+                      + "чей цвет есть в очереди");
         }
 
         /// <summary>Один съедобный блок — когда пара не нужна.</summary>
         public static void FindEdibleCell(GameController controller, out int row, out int col)
         {
             FindEdiblePair(controller, out row, out col);
+        }
+
+        /// <summary>
+        /// Запустить из очереди вагонетку нужного цвета и выключить автоукус.
+        ///
+        /// Нужно почти каждому тесту: контур теперь стартует пустым, вагонетки
+        /// запускает игрок, и без запуска ни один укус не состоится. Автоукус при
+        /// этом мешает — вагонетка кусает сама раз в 0.28 с и добавляет к счётчику
+        /// лишнее, поэтому тест, проверяющий один конкретный укус, его выключает.
+        /// </summary>
+        public static void SendCartFor(GameController controller, int color,
+                                       bool disableAutoBite = true)
+        {
+            var queue = controller.QueueCarts;
+            Assert.IsNotNull(queue, "очередь ещё не построена");
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                if (queue[i].colorId != color) continue;
+                if (queue[i].frozenCount > 0) continue;
+
+                Assert.IsTrue(controller.SendCart(i),
+                    $"вагонетка цвета {color} есть в очереди, но не запустилась");
+
+                if (disableAutoBite) controller.AutoBiteEnabled = false;
+                return;
+            }
+
+            Assert.Fail($"в очереди нет рабочей вагонетки цвета {color}");
+        }
+
+        /// <summary>Пара соседних блоков плюс запущенная под них вагонетка.</summary>
+        public static void PrepareBite(GameController controller, out int row, out int col)
+        {
+            FindEdiblePair(controller, out row, out col);
+            SendCartFor(controller, controller.Rows[row][col] - '0');
         }
 
         /// <summary>Над клеткой в её столбце пусто до края картинки.</summary>
@@ -72,10 +110,12 @@ namespace FrogCart.Tests
             return true;
         }
 
-        static bool HasCart(LevelData.CartDef[] carts, int colorId)
+        static bool HasCart(System.Collections.Generic.IReadOnlyList<LevelData.CartDef> carts,
+                            int colorId)
         {
             foreach (var cart in carts)
-                if (cart.colorId == colorId && cart.capacity > 0) return true;
+                if (cart.colorId == colorId && cart.capacity > 0 && cart.frozenCount == 0)
+                    return true;
 
             return false;
         }

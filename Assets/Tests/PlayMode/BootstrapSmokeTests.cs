@@ -95,6 +95,11 @@ namespace FrogCart.Tests
 
             yield return null;
 
+            // Контур стартует пустым: вагонетку надо сперва запустить из очереди.
+            var controller = _root.GetComponent<GameController>();
+            LevelProbe.SendCartFor(controller, controller.QueueCarts[0].colorId);
+            yield return null;
+
             var cart = GameObject.Find("CartLayer").transform.GetChild(0) as RectTransform;
             Vector2 before = cart.anchoredPosition;
 
@@ -122,9 +127,10 @@ namespace FrogCart.Tests
             var percent = GameObject.Find("Percent");
             Assert.IsNotNull(percent, "текст процента не найден");
 
-            int before = controller.Eaten;
+            LevelProbe.PrepareBite(controller, out int r, out int c);
+            yield return null;
 
-            LevelProbe.FindEdibleCell(controller, out int r, out int c);
+            int before = controller.Eaten;
 
             // Раньше тест звал Eat по захардкоженной клетке и не проверял результат:
             // после обрезки картинки он бы молча остался зелёным, ничего не проверяя.

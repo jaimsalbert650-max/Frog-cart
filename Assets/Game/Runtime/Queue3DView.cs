@@ -15,9 +15,14 @@ namespace FrogCart.Runtime
     /// </summary>
     public sealed class Queue3DView : MonoBehaviour, IQueueView
     {
-        const int Visible = 5;
+        /// <summary>
+        /// Мест в ряду очереди. Было пять — по числу вагонеток на контуре из спеки.
+        /// Теперь вагонетки уровня целиком лежат в очереди, и на уровне 106 их семь,
+        /// поэтому ряд рассчитан на девять: столько же, сколько цветов в палитре.
+        /// </summary>
+        const int Visible = 9;
         const float SlotY = 664f;    // spec-координата рельса очереди
-        const float Step = 78f;
+        const float Step = 42f;
         const float DockCenterX = 195f;
 
         /// <summary>Цвет ледяной таблички — тот же, что у вагонеток на контуре.</summary>
@@ -120,7 +125,9 @@ namespace FrogCart.Runtime
             root.position = Space3D.ToWorld(SlotX(index, Visible), SlotY);
             mini.Root = root;
 
-            float bulk = 1.2f;
+            // Корпус ужат под шаг 42: при прежних 1.2 вагонетка шириной 53
+            // налезала бы на соседнюю, а очередь теперь длиннее.
+            float bulk = 0.82f;
 
             var body = NewPiece("Body", root,
                 ProcMesh.RoundedBox(Space3D.Size(44f * bulk), Space3D.Size(20f * bulk),
@@ -308,9 +315,28 @@ namespace FrogCart.Runtime
                 ProcMesh.Metal(ProcSprite.Hex("6A7178"), "mat_wheel");
         }
 
+        /// <summary>Сколько слотов сейчас занято — нужно вводу для попадания.</summary>
+        int _shown;
+
+        /// <summary>
+        /// Номер слота под точкой, или -1. Считается по расстоянию до центра слота:
+        /// коллайдеров у очереди нет, а слоты стоят ровным рядом с известным шагом.
+        /// </summary>
+        public int SlotAt(Vector2 spec, float radius)
+        {
+            for (int i = 0; i < _shown; i++)
+            {
+                var center = new Vector2(SlotX(i, _shown), SlotY);
+                if (Vector2.SqrMagnitude(spec - center) <= radius * radius) return i;
+            }
+
+            return -1;
+        }
+
         public void Rebuild(List<LevelData.CartDef> queue, int startIndex)
         {
             int count = VisibleCount(queue, startIndex);
+            _shown = count;
             FitDock(count);
 
             for (int i = 0; i < Visible; i++)

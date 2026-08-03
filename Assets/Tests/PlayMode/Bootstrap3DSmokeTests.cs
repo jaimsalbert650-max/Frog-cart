@@ -119,7 +119,10 @@ namespace FrogCart.Tests
 
             int before = _controller.Eaten;
 
-            LevelProbe.FindEdibleCell(_controller, out int r, out int c);
+            // Контур стартует пустым: сперва запускаем вагонетку нужного цвета.
+            LevelProbe.PrepareBite(_controller, out int r, out int c);
+            yield return null;
+
             Assert.IsTrue(_controller.Eat(r, c), "ход не состоялся");
             yield return null;
 

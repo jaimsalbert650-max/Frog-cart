@@ -150,25 +150,25 @@ public static class FoodHuntJsonConverter
     /// </summary>
     static void MarkCartMechanics(List<LevelData.CartDef> loop, List<LevelData.CartDef> queue)
     {
-        // Связка — две вагонетки на контуре через одну. Соседние читались бы как
+        // Связка — две вагонетки очереди через одну. Соседние читались бы как
         // случайная пара, а через одну связь видна сразу.
-        if (loop.Count >= 3 && loop[0].capacity > 0 && loop[2].capacity > 0)
+        if (queue.Count >= 3)
         {
-            var first = loop[0];
-            var second = loop[2];
+            var first = queue[0];
+            var second = queue[2];
             first.linkGroup = 1;
             second.linkGroup = 1;
-            loop[0] = first;
-            loop[2] = second;
+            queue[0] = first;
+            queue[2] = second;
         }
 
-        // Замороженной делается вагонетка из очереди, а не с контура: на старте
-        // все пять контурных нужны рабочими, иначе первый же ход упрётся в лёд.
-        if (queue.Count > 0)
+        // Замороженной делается не первая вагонетка, а вторая: первая нужна
+        // рабочей, иначе самый первый тап игрока упирается в лёд.
+        if (queue.Count >= 2)
         {
-            var frozen = queue[0];
-            frozen.frozenCount = 6;
-            queue[0] = frozen;
+            var frozen = queue[1];
+            frozen.frozenCount = 3;
+            queue[1] = frozen;
         }
     }
 
@@ -244,9 +244,12 @@ public static class FoodHuntJsonConverter
         {
             if (hits[color] == 0) continue;
 
-            var def = new LevelData.CartDef { colorId = color, capacity = hits[color] };
-            if (loop.Count < 5) loop.Add(def);
-            else queue.Add(def);
+            // Все вагонетки уходят в очередь, контур остаётся пустым.
+            //
+            // Игрок сам решает, кого и когда запустить, — в этом теперь игра.
+            // Раньше первые пять ставились на контур сразу, и половина уровня
+            // разбиралась без единого его решения.
+            queue.Add(new LevelData.CartDef { colorId = color, capacity = hits[color] });
         }
 
         while (loop.Count < 5) loop.Add(new LevelData.CartDef { colorId = 1, capacity = 0 });

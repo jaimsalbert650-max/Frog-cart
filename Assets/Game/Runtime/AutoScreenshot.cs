@@ -37,6 +37,9 @@ namespace FrogCart.Runtime
                     ParseFloat(args[i + 1], ref _afterLastTap);
                 if (args[i] == "-shottaps" && i + 1 < args.Length)
                     int.TryParse(args[i + 1], out _taps);
+
+                if (args[i] == "-shotsend" && i + 1 < args.Length)
+                    int.TryParse(args[i + 1], out _send);
             }
 
             if (string.IsNullOrEmpty(_path)) { enabled = false; return; }
@@ -56,9 +59,32 @@ namespace FrogCart.Runtime
             => float.TryParse(text, System.Globalization.NumberStyles.Float,
                               System.Globalization.CultureInfo.InvariantCulture, out target);
 
+        /// <summary>
+        /// Сколько вагонеток запустить перед снимком.
+        ///
+        /// В объёмной сцене контур стартует пустым, и без запуска на кадре не
+        /// происходит ничего: игрок теперь тапает вагонетки, а не блоки.
+        /// </summary>
+        int _send;
+
+        IEnumerator SendCarts(GameController controller)
+        {
+            for (int i = 0; i < _send; i++)
+            {
+                controller.SendCart(0);
+                yield return new WaitForSecondsRealtime(0.15f);
+            }
+        }
+
         IEnumerator Capture()
         {
             yield return new WaitForSecondsRealtime(_delay);
+
+            if (_send > 0)
+            {
+                var controller = FindAnyObjectByType<GameController>();
+                if (controller != null) yield return SendCarts(controller);
+            }
 
             if (_taps > 0) yield return Play();
             if (!string.IsNullOrEmpty(_panel)) ShowPanel();

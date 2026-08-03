@@ -43,12 +43,12 @@ namespace FrogCart.Tests
             var level = _controller.Level;
             Assert.IsNotNull(level, "уровень не назначен");
 
-            // Замороженная вагонетка обязана стоять в очереди, а не на контуре.
-            // На контуре она отняла бы рабочий слот с самого старта, и первый же
-            // ход мог упереться в лёд без единого способа его сколоть.
-            foreach (var cart in level.LoopCarts)
-                Assert.AreEqual(0, cart.frozenCount,
-                    "на контуре не должно быть замороженных вагонеток на старте");
+            // Контур стартует пустым, все вагонетки в очереди. Первая обязана быть
+            // рабочей: игрок должен иметь ход с самого начала, иначе первый же тап
+            // упирается в лёд и игра выглядит сломанной.
+            Assert.Greater(level.Queue.Length, 0, "очередь пуста, запускать нечего");
+            Assert.AreEqual(0, level.Queue[0].frozenCount,
+                "первая вагонетка в очереди не может быть замороженной");
         }
 
         [UnityTest]
@@ -58,7 +58,8 @@ namespace FrogCart.Tests
 
             // Ход либо съедает блок, либо скалывает лёд. Третьего быть не должно:
             // именно на этом держится защита от тупика.
-            LevelProbe.FindEdibleCell(_controller, out int r, out int c);
+            LevelProbe.PrepareBite(_controller, out int r, out int c);
+            yield return null;
 
             int before = _controller.Eaten;
             bool fired = _controller.Eat(r, c);
@@ -77,7 +78,7 @@ namespace FrogCart.Tests
             var level = _controller.Level;
             var groups = new System.Collections.Generic.Dictionary<int, int>();
 
-            foreach (var cart in level.LoopCarts)
+            foreach (var cart in level.Queue)
             {
                 if (cart.linkGroup == 0) continue;
 
@@ -103,7 +104,6 @@ namespace FrogCart.Tests
             // клетки тратят по месту за удар, поэтому недосчитаться здесь легко.
             var capacity = new System.Collections.Generic.Dictionary<int, int>();
 
-            foreach (var cart in level.LoopCarts) Add(capacity, cart);
             foreach (var cart in level.Queue) Add(capacity, cart);
 
             var rows = _controller.Rows;

@@ -427,8 +427,11 @@ namespace FrogCart.Runtime
             hud.Build(canvas, tween, () => _controller.TogglePause());
             panel.Build(canvas, palette, tween, () => _controller.Restart(), () => _controller.Resume());
 
-            var input = gameObject.AddComponent<Grid3DInput>();
-            input.Setup(_controller, _grid, _camera);
+            // Ввод по вагонеткам, а не по блокам: игрок запускает вагонетку,
+            // дальше она ест сама. Grid3DInput остался в проекте — им пользуется
+            // плоская версия, где тап по блоку по-прежнему основное действие.
+            var input = gameObject.AddComponent<Queue3DInput>();
+            input.Setup(_controller, queue, _camera);
 
             shake.Setup(canvas);
             _controller.StartLevel();

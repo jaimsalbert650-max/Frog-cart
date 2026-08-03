@@ -83,6 +83,16 @@ namespace FrogCart.Runtime
         int _total;
         float _clapPhase;
 
+        /// <summary>Очередь как она есть сейчас — нужна вводу и тестам.</summary>
+        public System.Collections.Generic.IReadOnlyList<LevelData.CartDef> QueueCarts => _queue;
+
+        /// <summary>
+        /// Автоукус можно выключить. Нужно тестам: они проверяют один конкретный
+        /// укус по конкретной клетке, а вагонетка, кусающая сама раз в 0.28 с,
+        /// добавляет к счётчику лишнее и делает проверку недостоверной.
+        /// </summary>
+        public bool AutoBiteEnabled { get; set; } = true;
+
         public GameState State { get; private set; } = GameState.Play;
         public float ChainDelay => Config.chainDelay;
 
@@ -128,32 +138,37 @@ namespace FrogCart.Runtime
             _reserved.Clear();
             System.Array.Clear(_reservedPerColor, 0, _reservedPerColor.Length);
 
-            _queue = new List<LevelData.CartDef>(Level.Queue);
+            // Очередь — это все вагонетки уровня: и те, что в данных лежат
+            // в loopCarts, и те, что в queue. Контур стартует пустым, поэтому
+            // деление на «стартовые» и «запасные» потеряло смысл, а собирать оба
+            // списка вместе дешевле, чем переделывать каждый уровень.
+            //
+            // Пустые отсекаются: конвертер добивает loopCarts заглушками с нулевой
+            // ёмкостью до пяти, и они показались бы в очереди пустыми вагонетками.
+            _queue = new List<LevelData.CartDef>();
 
+            foreach (var def in Level.LoopCarts)
+                if (def.capacity > 0) _queue.Add(def);
+
+            foreach (var def in Level.Queue)
+                if (def.capacity > 0) _queue.Add(def);
+
+            // Контур стартует пустым.
+            //
+            // Игра теперь работает как оригинал: игрок тапает не по блоку, а по
+            // вагонетке в очереди, она выезжает на свободное место и дальше ест
+            // свой цвет сама. По блокам тапать нельзя вовсе, а решение игрока —
+            // кого и когда запустить.
+            //
+            // Вагонетки уровня целиком лежат в очереди; loopCarts остался в данных
+            // ради старых уровней и плоской версии, но здесь не используется.
             _slots = new Slot[Carts.Length];
             for (int i = 0; i < _slots.Length; i++)
             {
-                var def = Level.LoopCarts[i];
-                _slots[i] = new Slot
-                {
-                    ColorId = def.colorId,
-                    Count = def.capacity,
-                    Live = true,
-                    Frozen = def.frozenCount,
-                    LinkGroup = def.linkGroup,
-                };
+                _slots[i] = new Slot { Live = false };
 
-                Carts[i].SetVisible(true);
-                Carts[i].SetColor(Palette, def.colorId);
-                Carts[i].SetCount(def.capacity);
-                Carts[i].SetFrozen(def.frozenCount);
-                Carts[i].SetLinked(def.linkGroup != 0);
-
-                Frogs[i].SetVisible(true);
-                Frogs[i].SetColor(Palette, def.colorId);
-                Frogs[i].SetGaze(0f);
-                Frogs[i].SetAlpha(1f);
-
+                Carts[i].SetVisible(false);
+                Frogs[i].SetVisible(false);
                 Tongues[i].Stop();
             }
 
@@ -233,6 +248,158 @@ namespace FrogCart.Runtime
             Panel.Hide();
         }
 
+        // ── ход игрока: запуск вагонетки ────────────────────────────────────────────
+
+        /// <summary>Пауза между укусами работающей вагонетки.</summary>
+        const float BiteInterval = 0.28f;
+
+        readonly float[] _nextBite = new float[8];
+
+        /// <summary>
+        /// Отправить вагонетку из очереди на контур. Это единственное действие игрока.
+        ///
+        /// Возвращает false, если запускать нечего или некуда: очередь кончилась,
+        /// свободного места нет, вагонетка ещё во льду. Отказ намеренно тихий —
+        /// вызывающему достаточно знать, что хода не было.
+        /// </summary>
+        public bool SendCart(int queueOffset)
+        {
+            if (State != GameState.Play) return false;
+
+            int index = _queueIndex + queueOffset;
+            if (index < 0 || index >= _queue.Count) return false;
+
+            var def = _queue[index];
+
+            // Замороженную запустить нельзя, но тап по ней скалывает лёд: игрок
+            // видит, что действие не пропало даром.
+            if (def.frozenCount > 0)
+            {
+                def.frozenCount--;
+                _queue[index] = def;
+                Queue.Rebuild(_queue, _queueIndex);
+                return false;
+            }
+
+            int slot = FindFreeSlot();
+            if (slot < 0) return false;
+
+            // Из середины очереди брать можно: игрок сам решает, какой цвет нужен
+            // сейчас. Взятая вагонетка выпадает из списка, остальные сдвигаются.
+            _queue.RemoveAt(index);
+
+            DockCart(slot, def);
+            Queue.Rebuild(_queue, _queueIndex);
+            return true;
+        }
+
+        int FindFreeSlot()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+                if (!_slots[i].Live && !_slots[i].Exiting) return i;
+
+            return -1;
+        }
+
+        void DockCart(int slot, LevelData.CartDef def)
+        {
+            _slots[slot] = new Slot
+            {
+                ColorId = def.colorId,
+                Count = def.capacity,
+                Live = true,
+                LinkGroup = def.linkGroup,
+                EnterT = 1f,
+            };
+
+            _nextBite[slot] = Time.unscaledTime + BiteInterval;
+
+            Carts[slot].SetVisible(true);
+            Carts[slot].SetColor(Palette, def.colorId);
+            Carts[slot].SetCount(def.capacity);
+            Carts[slot].SetFrozen(0);
+            Carts[slot].SetLinked(def.linkGroup != 0);
+
+            Frogs[slot].SetVisible(true);
+            Frogs[slot].SetColor(Palette, def.colorId);
+            Frogs[slot].SetGaze(0f);
+            Frogs[slot].SetAlpha(1f);
+
+            Tongues[slot].Stop();
+
+            StartCoroutine(EnterSlot(slot));
+        }
+
+        IEnumerator EnterSlot(int slot)
+        {
+            float elapsed = 0f;
+
+            while (elapsed < Config.cartEnter)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                _slots[slot].EnterT = 1f - Mathf.Clamp01(elapsed / Config.cartEnter);
+                yield return null;
+            }
+
+            _slots[slot].EnterT = 0f;
+        }
+
+        /// <summary>
+        /// Работающие вагонетки едят сами. По одному укусу за BiteInterval,
+        /// цель — ближайший к вагонетке открытый блок её цвета.
+        ///
+        /// Пауза нужна не для баланса, а чтобы ход было видно: без неё вагонетка
+        /// на двести мест снесла бы свой цвет за один кадр, и игрок не понял бы,
+        /// что вообще произошло.
+        /// </summary>
+        void AutoBite()
+        {
+            if (!AutoBiteEnabled) return;
+            if (State != GameState.Play) return;
+
+            for (int slot = 0; slot < _slots.Length; slot++)
+            {
+                if (!_slots[slot].Live || _slots[slot].Exiting) continue;
+                if (_slots[slot].Count <= 0) continue;
+                if (Time.unscaledTime < _nextBite[slot]) continue;
+
+                _nextBite[slot] = Time.unscaledTime + BiteInterval;
+
+                if (!TryBite(slot)) continue;
+            }
+        }
+
+        /// <summary>Ближайший открытый блок цвета вагонетки. false — есть нечего.</summary>
+        bool TryBite(int slot)
+        {
+            Sample(slot, out var cartPos, out _);
+
+            int color = _slots[slot].ColorId;
+            int bestR = -1, bestC = -1;
+            float bestDistance = float.MaxValue;
+
+            for (int r = 0; r < _grid.Rows; r++)
+            for (int c = 0; c < _grid.Cols; c++)
+            {
+                if (_grid.Get(r, c) != color) continue;
+                if (_layers.IsHidden(r, c)) continue;
+                if (_reserved.Contains(r * Grid.Cols + c)) continue;
+                if (!_exposure.IsExposed(r, c)) continue;
+
+                float distance = Vector2.SqrMagnitude(Grid.CellCenter(r, c) - cartPos);
+                if (distance >= bestDistance) continue;
+
+                bestDistance = distance;
+                bestR = r;
+                bestC = c;
+            }
+
+            if (bestR < 0) return false;
+
+            Bite(slot, bestR, bestC);
+            return true;
+        }
+
         // ── ход игрока ──────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -293,6 +460,24 @@ namespace FrogCart.Runtime
                 return false;
             }
 
+            Bite(slot, r, c);
+            return true;
+        }
+
+        /// <summary>
+        /// Сам укус: язык летит к клетке, место в вагонетке тратится.
+        ///
+        /// Выделено из Eat, потому что путей теперь два. Игрок больше не тапает
+        /// блоки — работающая вагонетка выбирает цель сама, — но Eat остался:
+        /// им пользуется плоская версия и тесты, где важно ударить по конкретной
+        /// клетке, а не по той, которую выберет вагонетка.
+        /// </summary>
+        void Bite(int slot, int r, int c)
+        {
+            int color = _grid.Get(r, c);
+            int key = r * Grid.Cols + c;
+            Vector2 target = Grid.CellCenter(r, c);
+
             _reserved.Add(key);
             _reservedPerColor[color]++;
 
@@ -327,8 +512,6 @@ namespace FrogCart.Runtime
             }
 
             StartCoroutine(RemoveBlockWhenTongueArrives(r, c, key, color, slot));
-
-            return true;
         }
 
         /// <summary>
@@ -563,47 +746,16 @@ namespace FrogCart.Runtime
                 ? Config.exitToDock - Config.cartExit
                 : 0f);
 
-            if (_queueIndex < _queue.Count)
-            {
-                var def = _queue[_queueIndex];
-                _queueIndex++;
+            // Место просто освобождается. Следующую вагонетку из очереди сюда
+            // не тянем: кого запускать, решает игрок — в этом теперь вся игра.
+            _slots[slot] = new Slot { Live = false };
 
-                _slots[slot].ColorId = def.colorId;
-                _slots[slot].Count = def.capacity;
-                _slots[slot].Exiting = false;
-                _slots[slot].ExitT = 0f;
-                _slots[slot].EnterT = 1f;
-                _slots[slot].Frozen = def.frozenCount;
-                _slots[slot].LinkGroup = def.linkGroup;
-
-                Carts[slot].SetColor(Palette, def.colorId);
-                Carts[slot].SetCount(def.capacity);
-                Carts[slot].SetFrozen(def.frozenCount);
-                Carts[slot].SetLinked(def.linkGroup != 0);
-                Frogs[slot].SetColor(Palette, def.colorId);
-
-                Queue.Shift(_queue, _queueIndex, Config.queueShift);
-
-                float enter = 0f;
-                while (enter < Config.cartEnter)
-                {
-                    enter += Time.unscaledDeltaTime;
-                    _slots[slot].EnterT = 1f - Mathf.Clamp01(enter / Config.cartEnter);
-                    yield return null;
-                }
-
-                _slots[slot].EnterT = 0f;
-            }
-            else
-            {
-                _slots[slot].Live = false;
-                Carts[slot].SetVisible(false);
-                Frogs[slot].SetVisible(false);
-            }
+            Carts[slot].SetVisible(false);
+            Frogs[slot].SetVisible(false);
+            Tongues[slot].Stop();
 
             if (State != GameState.Play) yield break;
 
-            // Подъехавшая вагонетка может оказаться такой же бесполезной, как уехавшая.
             RetireUselessCarts();
             CheckLose();
         }
@@ -617,7 +769,9 @@ namespace FrogCart.Runtime
             for (int i = 0; i < _slots.Length; i++)
                 if (_slots[i].Live) _capacity[_slots[i].ColorId] += _slots[i].Count;
 
-            for (int i = _queueIndex; i < _queue.Count; i++)
+            // Очередь теперь расходуется вынимаем, а не индексом: игрок берёт
+            // вагонетку из любого места, и _queueIndex всегда ноль.
+            for (int i = 0; i < _queue.Count; i++)
                 _capacity[_queue[i].colorId] += _queue[i].capacity;
 
             // Остаток в ударах, а не в блоках: прочная клетка стоит нескольких.
@@ -680,6 +834,9 @@ namespace FrogCart.Runtime
 
             // dist растёт только в Play: в паузе и на исходах контур стоит.
             if (State == GameState.Play) _dist += Config.railSpeed * dt;
+
+            // Работающие вагонетки едят сами — в этом теперь весь игровой процесс.
+            AutoBite();
 
             if (State == GameState.Win) _clapPhase += dt;
 

@@ -189,6 +189,7 @@ public static class FrogCartSetup
         var palette = Load<ColorPalette>($"{DataDir}/Palette.asset");
         var config = Load<GameConfig>($"{DataDir}/Config.asset");
         var level = Load<LevelData>($"{DataDir}/Level01.asset");
+        var loseTest = Load<LevelData>($"{DataDir}/Level01_LoseTest.asset");
 
         var camera = Object.FindAnyObjectByType<Camera>();
         if (camera != null)
@@ -202,7 +203,7 @@ public static class FrogCartSetup
         var bootstrap = go.AddComponent<GameBootstrap>();
         go.AddComponent<AutoScreenshot>();
 
-        bootstrap.EditorAssign(config, palette, level);
+        bootstrap.EditorAssign(config, palette, level, loseTest);
 
         if (!bootstrap.EditorHasAllRefs)
             throw new System.InvalidOperationException(

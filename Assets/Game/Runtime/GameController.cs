@@ -65,6 +65,10 @@ namespace FrogCart.Runtime
         public GameState State { get; private set; } = GameState.Play;
         public float ChainDelay => Config.chainDelay;
 
+        /// <summary>Съедено блоков и сколько всего — для HUD, тестов и аналитики.</summary>
+        public int Eaten => _eaten;
+        public int Total => _total;
+
         // ── жизненный цикл ──────────────────────────────────────────────────────────
 
         public void StartLevel()

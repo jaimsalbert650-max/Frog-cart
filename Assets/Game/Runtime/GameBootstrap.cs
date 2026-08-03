@@ -20,17 +20,23 @@ namespace FrogCart.Runtime
         [SerializeField] ColorPalette palette;
         [SerializeField] LevelData level;
 
+        [Tooltip("Уровень с заведомо недостаточной ёмкостью — проверка механики проигрыша " +
+                 "из 07-checklist.md. Выбирается ключом -uselevel losetest.")]
+        [SerializeField] LevelData loseTestLevel;
+
 #if UNITY_EDITOR
         /// <summary>
         /// Присваивание ассетов из editor-скрипта сборки сцены.
         /// Прямое, а не через SerializedObject: тот молча оставлял поля пустыми,
         /// и сцена падала на старте с NullReferenceException.
         /// </summary>
-        public void EditorAssign(GameConfig gameConfig, ColorPalette colorPalette, LevelData levelData)
+        public void EditorAssign(GameConfig gameConfig, ColorPalette colorPalette,
+                                 LevelData levelData, LevelData loseTest)
         {
             config = gameConfig;
             palette = colorPalette;
             level = levelData;
+            loseTestLevel = loseTest;
         }
 
         public bool EditorHasAllRefs => config != null && palette != null && level != null;
@@ -50,8 +56,37 @@ namespace FrogCart.Runtime
                 return;
             }
 
+            ApplyLevelOverride();
+
             BuildCanvas();
             BuildScene();
+        }
+
+        /// <summary>
+        /// Ключ -uselevel losetest подменяет уровень на заведомо непроходимый.
+        /// Нужен ради пункта чек-листа «тест механики проигрыша»: подстроить настоящее
+        /// поражение обычной игрой нельзя, а вызывать панель напрямую — значит проверить
+        /// картинку, но не правило.
+        /// </summary>
+        void ApplyLevelOverride()
+        {
+            var args = System.Environment.GetCommandLineArgs();
+
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] != "-uselevel") continue;
+                if (args[i + 1] != "losetest") continue;
+
+                if (loseTestLevel == null)
+                {
+                    Debug.LogError("[GameBootstrap] Уровень для теста проигрыша не задан.");
+                    return;
+                }
+
+                level = loseTestLevel;
+                Debug.Log("[GameBootstrap] Уровень подменён на тестовый: ожидается проигрыш.");
+                return;
+            }
         }
 
         void BuildCanvas()

@@ -139,6 +139,10 @@ namespace FrogCart.Runtime
             go.transform.SetParent(parent, false);
             go.transform.localScale = Vector3.one * size;
 
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.receiveShadows = true;
+
             return go;
         }
     }

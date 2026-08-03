@@ -92,8 +92,8 @@ namespace FrogCart.Runtime
             // Цель смещена выше центра контура: док внизу экрана занимает 196 из 844
             // пикселей макета, и при наводке ровно в центр нижний край доски уезжал
             // под него. Теперь доска целиком над доком.
-            Vector3 target = Space3D.ToWorld(195f, 300f);
-            _camera.transform.position = target + new Vector3(0f, 107f, -90f);
+            Vector3 target = Space3D.ToWorld(195f, 372f);
+            _camera.transform.position = target + new Vector3(0f, 118f, -99f);
             _camera.transform.rotation = Quaternion.Euler(50f, 0f, 0f);
 
             var lightGo = new GameObject("Sun", typeof(Light));
@@ -212,8 +212,9 @@ namespace FrogCart.Runtime
 
             var hud = gameObject.AddComponent<HudView>();
             var panel = gameObject.AddComponent<PanelView>();
-            var queue = gameObject.AddComponent<QueueView>();
-            queue.Build(canvas, palette, tween);
+            // Очередь теперь тоже объёмная: стоит на своём рельсе перед доской.
+            var queue = gameObject.AddComponent<Queue3DView>();
+            queue.Build(_world, palette, tween, _camera);
 
             _controller = gameObject.AddComponent<GameController>();
             _controller.Config = config;

@@ -3,6 +3,8 @@
     "rootNamespace": "FrogCart.Tests",
     "references": [
         "FrogCart.Core",
+        "FrogCart.Runtime",
+        "UnityEngine.UI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

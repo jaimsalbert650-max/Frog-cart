@@ -315,8 +315,7 @@ namespace FrogCart.Runtime
             AddRing(railLayer, LoopPath.RL, LoopPath.RT, CenterW, CenterH, 48f, 26f,
                     ProcSprite.Hex("A5713B"), 0f, 0f, "railLight");
 
-            AddRing(railLayer, LoopPath.RL, LoopPath.RT, CenterW, CenterH, 48f, 26f,
-                    ProcSprite.Hex("794922", 0.59f), 5f, 15f, "railSleepers");
+            AddSleepers(railLayer);
 
             // Внутренний контур: X 23, Y 76, W 344, H 544, RAD 40.
             AddRing(railLayer, 23f, 76f, 344, 544, 40f, 5f, ProcSprite.Hex("5F3919"), 0f, 0f, "railInnerBase");
@@ -325,6 +324,44 @@ namespace FrogCart.Runtime
             // Внешний контур: X 7, Y 60, W 376, H 576, RAD 56.
             AddRing(railLayer, 7f, 60f, 376, 576, 56f, 5f, ProcSprite.Hex("5F3919"), 0f, 0f, "railOuterBase");
             AddRing(railLayer, 7f, 60f, 376, 576, 56f, 3f, ProcSprite.Hex("CFD6DA"), 0f, 0f, "railOuterMetal");
+        }
+
+        /// <summary>
+        /// Шпалы — отдельные поперечины вдоль пути, а не пунктир в текстуре кольца.
+        /// Пунктиром они получались диагональными: фаза считалась грубой формулой от
+        /// координат, а не от длины дуги. Здесь каждая шпала ставится по LoopPath и
+        /// поворачивается по касательной, то есть ложится поперёк рельсов, как ей и
+        /// положено. Шаг 5/15 из 01-layout.md, ширина 26.
+        /// </summary>
+        void AddSleepers(RectTransform parent)
+        {
+            const float Step = 20f;      // 5 штрих + 15 пропуск
+            const float Length = 5f;
+            const float Width = 26f;
+
+            var path = new LoopPath();
+            int count = Mathf.RoundToInt(path.Perimeter / Step);
+            var sprite = ProcSprite.Make(ProcSprite.Rounded.Flat(
+                Mathf.RoundToInt(Length), Mathf.RoundToInt(Width), 1f, Color.white, "sleeper"));
+
+            for (int i = 0; i < count; i++)
+            {
+                path.Sample(i * Step, out var pos, out float angle);
+
+                var go = new GameObject($"Sleeper_{i}", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(parent, false);
+
+                var rt = (RectTransform)go.transform;
+                SpecRect.AnchorCenter(rt);
+                rt.sizeDelta = new Vector2(Length, Width);
+                SpecRect.MoveTo(rt, pos);
+                SpecRect.RotateTo(rt, angle);
+
+                var image = go.GetComponent<Image>();
+                image.sprite = sprite;
+                image.color = ProcSprite.Hex("794922", 0.59f);
+                image.raycastTarget = false;
+            }
         }
 
         void AddRing(RectTransform parent, float x, float y, int w, int h,

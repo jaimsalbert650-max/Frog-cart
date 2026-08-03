@@ -51,7 +51,7 @@ namespace FrogCart.Runtime
             var body = NewPiece("Body", _root,
                 ProcMesh.RoundedBox(bodyW, bodyH, bodyD, Space3D.Size(6f), "cartBody3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartBody"));
-            body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), Space3D.Size(18.5f));
+            body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), 0f);
             _body = body.transform;
 
             // Колёса вынесены за борта корпуса.
@@ -61,18 +61,35 @@ namespace FrogCart.Runtime
             // скриншотах их принимали за посторонние квадраты. Проверено сборкой с
             // колёсами, выкрашенными в пурпурный: плиты покраснели вместе с ними.
             // Снаружи они и не пересекают корпус, и наконец читаются как колёса.
-            const float WheelX = 35f;
-            NewWheel("WheelFL", new Vector3(-Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(8f)));
-            NewWheel("WheelFR", new Vector3( Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(8f)));
-            NewWheel("WheelBL", new Vector3(-Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(29f)));
-            NewWheel("WheelBR", new Vector3( Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(29f)));
+            // Колёса стоят на нитях.
+            //
+            // Локальный X — вдоль пути, Z — поперёк: корпус 44 в длину и 27 вглубь
+            // контура. Нити рельсов разведены поперёк на +-6, значит по Z колесо
+            // обязано попасть ровно туда, а разнесены колёса по X — это колёсная база.
+            //
+            // Раньше здесь было ровно наоборот: база задавалась по X через 35, а Z
+            // стоял 8 и 29 — обе пары оказывались по одну сторону от осевой и мимо
+            // нитей. Вагонетка ехала рядом с путём, а не по нему.
+            //
+            // Колея 20, а не 6. При узкой колее колёса прятались под корпусом
+            // шириной 40 поперёк — и при взгляде сверху выглядывали из-под его
+            // передней стенки тёмными квадратами, потому что луч до них проходил
+            // над её верхней кромкой. При колее 20 вагонетка стоит верхом на путях,
+            // и колёса видно там, где им и место, — на нитях.
+            const float Base = 22f;    // половина колёсной базы, вдоль пути
+            const float Gauge = 20f;   // половина колеи, поперёк — совпадает с нитями
+
+            foreach (float along in new[] { -Base, Base })
+            foreach (float across in new[] { -Gauge, Gauge })
+                NewWheel($"Wheel{along}_{across}",
+                    new Vector3(Space3D.Size(along), Space3D.Size(7f), Space3D.Size(across)));
 
             // Цветная полоса по низу корпуса — по ней цвет читается издалека.
             var stripe = NewPiece("Stripe", _root,
                 ProcMesh.RoundedBox(bodyW * 0.85f, Space3D.Size(3f), bodyD * 1.02f,
                                     Space3D.Size(2f), "cartStripe3D"),
                 ProcMesh.Glossy(Color.white, "mat_cartStripe"));
-            stripe.transform.localPosition = new Vector3(0f, Space3D.Size(2f * Bulk), Space3D.Size(18.5f));
+            stripe.transform.localPosition = new Vector3(0f, Space3D.Size(2f * Bulk), 0f);
             _stripe = stripe.transform;
             _stripeRenderer = stripe.GetComponent<MeshRenderer>();
 
@@ -95,7 +112,7 @@ namespace FrogCart.Runtime
                                     Space3D.Size(5f), "cartIce3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("BEE6F5"), "mat_cartIce", 0.55f));
 
-            ice.transform.localPosition = new Vector3(0f, Space3D.Size(4f), Space3D.Size(18.5f));
+            ice.transform.localPosition = new Vector3(0f, Space3D.Size(4f), 0f);
             _ice = ice.transform;
             _ice.gameObject.SetActive(false);
         }
@@ -111,7 +128,7 @@ namespace FrogCart.Runtime
                                     bodyW * 0.7f, "cartLink3D"),
                 ProcMesh.Emissive(ProcSprite.Hex("FFF1B8"), "mat_cartLink"));
 
-            link.transform.localPosition = new Vector3(0f, Space3D.Size(0.5f), Space3D.Size(18.5f));
+            link.transform.localPosition = new Vector3(0f, Space3D.Size(0.5f), 0f);
             _link = link.transform;
             _link.gameObject.SetActive(false);
         }
@@ -124,7 +141,7 @@ namespace FrogCart.Runtime
             // Табличка над головой, а не на её высоте. На 30 она стояла ровно там же,
             // где голова жабы, и цифру закрывала сама жаба: из-за головы торчали
             // только белые уголки таблички, и счётчик на контуре нельзя было прочесть.
-            _plate.localPosition = new Vector3(0f, Space3D.Size(98f), Space3D.Size(18.5f));
+            _plate.localPosition = new Vector3(0f, Space3D.Size(98f), 0f);
 
             var canvas = plateGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
@@ -177,8 +194,10 @@ namespace FrogCart.Runtime
 
             go.transform.SetParent(_root, false);
             go.transform.localPosition = localPosition;
-            // Цилиндр Unity стоит вдоль Y, колесо должно лежать вдоль X.
-            go.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            // Цилиндр Unity стоит вдоль Y. Ось колеса идёт поперёк пути, то есть
+            // вдоль локального Z, — поворот вокруг X, а не вокруг Z. При повороте
+            // вокруг Z ось смотрела вдоль движения, и колесо каталось боком.
+            go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             // Диаметр 14, ширина 6: снаружи корпуса колесо не обязано быть крупным,
             // а прежние 12*Bulk = 18 в диаметре смотрелись бочками.
             go.transform.localScale = new Vector3(Space3D.Size(14f), Space3D.Size(3f), Space3D.Size(14f));

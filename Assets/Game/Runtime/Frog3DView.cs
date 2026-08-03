@@ -197,9 +197,12 @@ namespace FrogCart.Runtime
         {
             float ar = railAngleDeg * Mathf.Deg2Rad;
 
+            // Жаба сидит в вагонетке, а вагонетка теперь стоит на осевой линии пути,
+            // а не в 18.5 внутрь контура. Смещение осталось только у анимации
+            // въезда-выезда: lift отводит жабу наружу, когда вагонетка уходит.
             Vector2 bodyC = new Vector2(
-                railPos.x + (18.5f - lift) * Mathf.Sin(ar),
-                railPos.y - (18.5f - lift) * Mathf.Cos(ar));
+                railPos.x - lift * Mathf.Sin(ar),
+                railPos.y + lift * Mathf.Cos(ar));
 
             // Посадка 28, а не 20: борт вагонетки поднимается до 34.8, и на дальней
             // стороне контура он срезал жабе всё ниже глаз — включая рот, из которого

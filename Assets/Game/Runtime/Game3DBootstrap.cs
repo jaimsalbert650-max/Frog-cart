@@ -317,11 +317,11 @@ namespace FrogCart.Runtime
             // жирной рамой и спорил с картинкой за внимание; на референсе вокруг
             // карточки чистое дерево. Дорога должна читаться дорогой, а не рамкой.
             var bedMesh = ProcMesh.RoundedBox(Space3D.Size(9f), Space3D.Size(2f),
-                                              Space3D.Size(26f), Space3D.Size(1f), "railBed3D");
+                                              Space3D.Size(48f), Space3D.Size(1f), "railBed3D");
             var bedMaterial = ProcMesh.Glossy(ProcSprite.Hex("B98A57"), "mat_railBed", 0.05f);
 
             var sleeperMesh = ProcMesh.RoundedBox(Space3D.Size(4f), Space3D.Size(2.5f),
-                                                  Space3D.Size(22f), Space3D.Size(1f), "sleeper3D");
+                                                  Space3D.Size(42f), Space3D.Size(1f), "sleeper3D");
             var sleeperMaterial = ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_sleeper", 0.1f);
 
             var railMesh = ProcMesh.RoundedBox(Space3D.Size(3f), Space3D.Size(3f),
@@ -348,7 +348,7 @@ namespace FrogCart.Runtime
                 }
 
                 // Две нити: смещение поперёк пути на ±8 в spec-единицах.
-                foreach (float offset in new[] { -6f, 6f })
+                foreach (float offset in new[] { -20f, 20f })
                 {
                     var ar = angle * Mathf.Deg2Rad;
                     var across = new Vector2(Mathf.Sin(ar), -Mathf.Cos(ar)) * offset;

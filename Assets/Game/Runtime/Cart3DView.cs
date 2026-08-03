@@ -91,6 +91,22 @@ namespace FrogCart.Runtime
             rt.sizeDelta = new Vector2(26f, 18f);
             rt.localScale = Vector3.one * Space3D.Scale * 1.5f;
 
+            // Зажим-язычок над счётчиком: на референсе счётчик — мешочек с тёмной
+            // защёлкой сверху, и именно она отличает его от простой таблички.
+            // Кладётся первым, чтобы уйти за фон и торчать только верхушкой.
+            var clip = new GameObject("Clip", typeof(RectTransform), typeof(Image));
+            clip.transform.SetParent(plateGo.transform, false);
+            var clipRt = (RectTransform)clip.transform;
+            clipRt.anchorMin = new Vector2(0.5f, 1f);
+            clipRt.anchorMax = new Vector2(0.5f, 1f);
+            clipRt.pivot = new Vector2(0.5f, 0f);
+            clipRt.sizeDelta = new Vector2(11f, 7f);
+            clipRt.anchoredPosition = new Vector2(0f, -3f);
+            var clipImage = clip.GetComponent<Image>();
+            clipImage.sprite = ProcSprite.Make(
+                ProcSprite.Rounded.Flat(11, 7, 2f, Color.white, "plateClip3D"));
+            clipImage.color = ProcSprite.Hex("4A4F57");
+
             var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
             background.transform.SetParent(plateGo.transform, false);
             var backRt = (RectTransform)background.transform;

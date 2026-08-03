@@ -30,29 +30,27 @@ namespace FrogCart.Tests
             var carts = controller.Level.LoopCarts;
 
             for (int r = 0; r < rows.Length; r++)
+            for (int c = 0; c + 1 < rows[r].Length; c++)
             {
-                if (IsEmptyRow(rows[r])) continue;
+                int left = rows[r][c] - '0';
+                int right = rows[r][c + 1] - '0';
 
-                for (int c = 0; c + 1 < rows[r].Length; c++)
-                {
-                    int left = rows[r][c] - '0';
-                    int right = rows[r][c + 1] - '0';
+                if (left == 0 || right == 0) continue;
+                if (!HasCart(carts, left) || !HasCart(carts, right)) continue;
 
-                    if (left == 0 || right == 0) continue;
-                    if (!HasCart(carts, left) || !HasCart(carts, right)) continue;
+                // Оба блока обязаны быть открыты сверху: над ними в своих столбцах
+                // пусто до самого края, значит язык до них дотянется. Ограничиваться
+                // верхним рядом нельзя — на настоящем уровне он может оказаться
+                // целиком того цвета, чья вагонетка ещё стоит в очереди.
+                if (!ClearAbove(rows, r, c) || !ClearAbove(rows, r, c + 1)) continue;
 
-                    row = r;
-                    col = c;
-                    return;
-                }
-
-                // Верхний ряд есть, но пары в нём нет — глубже искать нельзя,
-                // там блоки уже закрыты и правило доступности их не пропустит.
-                break;
+                row = r;
+                col = c;
+                return;
             }
 
             row = col = -1;
-            Assert.Fail("в верхнем ряду картинки нет пары соседних блоков, "
+            Assert.Fail("на картинке нет открытой сверху пары соседних блоков, "
                       + "чей цвет есть у вагонеток на контуре");
         }
 
@@ -62,12 +60,14 @@ namespace FrogCart.Tests
             FindEdiblePair(controller, out row, out col);
         }
 
-        static bool IsEmptyRow(string row)
+        /// <summary>Над клеткой в её столбце пусто до края картинки.</summary>
+        static bool ClearAbove(string[] rows, int row, int col)
         {
-            if (string.IsNullOrEmpty(row)) return true;
-
-            foreach (var cell in row)
-                if (cell != '0') return false;
+            for (int r = 0; r < row; r++)
+            {
+                if (col >= rows[r].Length) continue;
+                if (rows[r][col] != '0') return false;
+            }
 
             return true;
         }

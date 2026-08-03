@@ -75,45 +75,70 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>Габариты картинки на доске в spec-координатах.</summary>
+        public struct Placement
+        {
+            public float Cell;
+            public float OriginX, OriginY;
+            public float Width, Height;
+
+            public float CenterX => OriginX + Width * 0.5f;
+            public float CenterY => OriginY + Height * 0.5f;
+        }
+
         /// <summary>
-        /// Клетка растягивается на всю отведённую область.
+        /// Раскладка картинки: клетка квадратная, картинка вписана в область и
+        /// отцентрована в ней.
         ///
-        /// Отдельной ветки под форму из спеки больше нет и не нужно: 308/14 = 22 и
-        /// 432/16 = 27 — ровно те числа, что в 01-layout.md. Прежний вариант с
-        /// квадратной клеткой для всех прочих форм оставлял пустую полосу по одной
-        /// из сторон, а картинка после обрезки обязана занимать доску целиком.
+        /// Квадратная клетка здесь не вкусовщина: это пиксель-арт, и неквадратный
+        /// пиксель его перекашивает — на 35x35 растяжка по вертикали превращала
+        /// круглое в овальное. Прежний вариант растягивал клетку на всю область
+        /// ради того, чтобы картинка её заполняла; теперь под картинку подгоняется
+        /// сама доска, и заполнять нечего.
         ///
-        /// Клетка при этом неквадратная — как и в спеке. Но перекос ограничен:
-        /// узкая или низкая картинка иначе растянулась бы до неузнаваемости.
+        /// Статический метод, потому что размеры площадки нужны сцене раньше, чем
+        /// построена доска: белая карточка выкраивается под картинку, а не наоборот.
         /// </summary>
+        public static Placement Measure(int rows, int cols)
+        {
+            float cell = Mathf.Min(AreaW / cols, AreaH / rows);
+
+            var placement = new Placement
+            {
+                Cell = cell,
+                Width = cell * cols,
+                Height = cell * rows,
+            };
+
+            placement.OriginX = AreaX + (AreaW - placement.Width) * 0.5f;
+            placement.OriginY = AreaY + (AreaH - placement.Height) * 0.5f;
+
+            return placement;
+        }
+
         void Layout()
         {
-            const float MaxStretch = 1.35f;
+            var placement = Measure(Rows, Cols);
 
-            float cellW = AreaW / Cols;
-            float cellH = AreaH / Rows;
-
-            if (cellW > cellH * MaxStretch) cellW = cellH * MaxStretch;
-            else if (cellH > cellW * MaxStretch) cellH = cellW * MaxStretch;
-
-            CellW = cellW;
-            CellH = cellH;
-
-            OriginX = AreaX + (AreaW - CellW * Cols) * 0.5f;
-            OriginY = AreaY + (AreaH - CellH * Rows) * 0.5f;
+            CellW = CellH = placement.Cell;
+            OriginX = placement.OriginX;
+            OriginY = placement.OriginY;
         }
 
         void BuildAssets()
         {
-            // Зазор между блоками 1 единица вместо 2: на референсе картинка — плотный
-            // пиксель-арт, соседние клетки почти смыкаются. При зазоре в 2 рисунок
-            // рассыпался на отдельные кубики и переставал читаться как изображение.
-            float w = Space3D.Size(CellW - 1f);
-            float d = Space3D.Size(CellH - 1f);
+            // Зазор долей от клетки, а не в единицах. Фиксированная единица на клетке
+            // 22 давала щель в 4%, а на клетке 8.8 — уже 11%, и мелкий пиксель-арт
+            // рассыпался на отдельные кубики. Восемь процентов держат тонкую светлую
+            // линию между пикселями при любом размере картинки.
+            float w = Space3D.Size(CellW * 0.92f);
+            float d = Space3D.Size(CellH * 0.92f);
 
-            // Высота блока — примерно половина меньшей стороны: брусок читается
-            // объёмным, но не превращается в башню и не заслоняет соседей сзади.
-            _blockHeight = Mathf.Min(w, d) * 0.5f;
+            // Высота блока — треть стороны, а не половина. На 14x16 крупных кирпичей
+            // половина читалась объёмом; на 35x35 мелких она превращала картинку в
+            // щётку, где рисунка не видно за торцами. У оригинала пиксель — плоская
+            // плитка с намёком на толщину.
+            _blockHeight = Mathf.Min(w, d) * 0.24f;
 
             // Скругление 0.18 вместо 0.28: угол должен читаться как пиксель со снятой
             // фаской, а не как окатыш.

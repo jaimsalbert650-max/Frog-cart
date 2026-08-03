@@ -39,6 +39,7 @@ namespace FrogCart.Runtime
         Transform _world;
         GameController _controller;
         Grid3DView _grid;
+        Grid3DView.Placement _placement;
 
         void Awake()
         {
@@ -50,6 +51,12 @@ namespace FrogCart.Runtime
             }
 
             ApplyLevelOverride();
+
+            // Раскладка картинки считается до всего остального: под неё выкраивается
+            // белая карточка, а раньше карточка была фиксированной и картинка лежала
+            // в ней как придётся.
+            var rows = LevelCrop.Trim(level.Rows);
+            _placement = Grid3DView.Measure(rows.Length, rows[0].Length);
 
             BuildCameraAndLight();
             BuildTable();
@@ -130,7 +137,10 @@ namespace FrogCart.Runtime
 
         void FrameWorld()
         {
-            const float Tilt = 50f;
+            // Наклон 38, а не 50. На крупных кирпичах завал был незаметен, на
+            // пиксель-арте 35x35 он съедал рисунок: дальние ряды сжимались вдвое,
+            // и картинка читалась трапецией. Объём при этом никуда не делся.
+            const float Tilt = 38f;
             const float Margin = 0.03f;   // доля кадра, оставленная по краям
 
             Vector3 center = Space3D.ToWorld((WorldMin + WorldMax) * 0.5f);
@@ -190,8 +200,8 @@ namespace FrogCart.Runtime
             var table = NewBox("Table", _world,
                 Space3D.Size(6000f), Space3D.Size(6f), Space3D.Size(6000f),
                 ProcMesh.Textured(
-                    ProcTexture.Wood(ProcSprite.Hex("AD7B45"), ProcSprite.Hex("6F4520"), "tex_wood"),
-                    "mat_table", 0.10f, new Vector2(14f, 14f)));
+                    ProcTexture.Wood(ProcSprite.Hex("D3A570"), ProcSprite.Hex("A9743F"), "tex_wood"),
+                    "mat_table", 0.08f, new Vector2(9f, 9f)));
             table.transform.position = Space3D.ToWorld(195f, 422f, -Space3D.Size(6f));
 
             // Площадка под картинкой — почти белая, как на референсе: прежний тёмный
@@ -205,15 +215,23 @@ namespace FrogCart.Runtime
             // Углы скруглены заметно (0.08 от меньшей стороны, около 25 единиц):
             // на референсе площадка — скруглённая карточка, а прямые углы читались
             // как обрезанный лист.
+            // Карточка по размеру картинки плюс поле в 16 единиц, как на референсе:
+            // рисунок почти доходит до края, белого запаса ровно на просвет.
+            const float Margin = 24f;
+
             var panel = NewBox("Panel", _world,
-                Space3D.Size(316f), Space3D.Size(5f), Space3D.Size(496f),
-                ProcMesh.Glossy(ProcSprite.Hex("EFE7D9"), "mat_panel", 0.03f), 0.08f);
-            panel.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(2f));
+                Space3D.Size(_placement.Width + Margin * 2f), Space3D.Size(5f),
+                Space3D.Size(_placement.Height + Margin * 2f),
+                ProcMesh.Glossy(ProcSprite.Hex("EFE7D9"), "mat_panel", 0.03f), 0.05f);
+            panel.transform.position =
+                Space3D.ToWorld(_placement.CenterX, _placement.CenterY, -Space3D.Size(2f));
 
             var frame = NewBox("Frame", _world,
-                Space3D.Size(336f), Space3D.Size(6f), Space3D.Size(516f),
-                ProcMesh.Glossy(ProcSprite.Hex("FBF6EC"), "mat_frame", 0.03f), 0.09f);
-            frame.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(4f));
+                Space3D.Size(_placement.Width + Margin * 2f + 20f), Space3D.Size(6f),
+                Space3D.Size(_placement.Height + Margin * 2f + 20f),
+                ProcMesh.Glossy(ProcSprite.Hex("FBF6EC"), "mat_frame", 0.03f), 0.06f);
+            frame.transform.position =
+                Space3D.ToWorld(_placement.CenterX, _placement.CenterY, -Space3D.Size(4f));
         }
 
         /// <summary>Рельсовый контур: шпалы и две металлические нити по LoopPath.</summary>

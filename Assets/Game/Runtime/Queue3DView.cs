@@ -18,7 +18,18 @@ namespace FrogCart.Runtime
         const int Visible = 5;
         const float SlotY = 664f;    // spec-координата рельса очереди
         const float Step = 78f;
-        const float FirstX = 45f;
+        const float DockCenterX = 195f;
+
+        /// <summary>
+        /// Место слота на доке. Ряд центрируется по числу занятых слотов, а не
+        /// выкладывается от левого края: на уровне с тремя вагонетками в очереди
+        /// ряд жался к левому краю и выглядел обрубленным.
+        /// </summary>
+        static float SlotX(int index, int count)
+            => DockCenterX - (count - 1) * Step * 0.5f + index * Step;
+
+        static int VisibleCount(List<LevelData.CartDef> queue, int startIndex)
+            => Mathf.Clamp(queue.Count - startIndex, 0, Visible);
 
         sealed class Mini
         {
@@ -74,7 +85,7 @@ namespace FrogCart.Runtime
 
             var root = new GameObject($"QueueCart_{index}").transform;
             root.SetParent(_root, false);
-            root.position = Space3D.ToWorld(FirstX + index * Step, SlotY);
+            root.position = Space3D.ToWorld(SlotX(index, Visible), SlotY);
             mini.Root = root;
 
             float bulk = 1.2f;
@@ -127,6 +138,21 @@ namespace FrogCart.Runtime
             rt.localScale = Vector3.one * Space3D.Scale * 1.05f;
             rt.localRotation = Quaternion.Euler(50f, 0f, 0f);
 
+            // Тот же зажим-язычок, что у счётчиков на контуре: счётчик обязан
+            // выглядеть одинаково, где бы он ни стоял.
+            var clip = new GameObject("Clip", typeof(RectTransform), typeof(Image));
+            clip.transform.SetParent(plateGo.transform, false);
+            var clipRt = (RectTransform)clip.transform;
+            clipRt.anchorMin = new Vector2(0.5f, 1f);
+            clipRt.anchorMax = new Vector2(0.5f, 1f);
+            clipRt.pivot = new Vector2(0.5f, 0f);
+            clipRt.sizeDelta = new Vector2(15f, 9f);
+            clipRt.anchoredPosition = new Vector2(0f, -4f);
+            var clipImage = clip.GetComponent<Image>();
+            clipImage.sprite = ProcSprite.Make(
+                ProcSprite.Rounded.Flat(15, 9, 3f, Color.white, "queueClip3D"));
+            clipImage.color = ProcSprite.Hex("4A4F57");
+
             var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
             background.transform.SetParent(plateGo.transform, false);
             var backRt = (RectTransform)background.transform;
@@ -176,13 +202,15 @@ namespace FrogCart.Runtime
 
         public void Rebuild(List<LevelData.CartDef> queue, int startIndex)
         {
+            int count = VisibleCount(queue, startIndex);
+
             for (int i = 0; i < Visible; i++)
             {
                 int source = startIndex + i;
                 bool has = source < queue.Count;
 
                 _minis[i].Root.gameObject.SetActive(has);
-                _minis[i].Root.position = Space3D.ToWorld(FirstX + i * Step, SlotY);
+                _minis[i].Root.position = Space3D.ToWorld(SlotX(i, count), SlotY);
 
                 if (!has) continue;
 
@@ -207,12 +235,16 @@ namespace FrogCart.Runtime
             var from = new Vector3[Visible];
             for (int i = 0; i < Visible; i++) from[i] = _minis[i].Root.position;
 
+            int count = VisibleCount(queue, startIndex);
+
             _tween.Run(duration, Tweener.QueueShift,
                 t =>
                 {
                     for (int i = 0; i < Visible; i++)
                     {
-                        Vector3 target = Space3D.ToWorld(FirstX + i * Step - Step, SlotY);
+                        // Слот уезжает на место предыдущего: нулевой уходит за левый
+                        // край дока, остальные подтягиваются в новую центровку.
+                        Vector3 target = Space3D.ToWorld(SlotX(i - 1, count), SlotY);
                         _minis[i].Root.position = Vector3.Lerp(from[i], target, t);
                     }
                 },

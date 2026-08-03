@@ -52,7 +52,7 @@ namespace FrogCart.Runtime
             {
                 veinX[i] = (float)random.NextDouble();
                 veinWidth[i] = 0.004f + (float)random.NextDouble() * 0.012f;
-                veinDepth[i] = 0.25f + (float)random.NextDouble() * 0.45f;
+                veinDepth[i] = 0.10f + (float)random.NextDouble() * 0.18f;
             }
 
             var pixels = new Color32[size * size];
@@ -73,7 +73,7 @@ namespace FrogCart.Runtime
                     + Mathf.Sin((u + drift) * Mathf.PI * 2f * 81f + 2.1f) * 0.3f
                     + Mathf.Sin((u + drift) * Mathf.PI * 2f * 173f + 0.8f) * 0.2f;
 
-                float t = 0.5f + grain * 0.16f;
+                float t = 0.5f + grain * 0.09f;
 
                 // Прожилки: узкие тёмные полосы поверх общего волокна.
                 for (int i = 0; i < veinCount; i++)
@@ -92,7 +92,7 @@ namespace FrogCart.Runtime
 
                 // Шов: узкая тёмная щель на стыке плах.
                 float toSeam = Mathf.Abs(plankPos - Mathf.Round(plankPos));
-                if (toSeam < 0.02f) t += (1f - toSeam / 0.02f) * 0.85f;
+                if (toSeam < 0.015f) t += (1f - toSeam / 0.015f) * 0.5f;
 
                 pixels[y * size + x] = Color.Lerp(light, dark, Mathf.Clamp01(t));
             }

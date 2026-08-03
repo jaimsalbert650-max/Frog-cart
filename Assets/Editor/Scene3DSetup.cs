@@ -62,8 +62,14 @@ public static class Scene3DSetup
         // и в сцену пишется null.
         var palette = AssetDatabase.LoadAssetAtPath<ColorPalette>($"{DataDir}/Palette.asset");
         var config = AssetDatabase.LoadAssetAtPath<GameConfig>($"{DataDir}/Config.asset");
-        var level = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir}/Level01.asset");
-        var showcase = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir}/Level0087.asset");
+        // Основной уровень объёмной сцены — настоящий уровень Food Hunt: 35x35,
+        // 1225 блоков, 8 цветов. Учебный шар 14x16 остался витринным.
+        //
+        // Причина не в содержании картинки, а в плотности: у оригинала пиксель-арт
+        // в сотни клеток, и вся подача держится на нём. Четырнадцать крупных кирпичей
+        // на строку читаются как конструктор, а не как изображение.
+        var level = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir}/Level0087.asset");
+        var showcase = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir}/Level01.asset");
 
         if (palette == null || config == null || level == null)
             throw new System.InvalidOperationException("Ассеты не найдены — сначала Rebuild Assets And Scene");

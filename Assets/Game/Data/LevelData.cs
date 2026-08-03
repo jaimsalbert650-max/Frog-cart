@@ -11,6 +11,18 @@ namespace FrogCart.Data
         {
             public int colorId;
             public int capacity;
+
+            /// <summary>
+            /// Сколько ходов вагонетка проведёт во льду. Ноль — обычная.
+            /// В Food Hunt это `frozenCount` у коробки со `specialStatus: 2`.
+            /// </summary>
+            public int frozenCount;
+
+            /// <summary>
+            /// Номер связки. Ноль — сама по себе, одинаковые номера — уезжают вместе.
+            /// В Food Hunt связка задаётся `combineTarget` — ссылкой на вторую коробку.
+            /// </summary>
+            public int linkGroup;
         }
 
         [SerializeField] int levelNumber = 1;

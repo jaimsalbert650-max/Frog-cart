@@ -39,6 +39,13 @@ namespace FrogCart.Runtime
 
         void SetColor(ColorPalette palette, int colorId);
         void SetCount(int count);
+
+        /// <summary>Сколько льда осталось сколоть. Ноль — вагонетка работает.</summary>
+        void SetFrozen(int count);
+
+        /// <summary>Вагонетка в связке: уедет вместе с напарницей.</summary>
+        void SetLinked(bool linked);
+
         void PopNumber(float duration);
         void SetVisible(bool visible);
     }

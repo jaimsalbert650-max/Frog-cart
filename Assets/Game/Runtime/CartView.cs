@@ -133,7 +133,41 @@ namespace FrogCart.Runtime
             _countText.color = entry.dark;
         }
 
-        public void SetCount(int count) => _countText.text = count.ToString();
+        public void SetCount(int count)
+        {
+            _count = count;
+            ApplyPlate();
+        }
+
+        /// <summary>
+        /// Лёд на плоской вагонетке — голубая табличка со счётчиком сколов.
+        /// Глыбы, как в объёме, здесь не построить, а цвет таблички читается так же
+        /// однозначно: голубая значит не работает.
+        /// </summary>
+        public void SetFrozen(int count)
+        {
+            _frozen = Mathf.Max(0, count);
+            ApplyPlate();
+        }
+
+        public void SetLinked(bool linked) => _linked = linked;
+
+        void ApplyPlate()
+        {
+            if (_frozen > 0)
+            {
+                _countText.text = _frozen.ToString();
+                _countText.color = ProcSprite.Hex("13415C");
+                return;
+            }
+
+            _countText.text = _count.ToString();
+            _countText.color = _linked ? ProcSprite.Hex("8A6A00") : Color.black;
+        }
+
+        int _count;
+        int _frozen;
+        bool _linked;
 
         /// <summary>«Поп» числа: 1 → 1.42 → 1 за 0.22 c.</summary>
         public void PopNumber(float duration)

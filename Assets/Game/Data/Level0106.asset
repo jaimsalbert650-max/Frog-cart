@@ -142,16 +142,30 @@ MonoBehaviour:
   loopCarts:
   - colorId: 1
     capacity: 266
+    frozenCount: 0
+    linkGroup: 1
   - colorId: 2
     capacity: 298
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 3
     capacity: 131
+    frozenCount: 0
+    linkGroup: 1
   - colorId: 4
     capacity: 101
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 5
     capacity: 55
+    frozenCount: 0
+    linkGroup: 0
   queue:
   - colorId: 6
     capacity: 34
+    frozenCount: 6
+    linkGroup: 0
   - colorId: 7
     capacity: 18
+    frozenCount: 0
+    linkGroup: 0

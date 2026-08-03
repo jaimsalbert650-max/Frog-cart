@@ -25,6 +25,14 @@ namespace FrogCart.Runtime
             public float ExitT;
             public float EnterT;
             public float Squash;
+
+            /// <summary>Осталось сколоть льда. Ноль — вагонетка работает.</summary>
+            public int Frozen;
+
+            /// <summary>Номер связки: вагонетки с одним номером уезжают вместе.</summary>
+            public int LinkGroup;
+
+            public bool Frosted => Frozen > 0;
         }
 
         // ── зависимости, выставляются бутстрапом ────────────────────────────────────
@@ -126,11 +134,20 @@ namespace FrogCart.Runtime
             for (int i = 0; i < _slots.Length; i++)
             {
                 var def = Level.LoopCarts[i];
-                _slots[i] = new Slot { ColorId = def.colorId, Count = def.capacity, Live = true };
+                _slots[i] = new Slot
+                {
+                    ColorId = def.colorId,
+                    Count = def.capacity,
+                    Live = true,
+                    Frozen = def.frozenCount,
+                    LinkGroup = def.linkGroup,
+                };
 
                 Carts[i].SetVisible(true);
                 Carts[i].SetColor(Palette, def.colorId);
                 Carts[i].SetCount(def.capacity);
+                Carts[i].SetFrozen(def.frozenCount);
+                Carts[i].SetLinked(def.linkGroup != 0);
 
                 Frogs[i].SetVisible(true);
                 Frogs[i].SetColor(Palette, def.colorId);
@@ -254,10 +271,24 @@ namespace FrogCart.Runtime
             Vector2 target = Grid.CellCenter(r, c);
             int slot = FindNearestCart(color, target);
 
-            // Подходящей вагонетки на контуре нет: ячейка дрожит, счётчики не меняются.
-            // Наличие такой вагонетки в очереди не помогает — это оговорено в спеке.
             if (slot < 0)
             {
+                // Работающей вагонетки нет, но может стоять замороженная этого цвета.
+                // Тогда тап не пропадает даром: он скалывает с неё лёд.
+                //
+                // Это и есть защита от тупика. Лёд обязан таять от чего-то, что игрок
+                // может сделать всегда; привяжи его только к съеденным блокам — и
+                // уровень, где замороженная вагонетка единственная подходящая,
+                // встал бы намертво, как уже вставал на бесполезных вагонетках.
+                if (ChipIce(color, target))
+                {
+                    Grid.Wobble(r, c, Config.wobbleDuration);
+                    return false;
+                }
+
+                // Подходящей вагонетки на контуре нет вовсе: ячейка дрожит, счётчики
+                // не меняются. Наличие такой вагонетки в очереди не помогает —
+                // это оговорено в спеке.
                 Grid.Wobble(r, c, Config.wobbleDuration);
                 return false;
             }
@@ -346,7 +377,10 @@ namespace FrogCart.Runtime
             // этого, без флага запускали замену дважды: очередь теряла лишнюю вагонетку,
             // ёмкость цвета падала, и игра объявляла ложный проигрыш.
             if (_slots[slot].Count <= 0 && _slots[slot].Live && !_slots[slot].Exiting)
+            {
+                RetireLinkedPartners(slot);
                 StartCoroutine(ReplaceCart(slot));
+            }
 
             if (State != GameState.Play) yield break;
 
@@ -356,6 +390,9 @@ namespace FrogCart.Runtime
                 yield break;
             }
 
+            // Лёд тает от любого хода, не только от тапа по своему цвету: иначе
+            // замороженная вагонетка редкого цвета простояла бы всю партию.
+            ThawAfterMove();
             RetireUselessCarts();
             CheckLose();
         }
@@ -391,6 +428,76 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>
+        /// Связанные вагонетки уезжают вместе: опустела одна — вторая уходит следом,
+        /// даже с местами в запасе.
+        ///
+        /// Направление выбрано именно такое, а не «обе ждут, пока опустеют обе».
+        /// Второй вариант выглядит симметричнее, но он запирает контур: пара стоит,
+        /// пока не доедена самая редкая из двух красок, и если её на картинке уже
+        /// нет — стоит навсегда. Досрочный уход только освобождает место, поэтому
+        /// новых тупиков не создаёт.
+        /// </summary>
+        void RetireLinkedPartners(int slot)
+        {
+            int group = _slots[slot].LinkGroup;
+            if (group == 0) return;
+
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (i == slot) continue;
+                if (!_slots[i].Live || _slots[i].Exiting) continue;
+                if (_slots[i].LinkGroup != group) continue;
+
+                StartCoroutine(ReplaceCart(i));
+            }
+        }
+
+        /// <summary>
+        /// Сколоть лёд с ближайшей замороженной вагонетки нужного цвета.
+        /// Возвращает true, если лёд действительно сколот.
+        /// </summary>
+        bool ChipIce(int color, Vector2 target)
+        {
+            int best = -1;
+            float bestDistance = float.MaxValue;
+
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (!_slots[i].Live || _slots[i].Exiting) continue;
+                if (!_slots[i].Frosted) continue;
+                if (_slots[i].ColorId != color || _slots[i].Count <= 0) continue;
+
+                Sample(i, out var pos, out _);
+                float distance = Vector2.Distance(pos, target);
+
+                if (distance >= bestDistance) continue;
+
+                bestDistance = distance;
+                best = i;
+            }
+
+            if (best < 0) return false;
+
+            _slots[best].Frozen--;
+            _slots[best].Recoil = Config.recoilImpulse;
+            Carts[best].SetFrozen(_slots[best].Frozen);
+
+            return true;
+        }
+
+        /// <summary>Лёд подтаивает и сам собой — от каждого съеденного блока.</summary>
+        void ThawAfterMove()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (!_slots[i].Live || !_slots[i].Frosted) continue;
+
+                _slots[i].Frozen--;
+                Carts[i].SetFrozen(_slots[i].Frozen);
+            }
+        }
+
         int FindNearestCart(int color, Vector2 target)
         {
             int best = -1;
@@ -399,6 +506,10 @@ namespace FrogCart.Runtime
             for (int i = 0; i < _slots.Length; i++)
             {
                 if (!_slots[i].Live || _slots[i].Exiting) continue;
+
+                // Замороженная вагонетка стоит на контуре, но не работает.
+                if (_slots[i].Frosted) continue;
+
                 if (_slots[i].ColorId != color || _slots[i].Count <= 0) continue;
 
                 Sample(i, out var pos, out _);
@@ -462,9 +573,13 @@ namespace FrogCart.Runtime
                 _slots[slot].Exiting = false;
                 _slots[slot].ExitT = 0f;
                 _slots[slot].EnterT = 1f;
+                _slots[slot].Frozen = def.frozenCount;
+                _slots[slot].LinkGroup = def.linkGroup;
 
                 Carts[slot].SetColor(Palette, def.colorId);
                 Carts[slot].SetCount(def.capacity);
+                Carts[slot].SetFrozen(def.frozenCount);
+                Carts[slot].SetLinked(def.linkGroup != 0);
                 Frogs[slot].SetColor(Palette, def.colorId);
 
                 Queue.Shift(_queue, _queueIndex, Config.queueShift);

@@ -20,6 +20,12 @@ namespace FrogCart.Runtime
         MeshRenderer _stripeRenderer;
         Image _plateImage;
         Text _countText;
+        Transform _ice;
+        Transform _link;
+        Color _plateColor = Color.white;
+        int _colorId;
+        int _count;
+        int _frozen;
         Camera _camera;
         Tweener _tweener;
 
@@ -70,8 +76,44 @@ namespace FrogCart.Runtime
             _stripe = stripe.transform;
             _stripeRenderer = stripe.GetComponent<MeshRenderer>();
 
+            BuildIce(bodyW, bodyH, bodyD);
+            BuildLinkMark(bodyW, bodyD);
             BuildPlate();
             CollectFadeTargets();
+        }
+
+        /// <summary>
+        /// Ледяная глыба поверх корпуса. Полупрозрачной не делаю намеренно:
+        /// прозрачность в Built-in RP тянет за собой отдельную очередь отрисовки и
+        /// сортировку, а нужен всего лишь понятный знак «эта не работает».
+        /// Светлый голубой куб чуть больше корпуса решает ту же задачу.
+        /// </summary>
+        void BuildIce(float bodyW, float bodyH, float bodyD)
+        {
+            var ice = NewPiece("Ice", _root,
+                ProcMesh.RoundedBox(bodyW * 1.12f, bodyH * 1.9f, bodyD * 1.12f,
+                                    Space3D.Size(5f), "cartIce3D"),
+                ProcMesh.Glossy(ProcSprite.Hex("BEE6F5"), "mat_cartIce", 0.55f));
+
+            ice.transform.localPosition = new Vector3(0f, Space3D.Size(4f), Space3D.Size(18.5f));
+            _ice = ice.transform;
+            _ice.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Метка связки: светлое кольцо под вагонеткой. Обе вагонетки пары получают
+        /// одинаковое, поэтому связь видно сверху одним взглядом, без стрелок и линий.
+        /// </summary>
+        void BuildLinkMark(float bodyW, float bodyD)
+        {
+            var link = NewPiece("LinkMark", _root,
+                ProcMesh.RoundedBox(bodyW * 1.5f, Space3D.Size(1.5f), bodyD * 1.5f,
+                                    bodyW * 0.7f, "cartLink3D"),
+                ProcMesh.Emissive(ProcSprite.Hex("FFF1B8"), "mat_cartLink"));
+
+            link.transform.localPosition = new Vector3(0f, Space3D.Size(0.5f), Space3D.Size(18.5f));
+            _link = link.transform;
+            _link.gameObject.SetActive(false);
         }
 
         void BuildPlate()
@@ -172,12 +214,56 @@ namespace FrogCart.Runtime
         public void SetColor(ColorPalette palette, int colorId)
         {
             var entry = palette.Get(colorId);
+            _colorId = colorId;
             _stripeRenderer.sharedMaterial = ProcMesh.Glossy(entry.baseColor, $"mat_stripe{colorId}");
-            _plateImage.color = entry.baseColor;
+            _plateColor = entry.baseColor;
             _countText.color = Color.white;
+
+            ApplyPlate();
         }
 
-        public void SetCount(int count) => _countText.text = count.ToString();
+        /// <summary>
+        /// Замороженная вагонетка: ледяная глыба поверх корпуса и счётчик льда
+        /// на табличке вместо ёмкости.
+        ///
+        /// Показывается именно счётчик льда, а не ёмкость: пока вагонетка во льду,
+        /// ёмкость игроку не нужна и не интересна, а вот сколько осталось сколоть —
+        /// единственное, что определяет его следующий ход.
+        /// </summary>
+        public void SetFrozen(int count)
+        {
+            _frozen = Mathf.Max(0, count);
+            _ice.gameObject.SetActive(_frozen > 0);
+            ApplyPlate();
+        }
+
+        public void SetLinked(bool linked)
+        {
+            _link.gameObject.SetActive(linked);
+        }
+
+        void ApplyPlate()
+        {
+            if (_frozen > 0)
+            {
+                _plateImage.color = IceColor;
+                _countText.text = _frozen.ToString();
+                _countText.color = ProcSprite.Hex("13415C");
+                return;
+            }
+
+            _plateImage.color = _plateColor;
+            _countText.color = Color.white;
+            _countText.text = _count.ToString();
+        }
+
+        static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
+
+        public void SetCount(int count)
+        {
+            _count = count;
+            ApplyPlate();
+        }
 
         public void PopNumber(float duration)
         {

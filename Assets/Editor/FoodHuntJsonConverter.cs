@@ -136,6 +136,42 @@ public static class FoodHuntJsonConverter
         public bool Hidden;
     }
 
+    /// <summary>
+    /// Расстановка механик вагонеток.
+    ///
+    /// **Здесь я не переношу данные оригинала, а расставляю сам, и это надо знать.**
+    /// Причина в том, что вагонетки у нас не те же, что коробки Food Hunt: их
+    /// ёмкости считаются от числа ударов по нашей картинке, иначе уровень был бы
+    /// непроходим. Сопоставить наши пять вагонеток с их сорока коробками нечем,
+    /// а значит и `frozenCount` с `combineTarget` перенести не на что.
+    ///
+    /// Правила самой механики взяты из оригинала, расстановка — детерминированная
+    /// и одинаковая при каждом прогоне, чтобы уровень не менялся между сборками.
+    /// </summary>
+    static void MarkCartMechanics(List<LevelData.CartDef> loop, List<LevelData.CartDef> queue)
+    {
+        // Связка — две вагонетки на контуре через одну. Соседние читались бы как
+        // случайная пара, а через одну связь видна сразу.
+        if (loop.Count >= 3 && loop[0].capacity > 0 && loop[2].capacity > 0)
+        {
+            var first = loop[0];
+            var second = loop[2];
+            first.linkGroup = 1;
+            second.linkGroup = 1;
+            loop[0] = first;
+            loop[2] = second;
+        }
+
+        // Замороженной делается вагонетка из очереди, а не с контура: на старте
+        // все пять контурных нужны рабочими, иначе первый же ход упрётся в лёд.
+        if (queue.Count > 0)
+        {
+            var frozen = queue[0];
+            frozen.frozenCount = 6;
+            queue[0] = frozen;
+        }
+    }
+
     static bool TryReadSize(string text, out int width, out int height)
     {
         var match = Regex.Match(text,
@@ -214,6 +250,8 @@ public static class FoodHuntJsonConverter
         }
 
         while (loop.Count < 5) loop.Add(new LevelData.CartDef { colorId = 1, capacity = 0 });
+
+        MarkCartMechanics(loop, queue);
 
         var level = ScriptableObject.CreateInstance<LevelData>();
         level.Fill(levelId, picture, loop.ToArray(), queue.ToArray());

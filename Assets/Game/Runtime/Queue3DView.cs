@@ -20,6 +20,9 @@ namespace FrogCart.Runtime
         const float Step = 78f;
         const float DockCenterX = 195f;
 
+        /// <summary>Цвет ледяной таблички — тот же, что у вагонеток на контуре.</summary>
+        static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
+
         /// <summary>
         /// Место слота на доке. Ряд центрируется по числу занятых слотов, а не
         /// выкладывается от левого края: на уровне с тремя вагонетками в очереди
@@ -37,6 +40,7 @@ namespace FrogCart.Runtime
             public MeshRenderer Stripe;
             public MeshRenderer Head;
             public Text Count;
+            public GameObject Ice;
         }
 
         readonly Mini[] _minis = new Mini[Visible];
@@ -153,6 +157,15 @@ namespace FrogCart.Runtime
                 BuildQueueEye(root, side, bulk);
                 BuildQueueAntenna(root, side, bulk);
             }
+
+            // Ледяная глыба поверх корпуса — та же, что у вагонеток на контуре.
+            var ice = NewPiece("Ice", root,
+                ProcMesh.RoundedBox(Space3D.Size(50f * bulk), Space3D.Size(40f * bulk),
+                                    Space3D.Size(32f * bulk), Space3D.Size(5f), "queueIce3D"),
+                ProcMesh.Glossy(ProcSprite.Hex("BEE6F5"), "mat_cartIce", 0.55f));
+            ice.transform.localPosition = new Vector3(0f, Space3D.Size(4f), 0f);
+            ice.SetActive(false);
+            mini.Ice = ice;
 
             mini.Count = BuildPlate(root, bulk);
 
@@ -317,11 +330,21 @@ namespace FrogCart.Runtime
                     ProcMesh.Glossy(entry.baseColor, $"mat_stripe{def.colorId}");
                 _minis[i].Head.sharedMaterial =
                     ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{def.colorId}");
-                _minis[i].Count.text = def.capacity.ToString();
-                _minis[i].Count.color = Color.white;
+                // Замороженная вагонетка обязана быть видна ещё в очереди: вся суть
+                // механики в том, чтобы игрок заранее знал, что подкрепление придёт
+                // не сразу. Показываем счётчик льда вместо ёмкости, как на контуре.
+                bool frosted = def.frozenCount > 0;
+
+                _minis[i].Count.text = frosted
+                    ? def.frozenCount.ToString()
+                    : def.capacity.ToString();
+
+                _minis[i].Count.color = frosted ? ProcSprite.Hex("13415C") : Color.white;
 
                 if (_plateImages.TryGetValue(_minis[i].Count, out var plate))
-                    plate.color = entry.baseColor;
+                    plate.color = frosted ? IceColor : entry.baseColor;
+
+                _minis[i].Ice.SetActive(frosted);
             }
         }
 

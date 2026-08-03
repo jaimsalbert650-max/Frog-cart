@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=390, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#241608;display:flex;align-items:flex-start;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"Helvetica Neue",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+a{color:#ff9012;text-decoration:none}
+a:hover{color:#ffd52e}
+@keyframes wob{0%{transform:translateX(0) rotate(0)}20%{transform:translateX(-3px) rotate(-5deg)}45%{transform:translateX(3px) rotate(5deg)}70%{transform:translateX(-2px) rotate(-3deg)}100%{transform:translateX(0) rotate(0)}}
+@keyframes wob2{0%{transform:translateX(0) rotate(0)}20%{transform:translateX(-3px) rotate(-5deg)}45%{transform:translateX(3px) rotate(5deg)}70%{transform:translateX(-2px) rotate(-3deg)}100%{transform:translateX(0) rotate(0)}}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.42)}100%{transform:scale(1)}}
+@keyframes shk{0%{transform:translate(0,0)}25%{transform:translate(-4px,2px)}50%{transform:translate(3px,-3px)}75%{transform:translate(-2px,-1px)}100%{transform:translate(0,0)}}
+@keyframes conf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),640px) rotate(var(--rz));opacity:.9}}
+@keyframes panelin{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes flashp{0%{opacity:0}30%{opacity:.85}100%{opacity:0}}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+</style>
+</helmet>
+<div data-root style="position:relative;width:390px;height:844px;overflow:hidden;background:#8a5a30;background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 2px,rgba(255,255,255,0) 2px 11px),repeating-linear-gradient(180deg,#8f5e33 0 54px,#7a4d28 54px 58px,#6d4322 58px 60px);box-shadow:inset 0 0 60px rgba(60,30,8,.45)">
+
+  <svg viewBox="0 0 390 844" style="position:absolute;left:0;top:0;width:390px;height:844px">
+    <rect x="15" y="68" width="360" height="560" rx="48" ry="48" fill="none" stroke="rgba(50,24,6,.4)" stroke-width="40"></rect>
+    <rect x="15" y="68" width="360" height="560" rx="48" ry="48" fill="none" stroke="#8d5b2d" stroke-width="30"></rect>
+    <rect x="15" y="68" width="360" height="560" rx="48" ry="48" fill="none" stroke="#a5713b" stroke-width="26"></rect>
+    <rect x="15" y="68" width="360" height="560" rx="48" ry="48" fill="none" stroke="#79492296" stroke-width="26" stroke-dasharray="5 15"></rect>
+    <rect x="23" y="76" width="344" height="544" rx="40" ry="40" fill="none" stroke="#5f3919" stroke-width="5"></rect>
+    <rect x="23" y="76" width="344" height="544" rx="40" ry="40" fill="none" stroke="#cfd6da" stroke-width="3"></rect>
+    <rect x="7" y="60" width="376" height="576" rx="56" ry="56" fill="none" stroke="#5f3919" stroke-width="5"></rect>
+    <rect x="7" y="60" width="376" height="576" rx="56" ry="56" fill="none" stroke="#cfd6da" stroke-width="3"></rect>
+  </svg>
+
+  <div style="position:absolute;left:29px;top:92px;width:332px;height:512px;border-radius:26px;background:linear-gradient(180deg,#fdf5e2,#f3e3c2);box-shadow:0 8px 0 rgba(90,54,20,.35),0 12px 22px rgba(40,20,5,.35),inset 0 3px 0 rgba(255,255,255,.9),inset 0 -6px 0 rgba(190,150,95,.35)"></div>
+  <div style="position:absolute;left:37px;top:100px;width:316px;height:496px;border-radius:20px;background:#ecdcbb;box-shadow:inset 0 4px 8px rgba(120,86,40,.35)"></div>
+
+  <div style="position:absolute;left:41px;top:132px;width:308px;height:432px;touch-action:none" onPointerDown="{{onDown}}" onPointerMove="{{onMove}}" onPointerUp="{{onUp}}" onPointerCancel="{{onUp}}">
+    <sc-for list="{{cells}}" as="c" hint-placeholder-count="12">
+      <div style="position:absolute;left:{{c.x}}px;top:{{c.y}}px;width:{{c.w}}px;height:{{c.h}}px;border-radius:{{c.r}}px;background:{{c.bg}};box-shadow:{{c.sh}};animation:{{c.an}}"></div>
+    </sc-for>
+  </div>
+
+  <div data-flash style="position:absolute;left:29px;top:92px;width:332px;height:512px;border-radius:26px;background:#fff;opacity:0;pointer-events:none"></div>
+
+  <div style="position:absolute;left:0;top:0;width:390px;height:844px;pointer-events:none">
+    <sc-for list="{{carts}}" as="k" hint-placeholder-count="5">
+      <div data-frog="{{k.slot}}" style="position:absolute;left:0;top:0;width:34px;height:37px;transform-origin:50% 100%">
+        <div style="position:absolute;left:2px;top:10px;width:30px;height:27px;border-radius:15px 15px 12px 12px;background:linear-gradient(170deg,{{k.frogL}} 0%,{{k.frogB}} 55%,{{k.frogD}} 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.4),inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 2px rgba(46,26,10,.5),0 2px 3px rgba(0,0,0,.3)"></div>
+        <div style="position:absolute;left:0px;top:0px;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e0e4e9);box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 -2px 0 rgba(0,0,0,.07)">
+          <div style="position:absolute;left:5px;top:5px;width:8px;height:8px;border-radius:50%;background:#1d2127"></div>
+          <div style="position:absolute;left:4px;top:2px;width:6px;height:5px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+        </div>
+        <div style="position:absolute;left:17px;top:0px;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e0e4e9);box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 -2px 0 rgba(0,0,0,.07)">
+          <div style="position:absolute;left:4px;top:5px;width:8px;height:8px;border-radius:50%;background:#1d2127"></div>
+          <div style="position:absolute;left:3px;top:2px;width:6px;height:5px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+        </div>
+        <div data-mouth style="position:absolute;left:10px;top:22px;width:15px;height:9px;border-radius:2px 2px 10px 10px;background:linear-gradient(180deg,#5c2130,#8d3346);box-shadow:inset 0 -2px 0 rgba(255,255,255,.15)"></div>
+      </div>
+    </sc-for>
+    <sc-for list="{{carts}}" as="k" hint-placeholder-count="5">
+      <div data-cart="{{k.slot}}" style="position:absolute;left:0;top:0;width:0;height:0">
+        <div style="position:absolute;left:-21px;top:-5px;width:42px;height:10px;border-radius:50%;background:rgba(45,22,6,.4);filter:blur(3px)"></div>
+        <div style="position:absolute;left:-17px;top:-11px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8d949b,#3d434a 70%);box-shadow:inset 0 0 0 2px #23272c"></div>
+        <div style="position:absolute;left:5px;top:-11px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8d949b,#3d434a 70%);box-shadow:inset 0 0 0 2px #23272c"></div>
+        <div style="position:absolute;left:-22px;top:-32px;width:44px;height:27px;z-index:3;border-radius:6px 6px 10px 10px;background:linear-gradient(180deg,#c68f52 0%,#9c6231 55%,#6f4321 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -3px 0 rgba(0,0,0,.28),0 3px 4px rgba(0,0,0,.32)">
+          <div style="position:absolute;left:9px;top:4px;width:26px;height:18px;border-radius:5px;background:linear-gradient(180deg,#fffaee,#ead9b4);box-shadow:{{k.plateSh}};display:flex;align-items:center;justify-content:center">
+            <div data-num style="display:flex;align-items:center;justify-content:center">
+              <div data-pop style="font-weight:800;font-size:14px;line-height:14px;letter-spacing:-.5px;color:{{k.numColor}}">{{k.count}}</div>
+            </div>
+          </div>
+          <div style="position:absolute;left:4px;bottom:3px;width:36px;height:4px;border-radius:2px;background:{{k.frogB}};box-shadow:inset 0 1px 0 rgba(255,255,255,.45)"></div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <svg viewBox="0 0 390 844" style="position:absolute;left:0;top:0;width:390px;height:844px;pointer-events:none">
+    <g data-tongue="0" opacity="0"><path data-tpath d="" fill="none" stroke="#e04f6d" stroke-width="8" stroke-linecap="round"></path><path data-tpath2 d="" fill="none" stroke="#ff93aa" stroke-width="3" stroke-linecap="round"></path><circle data-ttip r="5.5" cx="-50" cy="-50" fill="#f2657f"></circle><rect data-tblk x="-50" y="-50" width="20" height="25" rx="6" fill="#fff" opacity="0"></rect></g>
+    <g data-tongue="1" opacity="0"><path data-tpath d="" fill="none" stroke="#e04f6d" stroke-width="8" stroke-linecap="round"></path><path data-tpath2 d="" fill="none" stroke="#ff93aa" stroke-width="3" stroke-linecap="round"></path><circle data-ttip r="5.5" cx="-50" cy="-50" fill="#f2657f"></circle><rect data-tblk x="-50" y="-50" width="20" height="25" rx="6" fill="#fff" opacity="0"></rect></g>
+    <g data-tongue="2" opacity="0"><path data-tpath d="" fill="none" stroke="#e04f6d" stroke-width="8" stroke-linecap="round"></path><path data-tpath2 d="" fill="none" stroke="#ff93aa" stroke-width="3" stroke-linecap="round"></path><circle data-ttip r="5.5" cx="-50" cy="-50" fill="#f2657f"></circle><rect data-tblk x="-50" y="-50" width="20" height="25" rx="6" fill="#fff" opacity="0"></rect></g>
+    <g data-tongue="3" opacity="0"><path data-tpath d="" fill="none" stroke="#e04f6d" stroke-width="8" stroke-linecap="round"></path><path data-tpath2 d="" fill="none" stroke="#ff93aa" stroke-width="3" stroke-linecap="round"></path><circle data-ttip r="5.5" cx="-50" cy="-50" fill="#f2657f"></circle><rect data-tblk x="-50" y="-50" width="20" height="25" rx="6" fill="#fff" opacity="0"></rect></g>
+    <g data-tongue="4" opacity="0"><path data-tpath d="" fill="none" stroke="#e04f6d" stroke-width="8" stroke-linecap="round"></path><path data-tpath2 d="" fill="none" stroke="#ff93aa" stroke-width="3" stroke-linecap="round"></path><circle data-ttip r="5.5" cx="-50" cy="-50" fill="#f2657f"></circle><rect data-tblk x="-50" y="-50" width="20" height="25" rx="6" fill="#fff" opacity="0"></rect></g>
+  </svg>
+
+  <div style="position:absolute;left:0;top:648px;width:390px;height:196px;border-radius:26px 26px 0 0;background:linear-gradient(180deg,#96632f 0%,#7d4f26 18%,#6c4220 100%);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,rgba(255,255,255,0) 2px 12px),linear-gradient(180deg,#96632f 0%,#7d4f26 18%,#6c4220 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.18),0 -6px 14px rgba(30,14,4,.35)">
+    <div style="position:absolute;left:0;top:150px;width:390px;height:9px;background:linear-gradient(180deg,#4a2c12,#6b4423);box-shadow:inset 0 2px 0 rgba(255,255,255,.1)"></div>
+    <div style="position:absolute;left:14px;top:154px;width:362px;height:4px;border-radius:3px;background:#cfd6da;box-shadow:0 1px 0 rgba(0,0,0,.35)"></div>
+    <sc-for list="{{queue}}" as="q" hint-placeholder-count="4">
+      <div style="position:absolute;left:{{q.x}}px;top:56px;width:78px;height:96px;transition:left .3s cubic-bezier(.3,1.4,.5,1);opacity:{{q.op}}">
+        <div style="position:absolute;left:12px;top:88px;width:56px;height:11px;border-radius:50%;background:rgba(35,18,4,.4);filter:blur(3px)"></div>
+        <div style="position:absolute;left:8px;top:78px;width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8d949b,#3d434a 70%);box-shadow:inset 0 0 0 2px #23272c"></div>
+        <div style="position:absolute;left:46px;top:78px;width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8d949b,#3d434a 70%);box-shadow:inset 0 0 0 2px #23272c"></div>
+        <div style="position:absolute;left:4px;top:52px;width:62px;height:34px;border-radius:7px 7px 12px 12px;background:linear-gradient(180deg,#c68f52 0%,#9c6231 55%,#6f4321 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -3px 0 rgba(0,0,0,.28),0 3px 4px rgba(0,0,0,.32)">
+          <div style="position:absolute;left:13px;top:6px;width:36px;height:23px;border-radius:6px;background:linear-gradient(180deg,#fffaee,#ead9b4);box-shadow:{{q.plateSh}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:{{q.numColor}}">{{q.count}}</div>
+          <div style="position:absolute;left:6px;bottom:4px;width:50px;height:5px;border-radius:3px;background:{{q.frogB}};box-shadow:inset 0 1px 0 rgba(255,255,255,.45)"></div>
+        </div>
+        <div style="position:absolute;left:15px;top:14px;width:40px;height:42px">
+          <div style="position:absolute;left:1px;top:11px;width:38px;height:31px;border-radius:19px 19px 13px 13px;background:linear-gradient(170deg,{{q.frogL}} 0%,{{q.frogB}} 55%,{{q.frogD}} 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.2),0 2px 3px rgba(0,0,0,.3)"></div>
+          <div style="position:absolute;left:0px;top:0px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e3e6ea);box-shadow:0 1px 2px rgba(0,0,0,.35)">
+            <div style="position:absolute;left:6px;top:6px;width:8px;height:8px;border-radius:50%;background:#1d2127"></div>
+            <div style="position:absolute;left:5px;top:3px;width:6px;height:5px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+          </div>
+          <div style="position:absolute;left:22px;top:0px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e3e6ea);box-shadow:0 1px 2px rgba(0,0,0,.35)">
+            <div style="position:absolute;left:4px;top:6px;width:8px;height:8px;border-radius:50%;background:#1d2127"></div>
+            <div style="position:absolute;left:3px;top:3px;width:6px;height:5px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+          </div>
+          <div style="position:absolute;left:12px;top:25px;width:16px;height:9px;border-radius:2px 2px 10px 10px;background:linear-gradient(180deg,#5c2130,#8d3346)"></div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:0;top:0;width:390px;height:60px;display:flex;align-items:center;gap:12px;padding:0 14px;background:linear-gradient(180deg,rgba(40,20,6,.42),rgba(40,20,6,0))">
+    <div style="width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:linear-gradient(180deg,#fdf5e2,#e9d3a9);box-shadow:0 3px 0 rgba(90,54,20,.5),inset 0 2px 0 rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:#7a4d1f">{{level}}</div>
+    <div style="flex:1 1 auto;height:22px;border-radius:11px;background:linear-gradient(180deg,#5d3a19,#7c5027);box-shadow:inset 0 2px 4px rgba(0,0,0,.45),0 2px 0 rgba(255,255,255,.14);position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;height:22px;width:{{pctW}};border-radius:11px;background:linear-gradient(180deg,#8fe05a,#4fae2c);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),inset 0 -3px 0 rgba(0,0,0,.16);transition:width .18s ease-out"></div>
+      <div style="position:absolute;left:0;top:0;width:100%;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)">{{pct}}%</div>
+    </div>
+    <div onClick="{{onPause}}" style="width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:linear-gradient(180deg,#fdf5e2,#e9d3a9);box-shadow:0 3px 0 rgba(90,54,20,.5),inset 0 2px 0 rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;pointer-events:auto" style-active="transform:translateY(2px)">
+      <div style="width:5px;height:16px;border-radius:2px;background:#7a4d1f"></div>
+      <div style="width:5px;height:16px;border-radius:2px;background:#7a4d1f"></div>
+    </div>
+  </div>
+
+  <sc-if value="{{showConfetti}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute;left:0;top:0;width:390px;height:844px;pointer-events:none;overflow:hidden">
+      <sc-for list="{{confetti}}" as="p" hint-placeholder-count="0">
+        <div style="position:absolute;left:{{p.l}}px;top:-30px;width:{{p.w}}px;height:{{p.h}}px;border-radius:{{p.r}}px;background:{{p.c}};--dx:{{p.dx}}px;--rz:{{p.rz}}deg;animation:conf {{p.d}}s cubic-bezier(.35,.6,.6,1) {{p.dl}}s forwards"></div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{overlay}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute;left:0;top:0;width:390px;height:844px;background:rgba(35,18,4,.62);display:flex;align-items:center;justify-content:center">
+      <div style="width:290px;border-radius:30px;padding:26px 22px 24px;background:linear-gradient(180deg,#fdf5e2,#f0dfba);box-shadow:0 10px 0 rgba(90,54,20,.5),0 22px 40px rgba(20,10,2,.5),inset 0 3px 0 rgba(255,255,255,.9);display:flex;flex-direction:column;align-items:center;gap:20px;animation:panelin .3s cubic-bezier(.3,1.5,.5,1) both">
+        <div style="display:flex;align-items:flex-end;gap:12px;height:62px">
+          <div style="width:44px;height:44px;background:{{star1}};clip-path:polygon(50% 0,63% 35%,100% 38%,71% 61%,81% 100%,50% 77%,19% 100%,29% 61%,0 38%,37% 35%);filter:drop-shadow(0 3px 0 rgba(120,80,20,.35))"></div>
+          <div style="width:58px;height:58px;background:{{star2}};clip-path:polygon(50% 0,63% 35%,100% 38%,71% 61%,81% 100%,50% 77%,19% 100%,29% 61%,0 38%,37% 35%);filter:drop-shadow(0 3px 0 rgba(120,80,20,.35))"></div>
+          <div style="width:44px;height:44px;background:{{star3}};clip-path:polygon(50% 0,63% 35%,100% 38%,71% 61%,81% 100%,50% 77%,19% 100%,29% 61%,0 38%,37% 35%);filter:drop-shadow(0 3px 0 rgba(120,80,20,.35))"></div>
+        </div>
+        <div style="position:relative;width:96px;height:86px;animation:bob 1.6s ease-in-out infinite">
+          <div style="position:absolute;left:22px;top:78px;width:52px;height:10px;border-radius:50%;background:rgba(90,54,20,.28);filter:blur(3px)"></div>
+          <div style="position:absolute;left:14px;top:26px;width:68px;height:54px;border-radius:34px 34px 22px 22px;background:linear-gradient(170deg,{{heroL}} 0%,{{heroB}} 55%,{{heroD}} 100%);box-shadow:inset 0 4px 0 rgba(255,255,255,.35),inset 0 -6px 0 rgba(0,0,0,.2),0 3px 4px rgba(0,0,0,.2)"></div>
+          <div style="position:absolute;left:12px;top:4px;width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e3e6ea);box-shadow:0 2px 3px rgba(0,0,0,.25)">
+            <div style="position:absolute;left:11px;top:{{eyeTop}}px;width:14px;height:14px;border-radius:50%;background:#1d2127"></div>
+            <div style="position:absolute;left:9px;top:5px;width:9px;height:7px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+          </div>
+          <div style="position:absolute;left:52px;top:4px;width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#e3e6ea);box-shadow:0 2px 3px rgba(0,0,0,.25)">
+            <div style="position:absolute;left:7px;top:{{eyeTop}}px;width:14px;height:14px;border-radius:50%;background:#1d2127"></div>
+            <div style="position:absolute;left:5px;top:5px;width:9px;height:7px;border-radius:50%;background:rgba(255,255,255,.95)"></div>
+          </div>
+          <div style="position:absolute;left:{{mouthL}}px;top:{{mouthT}}px;width:{{mouthW}}px;height:{{mouthH}}px;border-radius:{{mouthR}};background:linear-gradient(180deg,#5c2130,#8d3346);box-shadow:inset 0 -3px 0 rgba(255,255,255,.15)"></div>
+          <div style="position:absolute;left:62px;top:44px;width:38px;height:38px;border-radius:50%;background:linear-gradient(180deg,#ff5b4e,#c9261c);box-shadow:0 3px 0 rgba(120,20,10,.45),inset 0 2px 0 rgba(255,255,255,.4);display:{{badgeShow}};align-items:center;justify-content:center">
+            <div style="width:20px;height:5px;border-radius:3px;background:#fff;transform:rotate(-45deg)"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:18px">
+          <div onClick="{{onRestart}}" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,#ffd52e,#e9a600);box-shadow:0 5px 0 #a97400,inset 0 3px 0 rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;cursor:pointer" style-active="transform:translateY(3px)">
+            <div style="width:30px;height:30px;border-radius:50%;border:6px solid #7a4d1f;border-right-color:transparent;transform:rotate(-40deg)"></div>
+          </div>
+          <div onClick="{{onResume}}" style="width:{{resumeSize}}px;height:{{resumeSize}}px;border-radius:50%;background:linear-gradient(180deg,#8fe05a,#4fae2c);box-shadow:0 5px 0 #2f7519,inset 0 3px 0 rgba(255,255,255,.5);display:{{resumeShow}};align-items:center;justify-content:center;cursor:pointer" style-active="transform:translateY(3px)">
+            <div style="width:0;height:0;border-left:24px solid #fff;border-top:15px solid transparent;border-bottom:15px solid transparent;margin-left:8px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;railSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:19,&quot;min&quot;:0,&quot;max&quot;:60,&quot;step&quot;:1,&quot;unit&quot;:&quot;px/s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Feel&quot;},&quot;chainDelay&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:90,&quot;min&quot;:40,&quot;max&quot;:220,&quot;step&quot;:10,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Feel&quot;},&quot;shakeEvery&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:10,&quot;min&quot;:1,&quot;max&quot;:40,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Feel&quot;}}">
+const LEVEL = [
+  "00000055000000",
+  "00000322300000",
+  "00034322343000",
+  "00234322343200",
+  "00234322343200",
+  "00234322343200",
+  "00234322343200",
+  "00034322343000",
+  "00004322340000",
+  "00000322300000",
+  "00000022000000",
+  "00000100100000",
+  "00000111100000",
+  "00000111100000",
+  "00000111100000",
+  "00000000000000"
+];
+const PAL = {
+  1: { b: '#343941', l: '#5a616c', d: '#191c21', t: '#ffffff', ts: '0 1px 0 rgba(0,0,0,.5)' },
+  2: { b: '#ef4136', l: '#ff8a7d', d: '#a81f18', t: '#ffffff', ts: '0 1px 0 rgba(0,0,0,.35)' },
+  3: { b: '#ff9012', l: '#ffc164', d: '#bf6003', t: '#5c3000', ts: '0 1px 0 rgba(255,255,255,.4)' },
+  4: { b: '#ffd52e', l: '#fff491', d: '#cb9800', t: '#6b4a00', ts: '0 1px 0 rgba(255,255,255,.45)' },
+  5: { b: '#2e93e6', l: '#8ccbff', d: '#125f9f', t: '#ffffff', ts: '0 1px 0 rgba(0,0,0,.35)' }
+};
+const LOOP_CARTS = [{ color: 1, count: 5 }, { color: 3, count: 50 }, { color: 2, count: 28 }, { color: 4, count: 24 }, { color: 5, count: 2 }];
+const QUEUE_CARTS = [{ color: 1, count: 8 }, { color: 2, count: 4 }, { color: 4, count: 6 }, { color: 1, count: 6 }, { color: 3, count: 8 }];
+
+const COLS = 14, ROWS = 16, CW = 22, CH = 27, GX = 41, GY = 132;
+const RL = 15, RR = 375, RT = 68, RB = 628, RAD = 48;
+const SPEED = 19, OUT_T = 0.2, BACK_T = 0.13;
+
+const SEGS = (function () {
+  const s = [
+    { k: 'l', x1: RR - RAD, y1: RT, x2: RL + RAD, y2: RT },
+    { k: 'a', cx: RL + RAD, cy: RT + RAD, a0: 270, a1: 180 },
+    { k: 'l', x1: RL, y1: RT + RAD, x2: RL, y2: RB - RAD },
+    { k: 'a', cx: RL + RAD, cy: RB - RAD, a0: 180, a1: 90 },
+    { k: 'l', x1: RL + RAD, y1: RB, x2: RR - RAD, y2: RB },
+    { k: 'a', cx: RR - RAD, cy: RB - RAD, a0: 90, a1: 0 },
+    { k: 'l', x1: RR, y1: RB - RAD, x2: RR, y2: RT + RAD },
+    { k: 'a', cx: RR - RAD, cy: RT + RAD, a0: 0, a1: -90 }
+  ];
+  s.forEach(g => { g.len = g.k === 'l' ? Math.hypot(g.x2 - g.x1, g.y2 - g.y1) : RAD * Math.PI / 2; });
+  return s;
+})();
+const PERIM = SEGS.reduce((a, g) => a + g.len, 0);
+const D2R = Math.PI / 180;
+
+function posAt(s) {
+  s = ((s % PERIM) + PERIM) % PERIM;
+  for (let i = 0; i < SEGS.length; i++) {
+    const g = SEGS[i];
+    if (s > g.len) { s -= g.len; continue; }
+    const u = g.len ? s / g.len : 0;
+    if (g.k === 'l') {
+      return { x: g.x1 + (g.x2 - g.x1) * u, y: g.y1 + (g.y2 - g.y1) * u, a: Math.atan2(g.y2 - g.y1, g.x2 - g.x1) / D2R };
+    }
+    const th = (g.a0 + (g.a1 - g.a0) * u) * D2R;
+    return { x: g.cx + RAD * Math.cos(th), y: g.cy + RAD * Math.sin(th), a: Math.atan2(-Math.cos(th), Math.sin(th)) / D2R };
+  }
+  return { x: RL, y: RT, a: 180 };
+}
+const cellCx = c => GX + c * CW + CW / 2;
+const cellCy = r => GY + r * CH + CH / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const quad = (a, c, b, t) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * c + t * t * b;
+const easeBack = x => 1 + 2.1 * Math.pow(x - 1, 3) + 1.05 * Math.pow(x - 1, 2);
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = this.fresh();
+  }
+
+  fresh() {
+    const grid = LEVEL.map(r => r.split('').map(Number));
+    let total = 0;
+    grid.forEach(row => row.forEach(v => { if (v) total++; }));
+    return {
+      grid, total, eaten: 0, level: 1, status: 'play', ghost: false, panel: false,
+      carts: LOOP_CARTS.map((c, i) => ({ slot: i, id: 'c' + i, color: c.color, count: c.count, live: true })),
+      queue: QUEUE_CARTS.map((q, i) => ({ id: 'q' + i, color: q.color, count: q.count })),
+      wob: {}, confetti: []
+    };
+  }
+
+  resetRuntime() {
+    this.dist = 0;
+    this.tongues = [];
+    this.reserved = new Set();
+    this.pos = [];
+    this.mouth = [];
+    this.dyn = LOOP_CARTS.map((_, i) => ({ off: i * PERIM / 5 + 60, recoil: 0, squash: 0, enter: 0, exit: -1, clap: 0 }));
+    this.timers = (this.timers || []).map(t => { clearTimeout(t); return null; });
+    this.timers = [];
+    this.lastEat = 0;
+    this.streak = 0;
+  }
+
+  componentDidMount() {
+    this.resetRuntime();
+    this.last = performance.now();
+    try { this.step(0, this.last); } catch (err) { }
+    const frame = now => {
+      const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
+      this.last = now;
+      this.lastTickAt = now;
+      try { this.step(dt, now); } catch (err) { }
+    };
+    const tick = now => { frame(now); this.raf = requestAnimationFrame(tick); };
+    this.raf = requestAnimationFrame(tick);
+    this.later(() => this.checkLose(), 400);
+    this.watch = setInterval(() => {
+      const now = performance.now();
+      if (now - (this.lastTickAt || 0) > 70) frame(now);
+    }, 26);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.watch); (this.timers || []).forEach(clearTimeout); }
+
+  root() { return document.querySelector('[data-root]'); }
+  el(sel) { const r = this.root(); return r ? r.querySelector(sel) : null; }
+  later(fn, ms) { const t = setTimeout(fn, ms); this.timers.push(t); return t; }
+
+  step(dt, now) {
+    const root = this.root();
+    if (!root) return;
+    const playing = this.state.status === 'play';
+    if (playing) this.dist += (this.props.railSpeed ?? SPEED) * dt;
+    const carts = this.state.carts;
+    for (let i = 0; i < carts.length; i++) {
+      const k = carts[i], d = this.dyn[i];
+      const el = root.querySelector('[data-cart="' + k.slot + '"]');
+      if (!el) continue;
+      d.recoil += (0 - d.recoil) * Math.min(1, dt * 11);
+      d.squash += (0 - d.squash) * Math.min(1, dt * 9);
+      if (d.enter > 0) d.enter = Math.max(0, d.enter - dt / 0.3);
+      if (d.exit >= 0) d.exit = Math.min(1.0001, d.exit + dt / 0.34);
+      let extra = 0, sc = 1, op = 1, lift = 0;
+      if (d.enter > 0) { const e = d.enter; sc = 1 - 0.45 * e * e; lift = 46 * e * e; op = 1 - e * e * 0.6; }
+      if (d.exit >= 0) { const e = Math.min(1, d.exit); extra = 90 * e * e; sc = 1 - 0.5 * e; op = 1 - e; lift = 30 * e * e; }
+      const p = posAt(this.dist + d.off - d.recoil + extra);
+      this.pos[i] = p;
+      el.style.transform = 'translate(' + p.x.toFixed(2) + 'px,' + p.y.toFixed(2) + 'px) rotate(' + p.a.toFixed(2) + 'deg) translate(0px,' + lift.toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
+      el.style.opacity = op.toFixed(3);
+      const num = el.querySelector('[data-num]');
+      if (num) num.style.transform = 'rotate(' + (-p.a).toFixed(2) + 'deg)';
+      const frog = root.querySelector('[data-frog="' + k.slot + '"]');
+      if (frog) {
+        const ar = p.a * D2R, sa = Math.abs(Math.sin(ar)), ca = Math.abs(Math.cos(ar));
+        const bcx = p.x + (18.5 - lift) * Math.sin(ar);
+        const bcy = p.y - (18.5 - lift) * Math.cos(ar);
+        const halfY = (44 * sa + 27 * ca) / 2;
+        const fx = bcx - 17, fy = bcy - halfY + 8 - 37;
+        this.mouth[i] = { x: bcx, y: bcy - halfY + 8 - 11 };
+        const s = d.squash, clap = d.clap ? Math.sin(now / 90) * 0.12 : 0;
+        frog.style.transform = 'translate(' + fx.toFixed(1) + 'px,' + fy.toFixed(1) + 'px) rotate(' + (clap * 55).toFixed(1) + 'deg) scale(' + ((1 + s * 0.3 + Math.abs(clap)) * sc).toFixed(3) + ',' + ((1 - s * 0.26 - Math.abs(clap) * 0.5) * sc).toFixed(3) + ')';
+        frog.style.opacity = op.toFixed(3);
+        frog.style.display = el.style.display;
+        const mouth = frog.querySelector('[data-mouth]');
+        if (mouth) mouth.style.height = (9 + d.squash * 6).toFixed(1) + 'px';
+      }
+    }
+    for (let t = this.tongues.length - 1; t >= 0; t--) {
+      const tg = this.tongues[t];
+      if (playing || tg.t > 0) tg.t += dt;
+      const g = root.querySelector('[data-tongue="' + tg.slot + '"]');
+      if (!g) { this.tongues.splice(t, 1); continue; }
+      const mo = this.mouth[tg.slotIdx] || this.pos[tg.slotIdx] || { x: 195, y: 400 };
+      const mx = mo.x, my = mo.y;
+      let p;
+      if (tg.t < OUT_T) p = easeBack(tg.t / OUT_T);
+      else if (tg.t < OUT_T + BACK_T) { const u = (tg.t - OUT_T) / BACK_T; p = (1 - u * u); }
+      else p = -1;
+      const path = g.querySelector('[data-tpath]'), path2 = g.querySelector('[data-tpath2]');
+      const tip = g.querySelector('[data-ttip]'), blk = g.querySelector('[data-tblk]');
+      if (p < 0) {
+        g.setAttribute('opacity', '0'); blk.setAttribute('opacity', '0');
+        this.dyn[tg.slotIdx].squash = 1;
+        this.tongues.splice(t, 1);
+        continue;
+      }
+      if (tg.t >= OUT_T && !tg.grabbed) {
+        tg.grabbed = true;
+        this.clearCell(tg.r, tg.c);
+      }
+      const dx = tg.tx - mx, dy = tg.ty - my, dl = Math.hypot(dx, dy) || 1;
+      const cx0 = (mx + tg.tx) / 2 + (-dy / dl) * dl * 0.17 * tg.side;
+      const cy0 = (my + tg.ty) / 2 + (dx / dl) * dl * 0.17 * tg.side;
+      const px = quad(mx, cx0, tg.tx, p), py = quad(my, cy0, tg.ty, p);
+      const c1x = lerp(mx, cx0, p), c1y = lerp(my, cy0, p);
+      const d1 = 'M' + mx.toFixed(1) + ' ' + my.toFixed(1) + ' Q' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + px.toFixed(1) + ' ' + py.toFixed(1);
+      g.setAttribute('opacity', '1');
+      path.setAttribute('d', d1);
+      path2.setAttribute('d', d1);
+      path.setAttribute('stroke-width', (8 - 2 * p).toFixed(1));
+      tip.setAttribute('cx', px.toFixed(1));
+      tip.setAttribute('cy', py.toFixed(1));
+      if (tg.grabbed) {
+        blk.setAttribute('opacity', '1');
+        blk.setAttribute('fill', PAL[tg.color].b);
+        blk.setAttribute('x', (px - 10).toFixed(1));
+        blk.setAttribute('y', (py - 12.5).toFixed(1));
+        const s = Math.max(0.25, p);
+        blk.setAttribute('width', (20 * s).toFixed(1));
+        blk.setAttribute('height', (25 * s).toFixed(1));
+      } else blk.setAttribute('opacity', '0');
+    }
+  }
+
+  clearCell(r, c) {
+    this.reserved.delete(r + ',' + c);
+    this.setState(st => {
+      const grid = st.grid.map(row => row.slice());
+      grid[r][c] = 0;
+      return { grid };
+    });
+  }
+
+  burst(el, name, dur) {
+    if (!el) return;
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = name + ' ' + dur + 's cubic-bezier(.3,1.5,.5,1)';
+  }
+
+  remainingByColor(grid) {
+    const rem = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const v = grid[r][c];
+      if (v && !this.reserved.has(r + ',' + c)) rem[v]++;
+    }
+    return rem;
+  }
+
+  eat(r, c) {
+    const st = this.state;
+    if (st.status !== 'play') return false;
+    const color = st.grid[r][c];
+    if (!color || this.reserved.has(r + ',' + c)) return false;
+    let best = -1, bd = 1e9;
+    st.carts.forEach((k, i) => {
+      if (!k.live || k.color !== color || k.count <= 0 || this.dyn[i].exit >= 0) return;
+      const p = this.pos[i]; if (!p) return;
+      const d = Math.hypot(p.x - cellCx(c), p.y - cellCy(r));
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best < 0) {
+      this.setState(s => {
+        const wob = Object.assign({}, s.wob);
+        wob[r + ',' + c] = (wob[r + ',' + c] || 0) + 1;
+        return { wob };
+      });
+      this.later(() => this.setState(s => {
+        const wob = Object.assign({}, s.wob);
+        delete wob[r + ',' + c];
+        return { wob };
+      }), 360);
+      return false;
+    }
+    const slot = st.carts[best].slot;
+    this.reserved.add(r + ',' + c);
+    const d = this.dyn[best];
+    d.recoil = 9;
+    const mid = (cellCx(c) > 195) === (this.pos[best].x > 195) ? 1 : -1;
+    const tg = { slot, slotIdx: best, r, c, color, t: 0, tx: cellCx(c), ty: cellCy(r), side: mid, grabbed: false };
+    this.tongues.push(tg);
+    this.later(() => { if (!tg.grabbed) { tg.grabbed = true; this.clearCell(r, c); } }, OUT_T * 1000);
+    this.later(() => {
+      const i = this.tongues.indexOf(tg);
+      if (i >= 0) {
+        this.tongues.splice(i, 1);
+        const g = this.el('[data-tongue="' + slot + '"]');
+        if (g) { g.setAttribute('opacity', '0'); const bl = g.querySelector('[data-tblk]'); if (bl) bl.setAttribute('opacity', '0'); }
+      }
+    }, (OUT_T + BACK_T) * 1000 + 260);
+    const newEaten = st.eaten + 1;
+    const carts = st.carts.map((k, i) => i === best ? Object.assign({}, k, { count: k.count - 1 }) : k);
+    this.setState({ carts, eaten: newEaten });
+    const cartEl = this.el('[data-cart="' + slot + '"]');
+    if (cartEl) this.burst(cartEl.querySelector('[data-pop]'), 'pop', 0.22);
+    const every = Math.max(1, this.props.shakeEvery ?? 10);
+    if (newEaten % every === 0) this.burst(this.root(), 'shk', 0.28);
+    if (carts[best].count === 0) this.later(() => this.swapCart(slot), 380);
+    if (newEaten >= st.total) { this.later(() => this.win(), 260); return true; }
+    this.later(() => this.checkLose(), 40);
+    return true;
+  }
+
+  swapCart(slot) {
+    const idx = this.state.carts.findIndex(k => k.slot === slot);
+    if (idx < 0 || this.dyn[idx].exit >= 0) return;
+    this.dyn[idx].exit = 0;
+    const cartEl = this.el('[data-cart="' + slot + '"]');
+    if (cartEl) this.burst(cartEl.querySelector('[data-frog]'), 'pop', 0.3);
+    this.later(() => {
+      const st = this.state;
+      const queue = st.queue.slice();
+      const next = queue.shift();
+      const carts = st.carts.slice();
+      carts[idx] = next
+        ? { slot, id: next.id, color: next.color, count: next.count, live: true }
+        : { slot, id: 'e' + slot, color: carts[idx].color, count: 0, live: false };
+      this.setState({ carts, queue });
+      this.dyn[idx].exit = -1;
+      this.dyn[idx].enter = next ? 1 : 0;
+      const el = this.el('[data-cart="' + slot + '"]');
+      if (el) el.style.display = next ? '' : 'none';
+      this.later(() => this.checkLose(), 80);
+    }, 340);
+  }
+
+  checkLose() {
+    const st = this.state;
+    if (st.status !== 'play' || st.eaten >= st.total) return;
+    const rem = this.remainingByColor(st.grid);
+    const cap = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    st.carts.forEach(k => { if (k.live) cap[k.color] += Math.max(0, k.count); });
+    st.queue.forEach(q => { cap[q.color] += q.count; });
+    for (let c = 1; c <= 5; c++) {
+      if (rem[c] > cap[c]) { this.lose(); return; }
+    }
+  }
+
+  lose() {
+    this.tongues = [];
+    this.setState({ status: 'lose' });
+    this.later(() => this.setState({ panel: true }), 340);
+  }
+
+  win() {
+    this.dyn.forEach(d => { d.clap = 1; });
+    this.burst(this.el('[data-flash]'), 'flashp', 0.5);
+    const conf = [];
+    for (let i = 0; i < 46; i++) {
+      const cl = PAL[1 + (i % 5)];
+      conf.push({
+        l: Math.round(Math.random() * 370), w: 8 + Math.round(Math.random() * 7), h: 9 + Math.round(Math.random() * 10),
+        r: Math.random() > .5 ? 5 : 2, c: [cl.b, cl.l, '#fff5d6'][i % 3],
+        dx: Math.round(-90 + Math.random() * 180), rz: Math.round(-540 + Math.random() * 1080),
+        d: (1.5 + Math.random() * 1.1).toFixed(2), dl: (Math.random() * 0.5).toFixed(2)
+      });
+    }
+    this.setState({ status: 'win', ghost: true, confetti: conf });
+    this.later(() => this.setState({ ghost: false }), 1200);
+    this.later(() => this.setState({ panel: true }), 1100);
+  }
+
+  hitTest(e, target) {
+    const rect = target.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left) / CW);
+    const r = Math.floor((e.clientY - rect.top) / CH);
+    if (r < 0 || c < 0 || r >= ROWS || c >= COLS) return null;
+    return { r, c };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const cells = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const v = st.grid[r][c];
+      const key = r + ',' + c;
+      const wn = st.wob[key];
+      const an = wn ? ((wn % 2 ? 'wob2' : 'wob') + ' .34s ease-in-out') : 'none';
+      if (v) {
+        const p = PAL[v];
+        cells.push({
+          x: c * CW + 1, y: r * CH + 1, w: CW - 2, h: CH - 2, r: 7, an,
+          bg: 'linear-gradient(168deg,' + p.l + ' 0%,' + p.b + ' 46%,' + p.d + ' 100%)',
+          sh: 'inset 0 2px 0 rgba(255,255,255,.5),inset 0 -3px 0 rgba(0,0,0,.22),0 2px 3px rgba(0,0,0,.26)'
+        });
+      } else {
+        const og = st.ghost ? LEVEL[r].charCodeAt(c) - 48 : 0;
+        if (og) {
+          cells.push({ x: c * CW + 1, y: r * CH + 1, w: CW - 2, h: CH - 2, r: 7, an, bg: PAL[og].b, sh: 'inset 0 0 0 2px rgba(255,255,255,.35)' });
+        } else {
+          cells.push({
+            x: c * CW + 3, y: r * CH + 4, w: CW - 6, h: CH - 8, r: 5, an,
+            bg: '#e0caa1',
+            sh: 'inset 0 3px 4px rgba(122,86,40,.45),inset 0 -2px 0 rgba(255,255,255,.6)'
+          });
+        }
+      }
+    }
+    const ring = p => 'inset 0 2px 0 rgba(255,255,255,.9),inset 0 -2px 0 rgba(0,0,0,.1),0 0 0 2.5px ' + p.b + ',0 1px 2px rgba(0,0,0,.4)';
+    const carts = st.carts.map(k => {
+      const p = PAL[k.color];
+      return {
+        slot: k.slot, count: k.count, plateSh: ring(p),
+        numColor: p.d, frogB: p.b, frogL: p.l, frogD: p.d
+      };
+    });
+    const queue = st.queue.slice(0, 5).map((q, i) => {
+      const p = PAL[q.color];
+      return {
+        x: 8 + i * 88, op: 1, count: q.count, plateSh: ring(p),
+        numColor: p.d, frogB: p.b, frogL: p.l, frogD: p.d
+      };
+    });
+    const pct = Math.round(st.eaten / st.total * 100);
+    const win = st.status === 'win';
+    const hero = PAL[win ? 4 : 2];
+    return {
+      cells, carts, queue, pct, pctW: pct + '%', level: st.level,
+      overlay: st.panel || st.status === 'pause',
+      showConfetti: st.confetti.length > 0,
+      confetti: st.confetti,
+      star1: win ? '#ffd52e' : '#cbb78f', star2: win ? '#ffd52e' : '#cbb78f', star3: win ? '#ffd52e' : '#cbb78f',
+      heroB: hero.b, heroL: hero.l, heroD: hero.d,
+      eyeTop: win ? 8 : 14, badgeShow: st.status === 'lose' ? 'flex' : 'none',
+      mouthL: win ? 26 : 30, mouthT: win ? 52 : 58, mouthW: win ? 44 : 36, mouthH: win ? 22 : 12,
+      mouthR: win ? '6px 6px 24px 24px' : '18px 18px 4px 4px',
+      resumeShow: st.status === 'pause' ? 'flex' : 'none',
+      resumeSize: 64,
+      onPause: () => { if (this.state.status === 'play') this.setState({ status: 'pause', panel: false }); },
+      onResume: () => { if (this.state.status === 'pause') this.setState({ status: 'play' }); },
+      onRestart: () => {
+        (this.timers || []).forEach(clearTimeout);
+        this.resetRuntime();
+        const root = this.root();
+        if (root) root.querySelectorAll('[data-cart]').forEach(el => { el.style.display = ''; });
+        if (root) root.querySelectorAll('[data-tongue]').forEach(g => g.setAttribute('opacity', '0'));
+        this.setState(this.fresh());
+      },
+      onDown: e => {
+        if (this.state.status !== 'play') return;
+        this.dragging = true;
+        this.holdTarget = e.currentTarget;
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { }
+        const h = this.hitTest(e, e.currentTarget);
+        if (h) { this.eat(h.r, h.c); this.lastEat = performance.now(); }
+      },
+      onMove: e => {
+        if (!this.dragging || this.state.status !== 'play') return;
+        const now = performance.now();
+        if (now - this.lastEat < (this.props.chainDelay ?? 90)) return;
+        const h = this.hitTest(e, e.currentTarget);
+        if (h && this.eat(h.r, h.c)) this.lastEat = now;
+      },
+      onUp: () => { this.dragging = false; }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

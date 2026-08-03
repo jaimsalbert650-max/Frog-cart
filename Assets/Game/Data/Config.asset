@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 649538aea84fada42917c5aa182c4e03, type: 3}
   m_Name: Config
   m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig
-  railSpeed: 19
+  railSpeed: 34
   chainDelay: 0.09
   shakeEvery: 10
   vibrate: 1
-  tongueOut: 0.2
-  tongueBack: 0.13
+  tongueOut: 0.42
+  tongueBack: 0.2
   squashDecay: 9
   recoilDecay: 11
   recoilImpulse: 9

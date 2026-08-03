@@ -10,7 +10,7 @@ namespace FrogCart.Data
     public sealed class GameConfig : ScriptableObject
     {
         [Header("Движение")]
-        [Range(0f, 60f)] public float railSpeed = 19f;
+        [Range(0f, 60f)] public float railSpeed = 34f;
 
         [Header("Ввод")]
         [Range(0.04f, 0.22f)] public float chainDelay = 0.09f;
@@ -20,8 +20,8 @@ namespace FrogCart.Data
         public bool vibrate = true;
 
         [Header("Язык")]
-        public float tongueOut = 0.20f;
-        public float tongueBack = 0.13f;
+        public float tongueOut = 0.42f;
+        public float tongueBack = 0.20f;
 
         [Header("Затухания")]
         public float squashDecay = 9f;

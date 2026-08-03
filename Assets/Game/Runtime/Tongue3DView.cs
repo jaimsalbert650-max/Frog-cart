@@ -43,7 +43,7 @@ namespace FrogCart.Runtime
             _line.positionCount = Segments + 1;
             _line.numCapVertices = 6;
             _line.numCornerVertices = 4;
-            _line.material = ProcMesh.Glossy(ProcSprite.Hex("E04F6D"), "mat_tongue", 0.5f);
+            _line.material = ProcMesh.Unlit(ProcSprite.Hex("E04F6D"), "mat_tongue");
             _line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             var tip = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -52,7 +52,7 @@ namespace FrogCart.Runtime
             tip.transform.SetParent(go.transform, false);
             tip.transform.localScale = Vector3.one * Space3D.Size(11f);
             tip.GetComponent<MeshRenderer>().sharedMaterial =
-                ProcMesh.Glossy(ProcSprite.Hex("F2657F"), "mat_tongueTip", 0.5f);
+                ProcMesh.Emissive(ProcSprite.Hex("F2657F"), "mat_tongueTip");
             _tip = tip.transform;
 
             var carried = new GameObject("Carried", typeof(MeshFilter), typeof(MeshRenderer));

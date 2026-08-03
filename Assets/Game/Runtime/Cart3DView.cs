@@ -33,29 +33,32 @@ namespace FrogCart.Runtime
             _root = new GameObject("Cart3D").transform;
             _root.SetParent(parent, false);
 
-            // Корпус 44x27 из спеки, вглубь контура — та же 27.
-            float bodyW = Space3D.Size(44f);
-            float bodyH = Space3D.Size(20f);
-            float bodyD = Space3D.Size(27f);
+            // Корпус 44x27 из спеки, вглубь контура — та же 27. В объёме вагонетка
+            // стоит дальше от камеры, чем доска, и в исходном размере читалась мелкой,
+            // поэтому вся сборка увеличена в полтора раза.
+            const float Bulk = 1.5f;
+            float bodyW = Space3D.Size(44f * Bulk);
+            float bodyH = Space3D.Size(20f * Bulk);
+            float bodyD = Space3D.Size(27f * Bulk);
 
             var body = NewPiece("Body", _root,
                 ProcMesh.RoundedBox(bodyW, bodyH, bodyD, Space3D.Size(6f), "cartBody3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartBody"));
-            body.transform.localPosition = new Vector3(0f, Space3D.Size(9f), Space3D.Size(18.5f));
+            body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), Space3D.Size(18.5f));
             _body = body.transform;
 
-            float wheel = Space3D.Size(12f);
-            NewWheel("WheelFL", new Vector3(-Space3D.Size(13f), wheel * 0.5f, Space3D.Size(10f)));
-            NewWheel("WheelFR", new Vector3( Space3D.Size(13f), wheel * 0.5f, Space3D.Size(10f)));
-            NewWheel("WheelBL", new Vector3(-Space3D.Size(13f), wheel * 0.5f, Space3D.Size(27f)));
-            NewWheel("WheelBR", new Vector3( Space3D.Size(13f), wheel * 0.5f, Space3D.Size(27f)));
+            float wheel = Space3D.Size(12f * Bulk);
+            NewWheel("WheelFL", new Vector3(-Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(10f)), Bulk);
+            NewWheel("WheelFR", new Vector3( Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(10f)), Bulk);
+            NewWheel("WheelBL", new Vector3(-Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(30f)), Bulk);
+            NewWheel("WheelBR", new Vector3( Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(30f)), Bulk);
 
             // Цветная полоса по низу корпуса — по ней цвет читается издалека.
             var stripe = NewPiece("Stripe", _root,
                 ProcMesh.RoundedBox(bodyW * 0.85f, Space3D.Size(3f), bodyD * 1.02f,
                                     Space3D.Size(2f), "cartStripe3D"),
                 ProcMesh.Glossy(Color.white, "mat_cartStripe"));
-            stripe.transform.localPosition = new Vector3(0f, Space3D.Size(2f), Space3D.Size(18.5f));
+            stripe.transform.localPosition = new Vector3(0f, Space3D.Size(2f * Bulk), Space3D.Size(18.5f));
             _stripe = stripe.transform;
             _stripeRenderer = stripe.GetComponent<MeshRenderer>();
 
@@ -68,14 +71,14 @@ namespace FrogCart.Runtime
             var plateGo = new GameObject("Plate", typeof(Canvas), typeof(CanvasScaler));
             plateGo.transform.SetParent(_root, false);
             _plate = plateGo.transform;
-            _plate.localPosition = new Vector3(0f, Space3D.Size(20f), Space3D.Size(18.5f));
+            _plate.localPosition = new Vector3(0f, Space3D.Size(30f), Space3D.Size(18.5f));
 
             var canvas = plateGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
 
             var rt = (RectTransform)plateGo.transform;
             rt.sizeDelta = new Vector2(26f, 18f);
-            rt.localScale = Vector3.one * Space3D.Scale;
+            rt.localScale = Vector3.one * Space3D.Scale * 1.5f;
 
             var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
             background.transform.SetParent(plateGo.transform, false);
@@ -90,7 +93,7 @@ namespace FrogCart.Runtime
             _countText = UiText.Create("Count", (RectTransform)plateGo.transform, 14, Color.black);
         }
 
-        void NewWheel(string name, Vector3 localPosition)
+        void NewWheel(string name, Vector3 localPosition, float bulk)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             go.name = name;
@@ -100,7 +103,7 @@ namespace FrogCart.Runtime
             go.transform.localPosition = localPosition;
             // Цилиндр Unity стоит вдоль Y, колесо должно лежать вдоль X.
             go.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            go.transform.localScale = new Vector3(Space3D.Size(12f), Space3D.Size(3f), Space3D.Size(12f));
+            go.transform.localScale = new Vector3(Space3D.Size(12f * bulk), Space3D.Size(4f * bulk), Space3D.Size(12f * bulk));
 
             go.GetComponent<MeshRenderer>().sharedMaterial =
                 ProcMesh.Metal(ProcSprite.Hex("6A7178"), "mat_wheel");
@@ -146,8 +149,8 @@ namespace FrogCart.Runtime
                 float scale = t < 0.35f
                     ? Mathf.Lerp(1f, 1.42f, t / 0.35f)
                     : Mathf.Lerp(1.42f, 1f, (t - 0.35f) / 0.65f);
-                _plate.localScale = Vector3.one * Space3D.Scale * scale;
-            }, () => _plate.localScale = Vector3.one * Space3D.Scale);
+                _plate.localScale = Vector3.one * Space3D.Scale * 1.5f * scale;
+            }, () => _plate.localScale = Vector3.one * Space3D.Scale * 1.5f);
         }
 
         public void SetVisible(bool visible) => _root.gameObject.SetActive(visible);

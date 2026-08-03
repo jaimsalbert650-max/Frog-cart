@@ -26,22 +26,28 @@ public static class Scene3DSetup
         var serialized = new SerializedObject(graphics);
         var list = serialized.FindProperty("m_AlwaysIncludedShaders");
 
-        var standard = Shader.Find("Standard");
-        if (standard == null)
+        foreach (string name in new[] { "Standard", "Sprites/Default" })
         {
-            Debug.LogError("[Scene3D] Шейдер Standard не найден даже в редакторе.");
-            return;
+            var shader = Shader.Find(name);
+            if (shader == null)
+            {
+                Debug.LogError($"[Scene3D] Шейдер {name} не найден даже в редакторе.");
+                continue;
+            }
+
+            bool already = false;
+            for (int i = 0; i < list.arraySize; i++)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == shader) already = true;
+
+            if (already) continue;
+
+            list.InsertArrayElementAtIndex(list.arraySize);
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = shader;
+            Debug.Log($"[Scene3D] Шейдер {name} добавлен в always-included.");
         }
 
-        for (int i = 0; i < list.arraySize; i++)
-            if (list.GetArrayElementAtIndex(i).objectReferenceValue == standard) return;
-
-        list.InsertArrayElementAtIndex(list.arraySize);
-        list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = standard;
         serialized.ApplyModifiedProperties();
         AssetDatabase.SaveAssets();
-
-        Debug.Log("[Scene3D] Шейдер Standard добавлен в always-included.");
     }
 
     [MenuItem("Frog Cart/Build 3D Scene")]
@@ -76,6 +82,17 @@ public static class Scene3DSetup
 
         if (!EditorSceneManager.SaveScene(scene, ScenePath))
             throw new System.InvalidOperationException($"Не удалось сохранить {ScenePath}");
+
+        // Сцена добавляется к списку сборки, а не заменяет его: плоская версия должна
+        // остаться собираемой, и PlayMode-тесты грузят обе по имени.
+        var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(
+            EditorBuildSettings.scenes);
+
+        if (!scenes.Exists(s => s.path == ScenePath))
+        {
+            scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
 
         Debug.Log($"[Scene3D] Сцена сохранена: {ScenePath}");
     }

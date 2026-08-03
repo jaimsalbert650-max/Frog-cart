@@ -47,6 +47,43 @@ namespace FrogCart.Runtime
             return material;
         }
 
+        /// <summary>
+        /// Самосветящийся материал: цвет не зависит от того, попал объект в тень или нет.
+        /// Нужен языку — он летит над доской, в её же собственной тени, и освещённый
+        /// материал уводил розовый в тёмно-бордовый.
+        /// </summary>
+        public static Material Emissive(Color color, string key)
+        {
+            if (Materials.TryGetValue(key, out var cached)) return cached;
+
+            var material = new Material(Standard);
+            material.color = color;
+            material.SetFloat("_Glossiness", 0.3f);
+            material.SetFloat("_Metallic", 0f);
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", color * 0.85f);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+
+            Materials[key] = material;
+            return material;
+        }
+
+        /// <summary>
+        /// Неосвещённый материал. Нужен LineRenderer'у: он строит меш-ленту без
+        /// нормалей, и любой освещённый шейдер красит её почти в чёрный независимо
+        /// от того, что написано в цвете.
+        /// </summary>
+        public static Material Unlit(Color color, string key)
+        {
+            if (Materials.TryGetValue(key, out var cached)) return cached;
+
+            var shader = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color") ?? Standard;
+            var material = new Material(shader) { color = color };
+
+            Materials[key] = material;
+            return material;
+        }
+
         public static Material Metal(Color color, string key)
         {
             if (Materials.TryGetValue(key, out var cached)) return cached;

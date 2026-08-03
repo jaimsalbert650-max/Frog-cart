@@ -1,0 +1,20 @@
+{
+    "name": "FrogCart.Editor",
+    "rootNamespace": "",
+    "references": [
+        "FrogCart.Core",
+        "FrogCart.Runtime",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

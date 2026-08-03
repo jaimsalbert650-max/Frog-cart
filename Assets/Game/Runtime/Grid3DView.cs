@@ -11,6 +11,11 @@ namespace FrogCart.Runtime
     ///
     /// Меш один на всю доску и берётся из кеша, материал один на цвет — иначе
     /// на 1225 блоках это были бы 1225 мешей и столько же материалов.
+    ///
+    /// Пустых гнёзд под клетками нет намеренно. Раньше под каждой клеткой лежала
+    /// плоская площадка, и вся доска читалась как перфорированная панель, а на
+    /// референсе пустая клетка — просто поверхность площадки. Съеденный блок теперь
+    /// не оставляет следа, и картинка разбирается «до чистого листа».
     /// </summary>
     public sealed class Grid3DView : MonoBehaviour, IGridView
     {
@@ -26,9 +31,7 @@ namespace FrogCart.Runtime
         Transform[,] _blocks;
         MeshRenderer[,] _renderers;
         Material[] _materials;
-        Material _socketMaterial;
         Mesh _blockMesh;
-        Mesh _socketMesh;
         float _blockHeight;
 
         public int Rows { get; private set; }
@@ -64,10 +67,6 @@ namespace FrogCart.Runtime
             {
                 Vector2 spec = CellCenter(r, c);
 
-                // Гнездо — плоская вдавленная площадка под блоком.
-                var socket = NewPiece($"Socket_{r}_{c}", _root, _socketMesh, _socketMaterial);
-                socket.transform.position = Space3D.ToWorld(spec, 0.002f);
-
                 var block = NewPiece($"Block_{r}_{c}", _root, _blockMesh, _materials[1]);
                 block.transform.position = Space3D.ToWorld(spec, 0f);
 
@@ -98,23 +97,20 @@ namespace FrogCart.Runtime
 
         void BuildAssets()
         {
-            float w = Space3D.Size(CellW - 2f);
-            float d = Space3D.Size(CellH - 2f);
+            // Зазор между блоками 1 единица вместо 2: на референсе картинка — плотный
+            // пиксель-арт, соседние клетки почти смыкаются. При зазоре в 2 рисунок
+            // рассыпался на отдельные кубики и переставал читаться как изображение.
+            float w = Space3D.Size(CellW - 1f);
+            float d = Space3D.Size(CellH - 1f);
 
             // Высота блока — примерно половина меньшей стороны: брусок читается
             // объёмным, но не превращается в башню и не заслоняет соседей сзади.
             _blockHeight = Mathf.Min(w, d) * 0.5f;
 
-            _blockMesh = ProcMesh.RoundedBox(w, _blockHeight, d, Mathf.Min(w, d) * 0.28f,
+            // Скругление 0.18 вместо 0.28: угол должен читаться как пиксель со снятой
+            // фаской, а не как окатыш.
+            _blockMesh = ProcMesh.RoundedBox(w, _blockHeight, d, Mathf.Min(w, d) * 0.18f,
                                              $"block{Rows}x{Cols}");
-
-            // Гнездо почти плоское. Пока оно было коробочкой в 1.2 единицы высотой,
-            // на дальнем краю доски камера видела его боковые грани вместо верхней —
-            // и весь тот край читался темнее ближнего.
-            _socketMesh = ProcMesh.RoundedBox(w * 0.84f, Space3D.Size(0.35f), d * 0.84f,
-                                              Mathf.Min(w, d) * 0.2f, $"socket{Rows}x{Cols}");
-
-            _socketMaterial = ProcMesh.Glossy(ProcSprite.Hex("B8A07C"), "mat_socket", 0.04f);
 
             _materials = new Material[GridModel.MaxColor + 1];
             for (int color = 1; color <= _palette.Count && color <= GridModel.MaxColor; color++)

@@ -18,6 +18,7 @@ namespace FrogCart.Runtime
         Transform _plate;
         Transform _stripe;
         MeshRenderer _stripeRenderer;
+        Image _plateImage;
         Text _countText;
         Camera _camera;
         Tweener _tweener;
@@ -71,7 +72,10 @@ namespace FrogCart.Runtime
             var plateGo = new GameObject("Plate", typeof(Canvas), typeof(CanvasScaler));
             plateGo.transform.SetParent(_root, false);
             _plate = plateGo.transform;
-            _plate.localPosition = new Vector3(0f, Space3D.Size(30f), Space3D.Size(18.5f));
+            // Табличка над головой, а не на её высоте. На 30 она стояла ровно там же,
+            // где голова жабы, и цифру закрывала сама жаба: из-за головы торчали
+            // только белые уголки таблички, и счётчик на контуре нельзя было прочесть.
+            _plate.localPosition = new Vector3(0f, Space3D.Size(76f), Space3D.Size(18.5f));
 
             var canvas = plateGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
@@ -87,10 +91,17 @@ namespace FrogCart.Runtime
             backRt.anchorMax = Vector2.one;
             backRt.offsetMin = Vector2.zero;
             backRt.offsetMax = Vector2.zero;
-            background.GetComponent<Image>().sprite = ProcSprite.Make(
-                ProcSprite.Rounded.Flat(26, 18, 5f, ProcSprite.Hex("FFFAEE"), "plate3D"));
+            // Белый спрайт красится в цвет вагонетки через Image.color — как счётчики
+            // в очереди, чтобы вся игра считала одинаково.
+            _plateImage = background.GetComponent<Image>();
+            _plateImage.sprite = ProcSprite.Make(
+                ProcSprite.Rounded.Flat(26, 18, 6f, Color.white, "plate3D"));
 
-            _countText = UiText.Create("Count", (RectTransform)plateGo.transform, 14, Color.black);
+            _countText = UiText.Create("Count", (RectTransform)plateGo.transform, 16, Color.white);
+
+            var outline = _countText.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.45f);
+            outline.effectDistance = new Vector2(1f, -1f);
         }
 
         void NewWheel(string name, Vector3 localPosition, float bulk)
@@ -137,7 +148,8 @@ namespace FrogCart.Runtime
         {
             var entry = palette.Get(colorId);
             _stripeRenderer.sharedMaterial = ProcMesh.Glossy(entry.baseColor, $"mat_stripe{colorId}");
-            _countText.color = entry.dark;
+            _plateImage.color = entry.baseColor;
+            _countText.color = Color.white;
         }
 
         public void SetCount(int count) => _countText.text = count.ToString();

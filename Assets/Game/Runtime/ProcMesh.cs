@@ -84,6 +84,27 @@ namespace FrogCart.Runtime
             return material;
         }
 
+        /// <summary>
+        /// Материал с текстурой. Развёртка у RoundedBox планарная сверху, поэтому
+        /// текстура ложится по верхней грани без искажений — а боковые грани стола
+        /// в кадре и не видны.
+        /// </summary>
+        public static Material Textured(Texture texture, string key, float smoothness,
+                                        Vector2 tiling)
+        {
+            if (Materials.TryGetValue(key, out var cached)) return cached;
+
+            var material = new Material(Standard);
+            material.color = Color.white;
+            material.mainTexture = texture;
+            material.mainTextureScale = tiling;
+            material.SetFloat("_Glossiness", smoothness);
+            material.SetFloat("_Metallic", 0f);
+
+            Materials[key] = material;
+            return material;
+        }
+
         public static Material Metal(Color color, string key)
         {
             if (Materials.TryGetValue(key, out var cached)) return cached;
@@ -126,11 +147,27 @@ namespace FrogCart.Runtime
             var mesh = new Mesh { name = key };
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
+            mesh.SetUVs(0, PlanarUv(vertices, width, depth));
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
             Meshes[key] = mesh;
             return mesh;
+        }
+
+        /// <summary>
+        /// Развёртка проекцией сверху. Для стола этого достаточно — он плоский и
+        /// смотрит вверх; боковые грани получают растянутую текстуру, но их не видно.
+        /// Меши без текстуры лишние UV просто игнорируют.
+        /// </summary>
+        static List<Vector2> PlanarUv(List<Vector3> vertices, float width, float depth)
+        {
+            var uv = new List<Vector2>(vertices.Count);
+
+            foreach (var vertex in vertices)
+                uv.Add(new Vector2(vertex.x / width + 0.5f, vertex.z / depth + 0.5f));
+
+            return uv;
         }
 
         /// <summary>Контур скруглённого прямоугольника против часовой стрелки.</summary>

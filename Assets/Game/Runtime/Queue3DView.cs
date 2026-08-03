@@ -29,6 +29,7 @@ namespace FrogCart.Runtime
         }
 
         readonly Mini[] _minis = new Mini[Visible];
+        readonly Dictionary<Text, Image> _plateImages = new Dictionary<Text, Image>();
         ColorPalette _palette;
         Tweener _tween;
         Camera _camera;
@@ -133,15 +134,27 @@ namespace FrogCart.Runtime
             backRt.anchorMax = Vector2.one;
             backRt.offsetMin = Vector2.zero;
             backRt.offsetMax = Vector2.zero;
-            background.GetComponent<Image>().sprite = ProcSprite.Make(
-                ProcSprite.Rounded.Flat(40, 28, 7f, ProcSprite.Hex("FFFAEE"), "queuePlate3D"));
 
-            // Текст с полями внутри таблички: без них у 16-го кегля подрезало
+            // Белый спрайт красится в цвет вагонетки через Image.color: на референсе
+            // счётчик — цветной «мешок» с крупной белой цифрой, а не белая табличка
+            // с мелкой цветной. Цвет назначается в Rebuild вместе с остальным.
+            var image = background.GetComponent<Image>();
+            image.sprite = ProcSprite.Make(
+                ProcSprite.Rounded.Flat(40, 28, 9f, Color.white, "queuePlate3D"));
+
+            // Текст с полями внутри таблички: без них у крупного кегля подрезало
             // нижние выносные элементы краем фона.
-            var text = UiText.Create("Count", rt, 16, Color.black);
+            var text = UiText.Create("Count", rt, 22, Color.white);
             var textRt = (RectTransform)text.transform;
             textRt.offsetMin = new Vector2(3f, 4f);
             textRt.offsetMax = new Vector2(-3f, -2f);
+
+            // Обводка: белая цифра на жёлтом и на бежевом иначе теряется.
+            var outline = text.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.45f);
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
+
+            _plateImages.Add(text, image);
             return text;
         }
 
@@ -181,7 +194,10 @@ namespace FrogCart.Runtime
                 _minis[i].Head.sharedMaterial =
                     ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{def.colorId}");
                 _minis[i].Count.text = def.capacity.ToString();
-                _minis[i].Count.color = entry.dark;
+                _minis[i].Count.color = Color.white;
+
+                if (_plateImages.TryGetValue(_minis[i].Count, out var plate))
+                    plate.color = entry.baseColor;
             }
         }
 

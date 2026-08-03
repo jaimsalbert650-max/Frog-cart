@@ -182,20 +182,38 @@ namespace FrogCart.Runtime
 
             // Стол намеренно много больше кадра: на широком окне камера отходит дальше,
             // и при скромном размере в кадр попадали его края с пустотой за ними.
+            //
+            // Волокно даёт текстура, а не заливка. Тайлинг задаёт ширину плахи:
+            // 6000 spec-единиц на 14 повторов — 428 единиц на повтор, в повторе
+            // четыре плахи, то есть плаха около 107 единиц. По ширине площадки
+            // укладывается три штуки, как на референсе.
             var table = NewBox("Table", _world,
                 Space3D.Size(6000f), Space3D.Size(6f), Space3D.Size(6000f),
-                ProcMesh.Glossy(ProcSprite.Hex("6D4322"), "mat_table", 0.12f));
-            table.transform.position = Space3D.ToWorld(195f, 422f, -Space3D.Size(3f));
+                ProcMesh.Textured(
+                    ProcTexture.Wood(ProcSprite.Hex("AD7B45"), ProcSprite.Hex("6F4520"), "tex_wood"),
+                    "mat_table", 0.10f, new Vector2(14f, 14f)));
+            table.transform.position = Space3D.ToWorld(195f, 422f, -Space3D.Size(6f));
 
+            // Площадка под картинкой — почти белая, как на референсе: прежний тёмный
+            // песочный тон спорил с блоками, и картинка переставала читаться как
+            // пиксель-арт.
+            //
+            // Три плиты стоят лесенкой: стол кончается на 0, рамка на 2, площадка
+            // на 3. Раньше все три верхние грани лежали в одной плоскости — это
+            // z-fighting, который держался только на удаче с точностью глубины.
+            // Разнесённые высоты заодно дают ступеньку по краю и тень на стол.
+            // Углы скруглены заметно (0.08 от меньшей стороны, около 25 единиц):
+            // на референсе площадка — скруглённая карточка, а прямые углы читались
+            // как обрезанный лист.
             var panel = NewBox("Panel", _world,
-                Space3D.Size(316f), Space3D.Size(4f), Space3D.Size(496f),
-                ProcMesh.Glossy(ProcSprite.Hex("C9B694"), "mat_panel", 0.05f));
-            panel.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(1f));
+                Space3D.Size(316f), Space3D.Size(5f), Space3D.Size(496f),
+                ProcMesh.Glossy(ProcSprite.Hex("EFE7D9"), "mat_panel", 0.03f), 0.08f);
+            panel.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(2f));
 
             var frame = NewBox("Frame", _world,
-                Space3D.Size(332f), Space3D.Size(6f), Space3D.Size(512f),
-                ProcMesh.Glossy(ProcSprite.Hex("DCCBA9"), "mat_frame", 0.05f));
-            frame.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(3f));
+                Space3D.Size(336f), Space3D.Size(6f), Space3D.Size(516f),
+                ProcMesh.Glossy(ProcSprite.Hex("FBF6EC"), "mat_frame", 0.03f), 0.09f);
+            frame.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(4f));
         }
 
         /// <summary>Рельсовый контур: шпалы и две металлические нити по LoopPath.</summary>
@@ -365,9 +383,10 @@ namespace FrogCart.Runtime
         }
 
         static GameObject NewBox(string name, Transform parent,
-                                 float w, float h, float d, Material material)
+                                 float w, float h, float d, Material material,
+                                 float cornerFraction = 0.02f)
         {
-            var mesh = ProcMesh.RoundedBox(w, h, d, Mathf.Min(w, d) * 0.02f, $"box_{name}");
+            var mesh = ProcMesh.RoundedBox(w, h, d, Mathf.Min(w, d) * cornerFraction, $"box_{name}");
             return NewPiece(name, parent, mesh, material);
         }
 

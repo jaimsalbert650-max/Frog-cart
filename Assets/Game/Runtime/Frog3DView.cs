@@ -23,6 +23,9 @@ namespace FrogCart.Runtime
         float _clap;
         float _mouthOpen;
 
+        /// <summary>Диаметр глаза. Вынесен в константу: он нужен и при сборке, и при смене цвета.</summary>
+        static float EyeSize => Space3D.Size(10f);
+
         public Vector2 MouthSpecPos { get; private set; }
 
         public void Build(Transform parent, Camera camera)
@@ -42,9 +45,12 @@ namespace FrogCart.Runtime
             headGo.transform.localScale = new Vector3(head, head * 0.86f, head * 0.9f);
             _headRenderer = headGo.GetComponent<MeshRenderer>();
 
-            float eye = Space3D.Size(15f);
-            _pupilL = BuildEye("EyeL", new Vector3(-eye * 0.42f, head * 0.85f, -eye * 0.22f), eye);
-            _pupilR = BuildEye("EyeR", new Vector3( eye * 0.42f, head * 0.85f, -eye * 0.22f), eye);
+            // Глаз 10 против прежних 15. При 15 диаметр глаза был половиной головы,
+            // два белых шара забивали цвет, и жаба с любого расстояния читалась как
+            // белое пятно с зрачками. На референсе персонаж прежде всего цветной.
+            float eye = EyeSize;
+            _pupilL = BuildEye("EyeL", new Vector3(-head * 0.21f, head * 0.78f, -head * 0.26f), eye);
+            _pupilR = BuildEye("EyeR", new Vector3( head * 0.21f, head * 0.78f, -head * 0.26f), eye);
 
             var mouth = NewSphere("Mouth", _body, Space3D.Size(13f));
             mouth.transform.localPosition = new Vector3(0f, head * 0.32f, -head * 0.42f);
@@ -89,8 +95,8 @@ namespace FrogCart.Runtime
                 new Vector3(head * shape.x, head * shape.y, head * shape.z);
 
             float eyeScale = 0.85f + (colorId % 3) * 0.16f;
-            _pupilL.parent.localScale = Vector3.one * Space3D.Size(15f) * eyeScale;
-            _pupilR.parent.localScale = Vector3.one * Space3D.Size(15f) * eyeScale;
+            _pupilL.parent.localScale = Vector3.one * EyeSize * eyeScale;
+            _pupilR.parent.localScale = Vector3.one * EyeSize * eyeScale;
         }
 
         /// <summary>Пропорции головы по номеру цвета: приземистая, круглая, вытянутая.</summary>
@@ -119,7 +125,10 @@ namespace FrogCart.Runtime
                 railPos.x + (18.5f - lift) * Mathf.Sin(ar),
                 railPos.y - (18.5f - lift) * Mathf.Cos(ar));
 
-            _root.position = Space3D.ToWorld(bodyC, Space3D.Size(20f));
+            // Посадка 28, а не 20: борт вагонетки поднимается до 34.8, и на дальней
+            // стороне контура он срезал жабе всё ниже глаз — включая рот, из которого
+            // вылетает язык. С 28 над бортом остаётся голова целиком.
+            _root.position = Space3D.ToWorld(bodyC, Space3D.Size(28f));
 
             // Лицом к камере, но строго вертикально: наклонять жабу нельзя.
             if (_camera != null)

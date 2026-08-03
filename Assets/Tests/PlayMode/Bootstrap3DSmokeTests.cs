@@ -68,7 +68,10 @@ namespace FrogCart.Tests
             }
 
             Assert.AreEqual(_grid.Rows * _grid.Cols, blocks, "блоков меньше, чем клеток");
-            Assert.AreEqual(_grid.Rows * _grid.Cols, sockets, "гнёзд меньше, чем клеток");
+
+            // Гнёзд быть не должно: пустая клетка на объёмной доске — это чистая
+            // поверхность площадки, как на референсе, а не вдавленная ячейка.
+            Assert.AreEqual(0, sockets, "гнёзда вернулись, доска снова выглядит перфорированной");
         }
 
         [UnityTest]

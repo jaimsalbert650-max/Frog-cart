@@ -1,15 +1,14 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace FrogCart.Runtime
 {
     /// <summary>HUD: номер уровня слева, прогресс с процентом по центру, пауза справа.</summary>
     public sealed class HudView : MonoBehaviour
     {
-        TMP_Text _levelText;
-        TMP_Text _percentText;
+        Text _levelText;
+        Text _percentText;
         RectTransform _fill;
         Tweener _tween;
 
@@ -41,7 +40,7 @@ namespace FrogCart.Runtime
                 insetBottomColor = new Color(90f / 255f, 54f / 255f, 20f / 255f, 0.5f),
                 key = "hudBadge",
             });
-            _levelText = NewText("LevelText", badge.rectTransform, 19f, ProcSprite.Hex("7A4D1F"));
+            _levelText = UiText.Create("LevelText", badge.rectTransform, 19, ProcSprite.Hex("7A4D1F"));
 
             // Прогресс-бар: дорожка и заливка, высота 22, радиус 11.
             var track = NewImage("Track", parent, TrackX, 19f, TrackW, 22f);
@@ -76,7 +75,7 @@ namespace FrogCart.Runtime
             fill.type = Image.Type.Sliced;
             _fill = fill.rectTransform;
 
-            _percentText = NewText("Percent", track.rectTransform, 12f, Color.white);
+            _percentText = UiText.Create("Percent", track.rectTransform, 12, Color.white);
 
             // Кнопка паузы 38x38 с двумя полосками 5x16.
             var pause = NewImage("PauseButton", parent, 338f, 11f, 38f, 38f);
@@ -157,25 +156,5 @@ namespace FrogCart.Runtime
             return image;
         }
 
-        static TMP_Text NewText(string name, RectTransform parent, float size, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-
-            var text = go.AddComponent<TextMeshProUGUI>();
-            text.fontSize = size;
-            text.fontStyle = FontStyles.Bold;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = color;
-            text.raycastTarget = false;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            return text;
-        }
     }
 }

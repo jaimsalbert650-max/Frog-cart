@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using FrogCart.Data;
 
 namespace FrogCart.Runtime
@@ -23,7 +22,7 @@ namespace FrogCart.Runtime
             public RectTransform Root;
             public Image Stripe;
             public Image Head;
-            public TMP_Text Count;
+            public Text Count;
         }
 
         readonly Mini[] _minis = new Mini[Visible];
@@ -114,7 +113,7 @@ namespace FrogCart.Runtime
                 key = "miniPlate",
             });
 
-            mini.Count = NewText("Count", plate.rectTransform, 18f);
+            mini.Count = UiText.Create("Count", plate.rectTransform, 18, Color.black);
 
             mini.Stripe = NewChild("Stripe", mini.Root, 6f, 80f, 50f, 5f);
             mini.Stripe.sprite = ProcSprite.Make(ProcSprite.Rounded.Flat(50, 5, 2f, Color.white, "miniStripe"));
@@ -206,24 +205,5 @@ namespace FrogCart.Runtime
         static Image NewChild(string name, RectTransform parent, float x, float y, float w, float h)
             => NewImage(name, parent, x, y, w, h);
 
-        static TMP_Text NewText(string name, RectTransform parent, float size)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-
-            var text = go.AddComponent<TextMeshProUGUI>();
-            text.fontSize = size;
-            text.fontStyle = FontStyles.Bold;
-            text.alignment = TextAlignmentOptions.Center;
-            text.raycastTarget = false;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            return text;
-        }
     }
 }

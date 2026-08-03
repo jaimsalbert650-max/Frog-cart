@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using FrogCart.Data;
 
 namespace FrogCart.Runtime
@@ -16,7 +15,7 @@ namespace FrogCart.Runtime
     {
         RectTransform _root;
         RectTransform _plate;
-        TMP_Text _countText;
+        Text _countText;
         Image _stripe;
         Image _plateRing;
         CanvasGroup _group;
@@ -24,7 +23,7 @@ namespace FrogCart.Runtime
 
         public RectTransform Root => _root;
 
-        public void Build(RectTransform parent, Tweener tweener, TMP_FontAsset font)
+        public void Build(RectTransform parent, Tweener tweener)
         {
             _tweener = tweener;
 
@@ -35,18 +34,21 @@ namespace FrogCart.Runtime
             _root.sizeDelta = new Vector2(44f, 44f);
             _group = go.GetComponent<CanvasGroup>();
 
-            // Контактная тень: X -21, Y -5, 42x10.
-            var shadow = NewImage("Shadow", _root, 42f, 10f, new Vector2(0f, 5f));
+            // Смещения даны в спеке в её системе (Y вниз, -Y внутрь контура),
+            // а здесь локальные координаты uGUI, где Y вверх. Поэтому знак Y
+            // инвертирован: «внутрь контура» становится положительным Y.
+
+            // Контактная тень: X -21, Y -5, 42x10 → центр по Y на нуле.
+            var shadow = NewImage("Shadow", _root, 42f, 10f, Vector2.zero);
             shadow.sprite = ProcSprite.SoftEllipse(42, 10,
                 new Color(45f / 255f, 22f / 255f, 6f / 255f, 0.4f), 3f, "cartShadow");
 
-            // Колёса 12x12 при X -17 и +5, Y -11 — в локальных координатах спеки
-            // это смещения от точки касания рельса.
-            NewCircleImage("WheelL", _root, 12f, new Vector2(-11f, -5f));
-            NewCircleImage("WheelR", _root, 12f, new Vector2(11f, -5f));
+            // Колёса 12x12 при X -17 и +5, Y -11 → центр по Y на -5 в спеке, +5 здесь.
+            NewCircleImage("WheelL", _root, 12f, new Vector2(-11f, 5f));
+            NewCircleImage("WheelR", _root, 12f, new Vector2(11f, 5f));
 
-            // Корпус 44x27 при X -22, Y -32 → центр на (0, -18.5) от точки касания.
-            var body = NewImage("Body", _root, 44f, 27f, new Vector2(0f, -18.5f));
+            // Корпус 44x27 при X -22, Y -32 → центр на -18.5 в спеке, +18.5 здесь.
+            var body = NewImage("Body", _root, 44f, 27f, new Vector2(0f, 18.5f));
             body.sprite = ProcSprite.Make(new ProcSprite.Rounded
             {
                 w = 44, h = 27,
@@ -98,7 +100,7 @@ namespace FrogCart.Runtime
                 key = "cartPlateRing",
             });
 
-            _countText = NewText("Count", _plate, 14f);
+            _countText = UiText.Create("Count", _plate, 14, Color.black);
         }
 
         Image NewCircleImage(string name, RectTransform parent, float size, Vector2 offset)
@@ -163,24 +165,5 @@ namespace FrogCart.Runtime
             return image;
         }
 
-        static TMP_Text NewText(string name, RectTransform parent, float size)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(26f, 18f);
-            rt.anchoredPosition = Vector2.zero;
-
-            var text = go.AddComponent<TextMeshProUGUI>();
-            text.fontSize = size;
-            text.fontStyle = FontStyles.Bold;
-            text.alignment = TextAlignmentOptions.Center;
-            text.raycastTarget = false;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            return text;
-        }
     }
 }

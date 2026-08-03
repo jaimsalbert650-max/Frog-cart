@@ -123,7 +123,7 @@ namespace FrogCart.Runtime
                 var cartGo = new GameObject($"CartView_{i}");
                 cartGo.transform.SetParent(transform, false);
                 carts[i] = cartGo.AddComponent<CartView>();
-                carts[i].Build(cartLayer, tween, null);
+                carts[i].Build(cartLayer, tween);
 
                 var tongueGo = new GameObject($"TongueView_{i}");
                 tongueGo.transform.SetParent(transform, false);

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace FrogCart.Runtime
 {
     /// <summary>HUD: номер уровня слева, прогресс с процентом по центру, пауза справа.</summary>
-    public sealed class HudView : MonoBehaviour
+    public sealed class HudView : MonoBehaviour, IHudView
     {
         Text _levelText;
         Text _percentText;

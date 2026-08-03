@@ -10,7 +10,7 @@ namespace FrogCart.Runtime
     /// пятая намеренно уезжает за правый край, очередь «обрезана» экраном
     /// (docs/unity-spec/01-layout.md).
     /// </summary>
-    public sealed class QueueView : MonoBehaviour
+    public sealed class QueueView : MonoBehaviour, IQueueView
     {
         const int Visible = 5;
         const float SlotY = 704f;

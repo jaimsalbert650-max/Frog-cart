@@ -9,7 +9,7 @@ namespace FrogCart.Runtime
     /// Одна панель, три состояния: победа, поражение, пауза.
     /// В панелях нет текста — только иконки (docs/unity-spec/02-art.md, 07-checklist.md).
     /// </summary>
-    public sealed class PanelView : MonoBehaviour
+    public sealed class PanelView : MonoBehaviour, IPanelView
     {
         RectTransform _root;
         RectTransform _card;

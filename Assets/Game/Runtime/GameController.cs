@@ -32,18 +32,18 @@ namespace FrogCart.Runtime
         public ColorPalette Palette;
         public LevelData Level;
 
-        public GridView Grid;
-        public HudView Hud;
-        public PanelView Panel;
-        public QueueView Queue;
+        public IGridView Grid;
+        public IHudView Hud;
+        public IPanelView Panel;
+        public IQueueView Queue;
         public ScreenShake Shake;
         public ConfettiBurst Confetti;
         public Tweener Tween;
-        public UnityEngine.UI.Image FlashOverlay;
+        public IFlashOverlay Flash;
 
-        public CartView[] Carts;
-        public FrogView[] Frogs;
-        public TongueView[] Tongues;
+        public ICartView[] Carts;
+        public IFrogView[] Frogs;
+        public ITongueView[] Tongues;
 
         // ── состояние ───────────────────────────────────────────────────────────────
         LoopPath _path;
@@ -120,7 +120,7 @@ namespace FrogCart.Runtime
             Queue.Rebuild(_queue, _queueIndex);
             Confetti.StopAndHide();
             Panel.Hide();
-            FlashOverlay.color = new Color(1f, 1f, 1f, 0f);
+            Flash.SetAlpha(0f);
 
             Hud.SetLevel(Level.LevelNumber);
             Hud.SetProgress(0f, instant: true);
@@ -429,7 +429,7 @@ namespace FrogCart.Runtime
                 float alpha = t < 0.4f
                     ? Mathf.Lerp(0f, 0.85f, t / 0.4f)
                     : Mathf.Lerp(0.85f, 0f, (t - 0.4f) / 0.6f);
-                FlashOverlay.color = new Color(1f, 1f, 1f, alpha);
+                Flash.SetAlpha(alpha);
             });
 
             // 2. Силуэт: 1.2 c плоскими блоками.

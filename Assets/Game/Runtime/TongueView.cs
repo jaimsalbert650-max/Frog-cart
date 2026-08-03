@@ -12,7 +12,7 @@ namespace FrogCart.Runtime
     /// Рот пересчитывается каждый кадр: вагонетка едет, и язык обязан тянуться за ртом,
     /// а не висеть в точке старта.
     /// </summary>
-    public sealed class TongueView : MonoBehaviour
+    public sealed class TongueView : MonoBehaviour, ITongueView
     {
         public event Action OnStick;   // долетел: блок пора убирать из сетки
         public event Action OnDone;    // вернулся: блок проглочен

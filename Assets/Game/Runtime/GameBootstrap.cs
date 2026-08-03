@@ -219,7 +219,7 @@ namespace FrogCart.Runtime
             _controller.Shake = shake;
             _controller.Confetti = confetti;
             _controller.Tween = tween;
-            _controller.FlashOverlay = flash;
+            _controller.Flash = new ImageFlash(flash);
             _controller.Carts = carts;
             _controller.Frogs = frogs;
             _controller.Tongues = tongues;

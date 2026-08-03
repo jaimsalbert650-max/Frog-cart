@@ -16,7 +16,7 @@ namespace FrogCart.Runtime
     /// площадь рамки. Клетки остаются квадратными, сетка центрируется в рамке —
     /// иначе квадратная картинка растянулась бы в портретный прямоугольник.
     /// </summary>
-    public sealed class GridView : MonoBehaviour
+    public sealed class GridView : MonoBehaviour, IGridView
     {
         /// <summary>Область внутри кремовой рамки, отведённая под картинку.</summary>
         public const float AreaX = 41f;

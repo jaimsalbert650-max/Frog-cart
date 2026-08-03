@@ -11,7 +11,7 @@ namespace FrogCart.Runtime
     /// Корпус рисуется поверх жабы, а табличка контр-вращается: число обязано читаться
     /// горизонтально на всех сегментах и никогда не перекрываться (07-checklist.md).
     /// </summary>
-    public sealed class CartView : MonoBehaviour
+    public sealed class CartView : MonoBehaviour, ICartView
     {
         RectTransform _root;
         RectTransform _plate;

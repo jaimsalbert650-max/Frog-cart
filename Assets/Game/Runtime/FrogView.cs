@@ -10,7 +10,7 @@ namespace FrogCart.Runtime
     /// Ключевое: жаба НЕ дочерняя к повороту вагонетки. Она всегда стоит вертикально,
     /// иначе на верхнем сегменте контура оказалась бы вверх ногами.
     /// </summary>
-    public sealed class FrogView : MonoBehaviour
+    public sealed class FrogView : MonoBehaviour, IFrogView
     {
         RectTransform _root;
         Image _head;

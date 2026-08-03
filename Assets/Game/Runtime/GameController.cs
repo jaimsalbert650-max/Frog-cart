@@ -620,7 +620,13 @@ namespace FrogCart.Runtime
             for (int i = _queueIndex; i < _queue.Count; i++)
                 _capacity[_queue[i].colorId] += _queue[i].capacity;
 
-            if (!LoseCheck.IsLost(_grid, _capacity, _reservedPerColor)) return;
+            // Остаток в ударах, а не в блоках: прочная клетка стоит нескольких.
+            // Пересчёт по всей доске, а не инкрементально — он идёт после хода,
+            // на 735 клетках это доли миллисекунды, а инкрементальный счётчик
+            // пришлось бы держать в согласии с ударами, снятием и перезапуском.
+            var hits = LoseCheck.CountHits(_grid, _layers);
+
+            if (!LoseCheck.IsLost(hits, _capacity, _reservedPerColor)) return;
 
             foreach (var tongue in Tongues) tongue.Stop();
 

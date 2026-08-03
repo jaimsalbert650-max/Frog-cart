@@ -19,6 +19,7 @@ namespace FrogCart.Runtime
         RectTransform _heroMouth;
         RectTransform _heroPupilL, _heroPupilR;
         Image _banBadge;
+        RectTransform _retryButton;
         RectTransform _resumeButton;
         Tweener _tween;
         ColorPalette _palette;
@@ -62,20 +63,31 @@ namespace FrogCart.Runtime
             SpecRect.AnchorCenter(_card);
             _card.anchoredPosition = new Vector2(195f, -420f);
 
+            // Внутри карточки координаты uGUI: Y вверх, начало в её центре.
+            // Порядок сверху вниз — звёзды, герой, кнопки.
             _stars = new Image[3];
-            _stars[0] = NewStar(_card, -70f, -100f, 44f);
-            _stars[1] = NewStar(_card, 0f, -112f, 58f);
-            _stars[2] = NewStar(_card, 70f, -100f, 44f);
+            _stars[0] = NewStar(_card, -70f, 104f, 44f);
+            _stars[1] = NewStar(_card, 0f, 116f, 58f);
+            _stars[2] = NewStar(_card, 70f, 104f, 44f);
 
             BuildHero();
 
-            var retry = NewRoundButton(_card, -46f, 110f, ProcSprite.Hex("FFD52E"),
-                                       ProcSprite.Hex("E9A600"), onRetry);
-            retry.name = "Retry";
+            _retryButton = NewRoundButton(_card, -46f, -112f, ProcSprite.Hex("FFD52E"),
+                                         ProcSprite.Hex("E9A600"), onRetry);
+            _retryButton.name = "Retry";
 
-            _resumeButton = NewRoundButton(_card, 46f, 110f, ProcSprite.Hex("8FE05A"),
+            // Иконка «повторить»: кольцо с разрывом, наклонённое как в спеке.
+            var retryIcon = NewChild("Icon", _retryButton, 30f, 30f, Vector2.zero);
+            retryIcon.sprite = ProcSprite.Arc(30, 6f, Color.white, 90f, 0f, "iconRetry");
+            retryIcon.color = ProcSprite.Hex("7A4D1F");
+            retryIcon.rectTransform.localEulerAngles = new Vector3(0f, 0f, -40f);
+
+            _resumeButton = NewRoundButton(_card, 46f, -112f, ProcSprite.Hex("8FE05A"),
                                            ProcSprite.Hex("4FAE2C"), onResume);
             _resumeButton.name = "Resume";
+
+            var resumeIcon = NewChild("Icon", _resumeButton, 24f, 30f, new Vector2(3f, 0f));
+            resumeIcon.sprite = ProcSprite.Triangle(24, 30, Color.white, "iconResume");
 
             _root.gameObject.SetActive(false);
         }
@@ -89,7 +101,7 @@ namespace FrogCart.Runtime
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = new Vector2(96f, 86f);
-            rt.anchoredPosition = new Vector2(0f, 10f);
+            rt.anchoredPosition = new Vector2(0f, -6f);
 
             _heroHead = NewChild("Head", rt, 96f, 86f, Vector2.zero);
 
@@ -177,6 +189,10 @@ namespace FrogCart.Runtime
 
             _banBadge.gameObject.SetActive(ban);
             _resumeButton.gameObject.SetActive(resume);
+
+            // Одна кнопка — по центру, две — по бокам. Иначе Retry на победе и поражении
+            // висит слева, будто рядом что-то забыли нарисовать.
+            _retryButton.anchoredPosition = new Vector2(resume ? -46f : 0f, -112f);
         }
 
         void Appear()
@@ -201,22 +217,18 @@ namespace FrogCart.Runtime
         static Image NewStar(RectTransform parent, float x, float y, float size)
         {
             var star = NewChild("Star", parent, size, size, new Vector2(x, y));
-            star.sprite = ProcSprite.Make(new ProcSprite.Rounded
-            {
-                w = Mathf.RoundToInt(size), h = Mathf.RoundToInt(size),
-                radii = new Vector4(size * 0.5f, size * 0.5f, size * 0.5f, size * 0.5f),
-                gradientAngleDeg = 180f,
-                c0 = Color.white, c1 = Color.white, c2 = Color.white,
-                midStop = 0.5f,
-                key = $"star{size}",
-            });
+            int px = Mathf.RoundToInt(size);
+
+            // Белая звезда, которую владелец красит в золото или в серое.
+            star.sprite = ProcSprite.Star(px, Color.white, new Color(0.86f, 0.86f, 0.86f, 1f),
+                                          2f, new Color(0f, 0f, 0f, 0.22f), $"star{px}");
             return star;
         }
 
         static RectTransform NewRoundButton(RectTransform parent, float x, float y,
                                             Color top, Color bottom, Action onClick)
         {
-            var button = NewChild("Button", parent, 64f, 64f, new Vector2(x, -y + 170f));
+            var button = NewChild("Button", parent, 64f, 64f, new Vector2(x, y));
             button.sprite = ProcSprite.Circle(64, top, bottom, 0f, Color.clear,
                                               $"btn{ColorUtility.ToHtmlStringRGB(top)}");
             button.raycastTarget = true;

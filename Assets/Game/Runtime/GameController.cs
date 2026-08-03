@@ -48,6 +48,7 @@ namespace FrogCart.Runtime
         // ── состояние ───────────────────────────────────────────────────────────────
         LoopPath _path;
         GridModel _grid;
+        Exposure _exposure;
         Slot[] _slots;
         List<LevelData.CartDef> _queue;
         int _queueIndex;
@@ -78,6 +79,7 @@ namespace FrogCart.Runtime
             Tween.CancelAll();
 
             _grid = GridModel.FromRows(Level.Rows);
+            _exposure = new Exposure(_grid);
             _total = _grid.TotalBlocks;
             _eaten = 0;
             _dist = 0f;
@@ -148,16 +150,28 @@ namespace FrogCart.Runtime
 
         // ── ход игрока ──────────────────────────────────────────────────────────────
 
-        /// <summary>Алгоритм Eat из docs/unity-spec/04-gameplay.md, шаг в шаг.</summary>
-        public void Eat(int r, int c)
+        /// <summary>
+        /// Алгоритм Eat из docs/unity-spec/04-gameplay.md, шаг в шаг.
+        /// Возвращает true, если язык действительно вылетел: отличать состоявшийся ход
+        /// от тапа по пустоте нужно инструментам вроде AutoScreenshot, чтобы поймать кадр.
+        /// </summary>
+        public bool Eat(int r, int c)
         {
-            if (State != GameState.Play) return;
+            if (State != GameState.Play) return false;
 
             int color = _grid.Get(r, c);
-            if (color == 0) return;
+            if (color == 0) return false;
 
             int key = r * GridView.Cols + c;
-            if (_reserved.Contains(key)) return;
+            if (_reserved.Contains(key)) return false;
+
+            // Язык дотягивается только снаружи: замурованный блок сначала надо открыть,
+            // объев то, что его закрывает. Картинка разбирается слоями, а не с середины.
+            if (!_exposure.IsExposed(r, c))
+            {
+                Grid.Wobble(r, c, Config.wobbleDuration);
+                return false;
+            }
 
             Vector2 target = GridView.CellCenter(r, c);
             int slot = FindNearestCart(color, target);
@@ -167,7 +181,7 @@ namespace FrogCart.Runtime
             if (slot < 0)
             {
                 Grid.Wobble(r, c, Config.wobbleDuration);
-                return;
+                return false;
             }
 
             _reserved.Add(key);
@@ -192,27 +206,82 @@ namespace FrogCart.Runtime
                 if (Config.vibrate) Vibrate();
             }
 
-            int capturedSlot = slot;
-            int capturedColor = color;
+            StartCoroutine(RemoveBlockWhenTongueArrives(r, c, key, color, slot));
 
-            Tongues[slot].OnStick += HandleStick;
+            return true;
+        }
 
-            void HandleStick()
+        /// <summary>
+        /// Снятие блока с доски по таймеру, как и написано в спеке (04-gameplay.md:
+        /// «через OUT_T блок исчезает из сетки»).
+        ///
+        /// Привязывать это к событию прилипания языка нельзя, хотя соблазн есть. Язык в
+        /// слоте один и переиспользуется: выстрел по тому же слоту раньше, чем долетел
+        /// предыдущий, сбрасывает первый, и его событие не наступает никогда. Клетка
+        /// остаётся помеченной «в полёте» навсегда, блок больше не тапается, а победа
+        /// не наступает — ровно это и случилось на 87 блоках из 88. Таймер потерять нельзя.
+        /// </summary>
+        IEnumerator RemoveBlockWhenTongueArrives(int r, int c, int key, int color, int slot)
+        {
+            yield return new WaitForSecondsRealtime(Config.tongueOut);
+
+            _grid.Clear(r, c);
+            Grid.SetCell(r, c, 0);
+            _reserved.Remove(key);
+            _reservedPerColor[color]--;
+
+            // Убрали блок — открылось то, что было за ним.
+            _exposure.Recompute();
+
+            _slots[slot].Squash = 1f;
+
+            // Проверка Exiting обязательна. Счётчик уменьшается в момент тапа, а сюда
+            // управление приходит 0.20 c спустя. Два блока, съеденные подряд быстрее
+            // этого, без флага запускали замену дважды: очередь теряла лишнюю вагонетку,
+            // ёмкость цвета падала, и игра объявляла ложный проигрыш.
+            if (_slots[slot].Count <= 0 && _slots[slot].Live && !_slots[slot].Exiting)
+                StartCoroutine(ReplaceCart(slot));
+
+            if (State != GameState.Play) yield break;
+
+            if (_eaten >= _total)
             {
-                Tongues[capturedSlot].OnStick -= HandleStick;
+                StartCoroutine(WinSequence());
+                yield break;
+            }
 
-                _grid.Clear(r, c);
-                Grid.SetCell(r, c, 0);
-                _reserved.Remove(key);
-                _reservedPerColor[capturedColor]--;
+            RetireUselessCarts();
+            CheckLose();
+        }
 
-                _slots[capturedSlot].Squash = 1f;
+        /// <summary>
+        /// Отправляет с контура вагонетки, которым больше нечего возить: блоков их цвета
+        /// на картинке не осталось.
+        ///
+        /// Без этого игра запирается насмерть. Очередь двигается только когда вагонетка
+        /// опустеет, а опустеть может лишь та, чей цвет ещё есть на доске. Стоит объесть
+        /// цвета неравномерно — и контур занимают вагонетки с запасом мест и без работы:
+        /// они не опустеют никогда, очередь стоит, а блок, чья вагонетка ждёт в очереди,
+        /// становится недостижим. Проверка проигрыша при этом молчит и формально права —
+        /// ёмкость есть, просто до неё не добраться.
+        ///
+        /// Ёмкости в уровне 1 заданы с запасом (чёрного 19 мест на 14 блоков), так что
+        /// случай не теоретический: именно на нём игра встала на 87 блоках из 88.
+        /// </summary>
+        void RetireUselessCarts()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (!_slots[i].Live || _slots[i].Exiting) continue;
 
-                if (_slots[capturedSlot].Count == 0 && _slots[capturedSlot].Live)
-                    StartCoroutine(ReplaceCart(capturedSlot));
+                // Пустая уедет сама обычным путём.
+                if (_slots[i].Count <= 0) continue;
 
-                if (_eaten >= _total) StartCoroutine(WinSequence());
-                else CheckLose();
+                int color = _slots[i].ColorId;
+                int remaining = _grid.CountOfColor(color) - _reservedPerColor[color];
+                if (remaining > 0) continue;
+
+                StartCoroutine(ReplaceCart(i));
             }
         }
 
@@ -311,7 +380,11 @@ namespace FrogCart.Runtime
                 Frogs[slot].SetVisible(false);
             }
 
-            if (State == GameState.Play) CheckLose();
+            if (State != GameState.Play) yield break;
+
+            // Подъехавшая вагонетка может оказаться такой же бесполезной, как уехавшая.
+            RetireUselessCarts();
+            CheckLose();
         }
 
         // ── исходы ──────────────────────────────────────────────────────────────────

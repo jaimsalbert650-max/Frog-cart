@@ -66,8 +66,12 @@ namespace FrogCart.Runtime
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(390f, 844f);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0f;
+
+            // Expand масштабирует по меньшему из двух отношений, то есть вписывает
+            // всю область 390x844 целиком и делает её настолько крупной, насколько
+            // позволяет окно. Привязка к одной только ширине (Match = 0) на непортретном
+            // окне либо режет низ, либо оставляет игру крошечной в углу.
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
             if (FindAnyObjectByType<EventSystem>() == null)
             {
@@ -76,15 +80,35 @@ namespace FrogCart.Runtime
                 events.transform.SetParent(transform, false);
             }
 
+            // Подложка на весь холст: при вписывании по короткой стороне остаются поля,
+            // и пусть они будут того же дерева, а не пустотой рядом с картинкой.
+            var backdropGo = new GameObject("Backdrop", typeof(RectTransform), typeof(Image));
+            backdropGo.transform.SetParent(canvasGo.transform, false);
+
+            var backdropRt = (RectTransform)backdropGo.transform;
+            backdropRt.anchorMin = Vector2.zero;
+            backdropRt.anchorMax = Vector2.one;
+            backdropRt.offsetMin = Vector2.zero;
+            backdropRt.offsetMax = Vector2.zero;
+
+            var backdrop = backdropGo.GetComponent<Image>();
+            backdrop.sprite = ProcSprite.White();
+            backdrop.color = ProcSprite.Hex("6D4322");
+            backdrop.raycastTarget = false;
+
             var gameGo = new GameObject("Game", typeof(RectTransform));
             gameGo.transform.SetParent(canvasGo.transform, false);
 
+            // Игровая область висит по центру холста, а не в его левом верхнем углу:
+            // при Expand холст в одном измерении крупнее опорных 390x844, и якорь
+            // в углу увёл бы всю игру в сторону. Пивот остаётся в левом верхнем углу —
+            // на нём держится вся арифметика spec-координат.
             _game = (RectTransform)gameGo.transform;
-            _game.anchorMin = new Vector2(0f, 1f);
-            _game.anchorMax = new Vector2(0f, 1f);
+            _game.anchorMin = new Vector2(0.5f, 0.5f);
+            _game.anchorMax = new Vector2(0.5f, 0.5f);
             _game.pivot = new Vector2(0f, 1f);
             _game.sizeDelta = new Vector2(390f, 844f);
-            _game.anchoredPosition = Vector2.zero;
+            _game.anchoredPosition = new Vector2(-195f, 422f);
         }
 
         void BuildScene()

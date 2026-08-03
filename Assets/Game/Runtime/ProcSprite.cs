@@ -253,6 +253,183 @@ namespace FrogCart.Runtime
             return sprite;
         }
 
+        /// <summary>
+        /// Пятиконечная звезда с мягким вертикальным градиентом и тёмной обводкой.
+        /// Спека (02-art.md) рисует звёзды через clip-path; здесь тот же силуэт
+        /// считается по лучам, потому что круг вместо звезды выглядел заглушкой.
+        /// </summary>
+        public static Sprite Star(int size, Color top, Color bottom,
+                                  float outlineWidth, Color outlineColor, string key = null)
+        {
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+                return cached;
+
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+
+            var pixels = new Color[size * size];
+            float half = size * 0.5f;
+            float outer = half * 0.95f;
+            // 0.42 давало тощую «морскую звезду»; 0.52 ближе к плотной звезде из спеки.
+            float inner = outer * 0.52f;
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+                int edgeHits = 0;
+
+                for (int sy = 0; sy < SS; sy++)
+                for (int sx = 0; sx < SS; sx++)
+                {
+                    float px = x + (sx + 0.5f) / SS - half;
+                    // Ось Y текстуры смотрит вверх, а звезда должна стоять остриём вверх.
+                    float py = half - (y + (sy + 0.5f) / SS);
+
+                    float radius = StarRadius(px, py, outer, inner);
+                    float distance = Mathf.Sqrt(px * px + py * py);
+
+                    if (distance > radius) continue;
+
+                    hits++;
+                    if (outlineWidth > 0f && distance > radius - outlineWidth) edgeHits++;
+                }
+
+                if (hits == 0) { pixels[y * size + x] = Color.clear; continue; }
+
+                float t = y / (float)(size - 1);
+                Color fill = Color.Lerp(top, bottom, t);
+                if (edgeHits * 2 > hits) fill = outlineColor;
+
+                pixels[y * size + x] = new Color(fill.r, fill.g, fill.b,
+                                                 fill.a * hits / (SS * SS));
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply(false, false);
+
+            var sprite = Sprite.Create(tex, new Rect(0, 0, size, size),
+                                       new Vector2(0.5f, 0.5f), PixelsPerUnit);
+
+            if (!string.IsNullOrEmpty(key)) Cache[key] = sprite;
+            return sprite;
+        }
+
+        /// <summary>Радиус звезды в направлении точки: пила между лучом и впадиной.</summary>
+        static float StarRadius(float px, float py, float outer, float inner)
+        {
+            const int Points = 5;
+            const float Sector = Mathf.PI * 2f / Points;
+
+            float angle = Mathf.Atan2(px, py);              // 0 — вверх, остриё
+            float local = Mathf.Repeat(angle, Sector) / Sector;   // 0..1 внутри сектора
+            float wave = Mathf.Abs(local - 0.5f) * 2f;            // 1 на луче, 0 во впадине
+
+            return Mathf.Lerp(inner, outer, wave);
+        }
+
+        /// <summary>Кольцо с разрывом — иконка «повторить» на кнопке Retry.</summary>
+        public static Sprite Arc(int size, float stroke, Color color,
+                                 float gapDeg, float rotationDeg, string key = null)
+        {
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+                return cached;
+
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+
+            float half = size * 0.5f;
+            float radius = half - stroke * 0.5f;
+            var pixels = new Color[size * size];
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+
+                for (int sy = 0; sy < SS; sy++)
+                for (int sx = 0; sx < SS; sx++)
+                {
+                    float px = x + (sx + 0.5f) / SS - half;
+                    float py = y + (sy + 0.5f) / SS - half;
+
+                    float distance = Mathf.Sqrt(px * px + py * py);
+                    if (Mathf.Abs(distance - radius) > stroke * 0.5f) continue;
+
+                    float angle = Mathf.Repeat(Mathf.Atan2(py, px) * Mathf.Rad2Deg - rotationDeg, 360f);
+                    if (angle < gapDeg) continue;
+
+                    hits++;
+                }
+
+                pixels[y * size + x] = hits == 0
+                    ? Color.clear
+                    : new Color(color.r, color.g, color.b, color.a * hits / (SS * SS));
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply(false, false);
+
+            var sprite = Sprite.Create(tex, new Rect(0, 0, size, size),
+                                       new Vector2(0.5f, 0.5f), PixelsPerUnit);
+
+            if (!string.IsNullOrEmpty(key)) Cache[key] = sprite;
+            return sprite;
+        }
+
+        /// <summary>Треугольник остриём вправо — иконка «продолжить» на кнопке Resume.</summary>
+        public static Sprite Triangle(int width, int height, Color color, string key = null)
+        {
+            if (!string.IsNullOrEmpty(key) && Cache.TryGetValue(key, out var cached))
+                return cached;
+
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+
+            var pixels = new Color[width * height];
+
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int hits = 0;
+
+                for (int sy = 0; sy < SS; sy++)
+                for (int sx = 0; sx < SS; sx++)
+                {
+                    float px = (x + (sx + 0.5f) / SS) / width;          // 0..1 слева направо
+                    float py = (y + (sy + 0.5f) / SS) / height;         // 0..1 снизу вверх
+
+                    // Клин: чем правее, тем уже допустимый разброс по вертикали.
+                    float halfSpan = 0.5f * (1f - px);
+                    if (Mathf.Abs(py - 0.5f) > halfSpan) continue;
+
+                    hits++;
+                }
+
+                pixels[y * width + x] = hits == 0
+                    ? Color.clear
+                    : new Color(color.r, color.g, color.b, color.a * hits / (SS * SS));
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply(false, false);
+
+            var sprite = Sprite.Create(tex, new Rect(0, 0, width, height),
+                                       new Vector2(0.5f, 0.5f), PixelsPerUnit);
+
+            if (!string.IsNullOrEmpty(key)) Cache[key] = sprite;
+            return sprite;
+        }
+
         /// <summary>Белый пиксель — для сплошных заливок и полос.</summary>
         public static Sprite White()
         {

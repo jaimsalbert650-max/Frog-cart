@@ -114,13 +114,13 @@ namespace FrogCart.Runtime
         {
             var plateGo = new GameObject("Plate", typeof(Canvas));
             plateGo.transform.SetParent(parent, false);
-            plateGo.transform.localPosition = new Vector3(0f, Space3D.Size(14f * bulk), Space3D.Size(-16f));
+            plateGo.transform.localPosition = new Vector3(0f, Space3D.Size(11f * bulk), Space3D.Size(-17f));
 
             plateGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
 
             var rt = (RectTransform)plateGo.transform;
-            rt.sizeDelta = new Vector2(30f, 20f);
-            rt.localScale = Vector3.one * Space3D.Scale * 1.4f;
+            rt.sizeDelta = new Vector2(34f, 22f);
+            rt.localScale = Vector3.one * Space3D.Scale * 1.45f;
             rt.localRotation = Quaternion.Euler(50f, 0f, 0f);
 
             var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
@@ -131,9 +131,9 @@ namespace FrogCart.Runtime
             backRt.offsetMin = Vector2.zero;
             backRt.offsetMax = Vector2.zero;
             background.GetComponent<Image>().sprite = ProcSprite.Make(
-                ProcSprite.Rounded.Flat(30, 20, 5f, ProcSprite.Hex("FFFAEE"), "queuePlate3D"));
+                ProcSprite.Rounded.Flat(34, 22, 6f, ProcSprite.Hex("FFFAEE"), "queuePlate3D"));
 
-            return UiText.Create("Count", rt, 14, Color.black);
+            return UiText.Create("Count", rt, 16, Color.black);
         }
 
         static void NewWheel(Transform parent, Vector3 localPosition, float bulk)

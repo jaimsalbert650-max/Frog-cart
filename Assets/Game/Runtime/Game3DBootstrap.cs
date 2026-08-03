@@ -85,16 +85,7 @@ namespace FrogCart.Runtime
             // и доска остаётся читаемой. Головоломке важнее ровная сетка, чем глубина.
             _camera.fieldOfView = 24f;
 
-            // Контур рельсов занимает 360x560 в спеке, то есть 36x56 в мире. При угле
-            // обзора 24° половина даёт tg(12°) ≈ 0.213, значит для 56 единиц глубины
-            // камера обязана отойти минимум на 56 / (2 * 0.213) ≈ 132. Беру 140,
-            // наклон 50° — доска видна объёмной, но без сильного схождения.
-            // Цель смещена выше центра контура: док внизу экрана занимает 196 из 844
-            // пикселей макета, и при наводке ровно в центр нижний край доски уезжал
-            // под него. Теперь доска целиком над доком.
-            Vector3 target = Space3D.ToWorld(195f, 372f);
-            _camera.transform.position = target + new Vector3(0f, 118f, -99f);
-            _camera.transform.rotation = Quaternion.Euler(50f, 0f, 0f);
+            FrameWorld();
 
             var lightGo = new GameObject("Sun", typeof(Light));
             lightGo.transform.SetParent(transform, false);
@@ -113,14 +104,86 @@ namespace FrogCart.Runtime
             RenderSettings.ambientGroundColor = ProcSprite.Hex("3A2A1A");
         }
 
+        /// <summary>Область мира, которая обязана быть видна: контур рельсов и очередь.</summary>
+        static readonly Vector2 WorldMin = new Vector2(2f, 52f);
+        static readonly Vector2 WorldMax = new Vector2(388f, 712f);
+
+        /// <summary>
+        /// Наводка камеры подбором, а не формулой.
+        ///
+        /// Считать отлёт тригонометрией пришлось бы отдельно по горизонтали и по
+        /// вертикали, с поправкой на наклон и на соотношение сторон окна — и любая
+        /// ошибка вылезала бы обрезанным краем на чьём-то экране. Проще отодвигать
+        /// камеру, пока все четыре угла области не окажутся внутри кадра: это верно
+        /// для любого окна, включая те, которых я не видел.
+        /// </summary>
+        Vector2Int _framedFor;
+
+        /// <summary>Окно поменяли — наводку надо пересчитать, иначе снова обрежет.</summary>
+        void Update()
+        {
+            var size = new Vector2Int(Screen.width, Screen.height);
+            if (size == _framedFor || _camera == null) return;
+
+            FrameWorld();
+        }
+
+        void FrameWorld()
+        {
+            const float Tilt = 50f;
+            const float Margin = 0.03f;   // доля кадра, оставленная по краям
+
+            Vector3 center = Space3D.ToWorld((WorldMin + WorldMax) * 0.5f);
+
+            var corners = new[]
+            {
+                Space3D.ToWorld(WorldMin.x, WorldMin.y),
+                Space3D.ToWorld(WorldMax.x, WorldMin.y),
+                Space3D.ToWorld(WorldMin.x, WorldMax.y),
+                Space3D.ToWorld(WorldMax.x, WorldMax.y),
+            };
+
+            _camera.transform.rotation = Quaternion.Euler(Tilt, 0f, 0f);
+            Vector3 back = -_camera.transform.forward;
+            _framedFor = new Vector2Int(Screen.width, Screen.height);
+
+            float distance = 20f;
+            for (int step = 0; step < 400; step++)
+            {
+                _camera.transform.position = center + back * distance;
+
+                if (AllCornersVisible(corners, Margin)) return;
+
+                distance *= 1.04f;
+            }
+
+            Debug.LogWarning("[Game3D] Не удалось вписать сцену в кадр — окно слишком узкое.");
+        }
+
+        bool AllCornersVisible(Vector3[] corners, float margin)
+        {
+            foreach (var corner in corners)
+            {
+                Vector3 viewport = _camera.WorldToViewportPoint(corner);
+
+                if (viewport.z <= 0f) return false;
+                if (viewport.x < margin || viewport.x > 1f - margin) return false;
+                if (viewport.y < margin || viewport.y > 1f - margin) return false;
+            }
+
+            return true;
+        }
+
         /// <summary>Деревянный стол и кремовая площадка под картинкой.</summary>
         void BuildTable()
         {
             _world = new GameObject("World").transform;
             _world.SetParent(transform, false);
 
+            // Стол намеренно много больше кадра: на широком окне камера отходит дальше,
+            // и при скромном размере в кадр попадали его края с пустотой за ними.
             var table = NewBox("Table", _world,
-                Space3D.Size(900f), Space3D.Size(6f), Space3D.Size(1400f),
+                Space3D.Size(6000f), Space3D.Size(6f), Space3D.Size(6000f),
                 ProcMesh.Glossy(ProcSprite.Hex("6D4322"), "mat_table", 0.12f));
             table.transform.position = Space3D.ToWorld(195f, 422f, -Space3D.Size(3f));
 

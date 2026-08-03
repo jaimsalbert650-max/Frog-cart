@@ -48,11 +48,18 @@ namespace FrogCart.Runtime
             body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), Space3D.Size(18.5f));
             _body = body.transform;
 
-            float wheel = Space3D.Size(12f * Bulk);
-            NewWheel("WheelFL", new Vector3(-Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(10f)), Bulk);
-            NewWheel("WheelFR", new Vector3( Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(10f)), Bulk);
-            NewWheel("WheelBL", new Vector3(-Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(30f)), Bulk);
-            NewWheel("WheelBR", new Vector3( Space3D.Size(13f * Bulk), wheel * 0.5f, Space3D.Size(30f)), Bulk);
+            // Колёса вынесены за борта корпуса.
+            //
+            // Стояли внутри его габарита, на 13*Bulk от оси при полуширине корпуса
+            // 33, и вылезали сквозь него тёмными плитами по бокам от жабы — на
+            // скриншотах их принимали за посторонние квадраты. Проверено сборкой с
+            // колёсами, выкрашенными в пурпурный: плиты покраснели вместе с ними.
+            // Снаружи они и не пересекают корпус, и наконец читаются как колёса.
+            const float WheelX = 35f;
+            NewWheel("WheelFL", new Vector3(-Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(8f)));
+            NewWheel("WheelFR", new Vector3( Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(8f)));
+            NewWheel("WheelBL", new Vector3(-Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(29f)));
+            NewWheel("WheelBR", new Vector3( Space3D.Size(WheelX), Space3D.Size(7f), Space3D.Size(29f)));
 
             // Цветная полоса по низу корпуса — по ней цвет читается издалека.
             var stripe = NewPiece("Stripe", _root,
@@ -104,7 +111,7 @@ namespace FrogCart.Runtime
             outline.effectDistance = new Vector2(1f, -1f);
         }
 
-        void NewWheel(string name, Vector3 localPosition, float bulk)
+        void NewWheel(string name, Vector3 localPosition)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             go.name = name;
@@ -114,7 +121,9 @@ namespace FrogCart.Runtime
             go.transform.localPosition = localPosition;
             // Цилиндр Unity стоит вдоль Y, колесо должно лежать вдоль X.
             go.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            go.transform.localScale = new Vector3(Space3D.Size(12f * bulk), Space3D.Size(4f * bulk), Space3D.Size(12f * bulk));
+            // Диаметр 14, ширина 6: снаружи корпуса колесо не обязано быть крупным,
+            // а прежние 12*Bulk = 18 в диаметре смотрелись бочками.
+            go.transform.localScale = new Vector3(Space3D.Size(14f), Space3D.Size(3f), Space3D.Size(14f));
 
             go.GetComponent<MeshRenderer>().sharedMaterial =
                 ProcMesh.Metal(ProcSprite.Hex("6A7178"), "mat_wheel");

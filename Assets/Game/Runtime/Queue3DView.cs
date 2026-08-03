@@ -114,13 +114,16 @@ namespace FrogCart.Runtime
         {
             var plateGo = new GameObject("Plate", typeof(Canvas));
             plateGo.transform.SetParent(parent, false);
-            plateGo.transform.localPosition = new Vector3(0f, Space3D.Size(11f * bulk), Space3D.Size(-17f));
+            // Табличка наклонена на 50°, поэтому её нижняя кромка уходит назад примерно
+            // на 15 единиц. При посадке вплотную к корпусу та кромка тонула в нём,
+            // и нижняя половина цифры пропадала. Выносим вперёд с запасом.
+            plateGo.transform.localPosition = new Vector3(0f, Space3D.Size(12f * bulk), Space3D.Size(-29f));
 
             plateGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
 
             var rt = (RectTransform)plateGo.transform;
-            rt.sizeDelta = new Vector2(34f, 22f);
-            rt.localScale = Vector3.one * Space3D.Scale * 1.45f;
+            rt.sizeDelta = new Vector2(40f, 28f);
+            rt.localScale = Vector3.one * Space3D.Scale * 1.05f;
             rt.localRotation = Quaternion.Euler(50f, 0f, 0f);
 
             var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
@@ -131,9 +134,15 @@ namespace FrogCart.Runtime
             backRt.offsetMin = Vector2.zero;
             backRt.offsetMax = Vector2.zero;
             background.GetComponent<Image>().sprite = ProcSprite.Make(
-                ProcSprite.Rounded.Flat(34, 22, 6f, ProcSprite.Hex("FFFAEE"), "queuePlate3D"));
+                ProcSprite.Rounded.Flat(40, 28, 7f, ProcSprite.Hex("FFFAEE"), "queuePlate3D"));
 
-            return UiText.Create("Count", rt, 16, Color.black);
+            // Текст с полями внутри таблички: без них у 16-го кегля подрезало
+            // нижние выносные элементы краем фона.
+            var text = UiText.Create("Count", rt, 16, Color.black);
+            var textRt = (RectTransform)text.transform;
+            textRt.offsetMin = new Vector2(3f, 4f);
+            textRt.offsetMax = new Vector2(-3f, -2f);
+            return text;
         }
 
         static void NewWheel(Transform parent, Vector3 localPosition, float bulk)

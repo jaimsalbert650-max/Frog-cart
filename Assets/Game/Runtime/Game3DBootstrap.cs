@@ -205,8 +205,14 @@ namespace FrogCart.Runtime
             var rails = new GameObject("Rails").transform;
             rails.SetParent(_world, false);
 
-            var sleeperMesh = ProcMesh.RoundedBox(Space3D.Size(6f), Space3D.Size(3f),
-                                                  Space3D.Size(30f), Space3D.Size(1f), "sleeper3D");
+            // Полотно под рельсами: куски шире шага и потому смыкаются в сплошную
+            // ленту. Без него между шпалами просвечивал стол.
+            var bedMesh = ProcMesh.RoundedBox(Space3D.Size(9f), Space3D.Size(2f),
+                                              Space3D.Size(38f), Space3D.Size(1f), "railBed3D");
+            var bedMaterial = ProcMesh.Glossy(ProcSprite.Hex("8D5B2D"), "mat_railBed", 0.05f);
+
+            var sleeperMesh = ProcMesh.RoundedBox(Space3D.Size(5f), Space3D.Size(3f),
+                                                  Space3D.Size(32f), Space3D.Size(1f), "sleeper3D");
             var sleeperMaterial = ProcMesh.Glossy(ProcSprite.Hex("794922"), "mat_sleeper", 0.1f);
 
             var railMesh = ProcMesh.RoundedBox(Space3D.Size(3f), Space3D.Size(3f),
@@ -221,7 +227,11 @@ namespace FrogCart.Runtime
                 path.Sample(i * step, out var pos, out float angle);
                 var rotation = Space3D.RotationFromSpecAngle(angle);
 
-                if (i % 3 == 0)
+                var bed = NewPiece($"Bed_{i}", rails, bedMesh, bedMaterial);
+                bed.transform.position = Space3D.ToWorld(pos, Space3D.Size(0.5f));
+                bed.transform.rotation = rotation;
+
+                if (i % 2 == 0)
                 {
                     var sleeper = NewPiece($"Sleeper_{i}", rails, sleeperMesh, sleeperMaterial);
                     sleeper.transform.position = Space3D.ToWorld(pos, Space3D.Size(1f));

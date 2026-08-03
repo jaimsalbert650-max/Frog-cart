@@ -108,7 +108,10 @@ namespace FrogCart.Runtime
             _blockMesh = ProcMesh.RoundedBox(w, _blockHeight, d, Mathf.Min(w, d) * 0.28f,
                                              $"block{Rows}x{Cols}");
 
-            _socketMesh = ProcMesh.RoundedBox(w * 0.82f, Space3D.Size(1.2f), d * 0.82f,
+            // Гнездо почти плоское. Пока оно было коробочкой в 1.2 единицы высотой,
+            // на дальнем краю доски камера видела его боковые грани вместо верхней —
+            // и весь тот край читался темнее ближнего.
+            _socketMesh = ProcMesh.RoundedBox(w * 0.84f, Space3D.Size(0.35f), d * 0.84f,
                                               Mathf.Min(w, d) * 0.2f, $"socket{Rows}x{Cols}");
 
             _socketMaterial = ProcMesh.Glossy(ProcSprite.Hex("B8A07C"), "mat_socket", 0.04f);

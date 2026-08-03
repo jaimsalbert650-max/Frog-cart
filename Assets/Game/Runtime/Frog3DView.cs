@@ -71,9 +71,40 @@ namespace FrogCart.Runtime
             return pupil.transform;
         }
 
+        /// <summary>
+        /// Цвет и форма. Форма тоже: пять одинаковых шаров, отличающихся только
+        /// окраской, на доске путаются между собой, особенно у дальних вагонеток.
+        /// Пропорции головы и глаз выводятся из номера цвета, поэтому одна и та же
+        /// жаба всегда выглядит одинаково.
+        /// </summary>
         public void SetColor(ColorPalette palette, int colorId)
-            => _headRenderer.sharedMaterial =
-                   ProcMesh.Glossy(palette.Get(colorId).baseColor, $"mat_frogHead{colorId}");
+        {
+            _headRenderer.sharedMaterial =
+                ProcMesh.Glossy(palette.Get(colorId).baseColor, $"mat_frogHead{colorId}");
+
+            float head = Space3D.Size(30f);
+            var shape = HeadShape(colorId);
+
+            _headRenderer.transform.localScale =
+                new Vector3(head * shape.x, head * shape.y, head * shape.z);
+
+            float eyeScale = 0.85f + (colorId % 3) * 0.16f;
+            _pupilL.parent.localScale = Vector3.one * Space3D.Size(15f) * eyeScale;
+            _pupilR.parent.localScale = Vector3.one * Space3D.Size(15f) * eyeScale;
+        }
+
+        /// <summary>Пропорции головы по номеру цвета: приземистая, круглая, вытянутая.</summary>
+        static Vector3 HeadShape(int colorId)
+        {
+            switch (colorId % 5)
+            {
+                case 0:  return new Vector3(1.18f, 0.72f, 0.95f);   // приземистая, широкая
+                case 1:  return new Vector3(1.00f, 0.86f, 0.90f);   // обычная
+                case 2:  return new Vector3(0.86f, 1.05f, 0.86f);   // вытянутая вверх
+                case 3:  return new Vector3(1.10f, 0.80f, 1.05f);   // пухлая
+                default: return new Vector3(0.92f, 0.95f, 0.80f);   // узкая
+            }
+        }
 
         /// <summary>
         /// Формулы посадки те же, что в плоской версии: жаба «вырастает» из центра

@@ -9,7 +9,7 @@ namespace FrogCart.Core
     /// </summary>
     public sealed class GridModel
     {
-        public const int MaxColor = 5;
+        public const int MaxColor = 9;   // одна цифра на клетку в строках уровня
 
         readonly int[,] _cells;
         readonly int[] _perColor = new int[MaxColor + 1];

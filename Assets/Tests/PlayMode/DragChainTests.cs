@@ -19,6 +19,7 @@ namespace FrogCart.Tests
     {
         GameController _controller;
         GridInput _input;
+        GridView _grid;
         RectTransform _gridRect;
 
         [UnitySetUp]
@@ -29,6 +30,7 @@ namespace FrogCart.Tests
             yield return null;
 
             _controller = Object.FindAnyObjectByType<GameController>();
+            _grid = Object.FindAnyObjectByType<GridView>();
 
             var catcher = GameObject.Find("GridInput");
             _input = catcher.GetComponent<GridInput>();
@@ -39,8 +41,8 @@ namespace FrogCart.Tests
         Vector2 ScreenPointOf(int r, int c)
         {
             // Пивот приёмника — левый верхний угол, Y вниз, как во всей spec-математике.
-            var local = new Vector2(c * GridView.CW + GridView.CW * 0.5f,
-                                    -(r * GridView.CH + GridView.CH * 0.5f));
+            var local = new Vector2(c * _grid.CellW + _grid.CellW * 0.5f,
+                                    -(r * _grid.CellH + _grid.CellH * 0.5f));
 
             Vector3 world = _gridRect.TransformPoint(local);
             return RectTransformUtility.WorldToScreenPoint(null, world);

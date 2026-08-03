@@ -104,11 +104,16 @@ public static class FrogCartSetup
 
         palette.SetAll(new[]
         {
+            // Первые пять — из 02-art.md, дословно. Дальше три добавленных: уровни
+            // Food Hunt используют до десяти цветов, и без них картинку не показать.
             Entry("black",  "343941", "5A616C", "191C21"),
             Entry("red",    "EF4136", "FF8A7D", "A81F18"),
             Entry("orange", "FF9012", "FFC164", "BF6003"),
             Entry("yellow", "FFD52E", "FFF491", "CB9800"),
             Entry("blue",   "2E93E6", "8CCBFF", "125F9F"),
+            Entry("green",  "5BC236", "A6EE7F", "2E7D18"),
+            Entry("purple", "9B5BD6", "C9A3F0", "5E2E8C"),
+            Entry("cream",  "F2E3C8", "FFF8EA", "C9AE86"),
         });
 
         return Save(palette, $"{DataDir}/Palette.asset");
@@ -190,6 +195,8 @@ public static class FrogCartSetup
         var config = Load<GameConfig>($"{DataDir}/Config.asset");
         var level = Load<LevelData>($"{DataDir}/Level01.asset");
         var loseTest = Load<LevelData>($"{DataDir}/Level01_LoseTest.asset");
+        // Витринный уровень может быть ещё не сконвертирован — это не повод падать.
+        var showcase = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir}/Level0087.asset");
 
         var camera = Object.FindAnyObjectByType<Camera>();
         if (camera != null)
@@ -203,7 +210,7 @@ public static class FrogCartSetup
         var bootstrap = go.AddComponent<GameBootstrap>();
         go.AddComponent<AutoScreenshot>();
 
-        bootstrap.EditorAssign(config, palette, level, loseTest);
+        bootstrap.EditorAssign(config, palette, level, loseTest, showcase);
 
         if (!bootstrap.EditorHasAllRefs)
             throw new System.InvalidOperationException(

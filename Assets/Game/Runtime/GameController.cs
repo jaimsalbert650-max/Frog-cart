@@ -113,8 +113,8 @@ namespace FrogCart.Runtime
                 Tongues[i].Stop();
             }
 
-            for (int r = 0; r < GridView.Rows; r++)
-            for (int c = 0; c < GridView.Cols; c++)
+            for (int r = 0; r < Grid.Rows; r++)
+            for (int c = 0; c < Grid.Cols; c++)
                 Grid.SetCell(r, c, _grid.Get(r, c));
 
             Queue.Rebuild(_queue, _queueIndex);
@@ -166,7 +166,7 @@ namespace FrogCart.Runtime
             int color = _grid.Get(r, c);
             if (color == 0) return false;
 
-            int key = r * GridView.Cols + c;
+            int key = r * Grid.Cols + c;
             if (_reserved.Contains(key)) return false;
 
             // Язык дотягивается только снаружи: замурованный блок сначала надо открыть,
@@ -177,7 +177,7 @@ namespace FrogCart.Runtime
                 return false;
             }
 
-            Vector2 target = GridView.CellCenter(r, c);
+            Vector2 target = Grid.CellCenter(r, c);
             int slot = FindNearestCart(color, target);
 
             // Подходящей вагонетки на контуре нет: ячейка дрожит, счётчики не меняются.

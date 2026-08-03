@@ -24,6 +24,9 @@ namespace FrogCart.Runtime
                  "из 07-checklist.md. Выбирается ключом -uselevel losetest.")]
         [SerializeField] LevelData loseTestLevel;
 
+        [Tooltip("Витринный уровень — например, картинка из Food Hunt. Ключ -uselevel showcase.")]
+        [SerializeField] LevelData showcaseLevel;
+
 #if UNITY_EDITOR
         /// <summary>
         /// Присваивание ассетов из editor-скрипта сборки сцены.
@@ -31,12 +34,13 @@ namespace FrogCart.Runtime
         /// и сцена падала на старте с NullReferenceException.
         /// </summary>
         public void EditorAssign(GameConfig gameConfig, ColorPalette colorPalette,
-                                 LevelData levelData, LevelData loseTest)
+                                 LevelData levelData, LevelData loseTest, LevelData showcase)
         {
             config = gameConfig;
             palette = colorPalette;
             level = levelData;
             loseTestLevel = loseTest;
+            showcaseLevel = showcase;
         }
 
         public bool EditorHasAllRefs => config != null && palette != null && level != null;
@@ -75,16 +79,18 @@ namespace FrogCart.Runtime
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] != "-uselevel") continue;
-                if (args[i + 1] != "losetest") continue;
+                var picked = args[i + 1] == "losetest" ? loseTestLevel
+                           : args[i + 1] == "showcase" ? showcaseLevel
+                           : null;
 
-                if (loseTestLevel == null)
+                if (picked == null)
                 {
-                    Debug.LogError("[GameBootstrap] Уровень для теста проигрыша не задан.");
+                    Debug.LogError($"[GameBootstrap] Уровень '{args[i + 1]}' не задан.");
                     return;
                 }
 
-                level = loseTestLevel;
-                Debug.Log("[GameBootstrap] Уровень подменён на тестовый: ожидается проигрыш.");
+                level = picked;
+                Debug.Log($"[GameBootstrap] Уровень подменён на '{args[i + 1]}'.");
                 return;
             }
         }
@@ -155,10 +161,11 @@ namespace FrogCart.Runtime
             BuildRails();
             BuildFrame();
 
-            var gridRoot = NewNode("GridRoot", _game, 41f, 132f, 308f, 432f);
+            var gridRoot = NewNode("GridRoot", _game, 0f, 0f, 390f, 844f);
 
+            // Размер сетки диктует уровень: 14x16 своих или 35x35 из Food Hunt.
             var grid = gameObject.AddComponent<GridView>();
-            grid.Build(gridRoot, palette, tween);
+            grid.Build(gridRoot, palette, tween, level.Rows.Length, level.Rows[0].Length);
 
             var flash = NewImage("FlashOverlay", _game, 37f, 100f, 316f, 496f);
             flash.sprite = ProcSprite.Make(ProcSprite.Rounded.Flat(316, 496, 20f, Color.white, "flash"));
@@ -220,12 +227,15 @@ namespace FrogCart.Runtime
             hud.Build(_game, tween, () => _controller.TogglePause());
             panel.Build(_game, palette, tween, () => _controller.Restart(), () => _controller.Resume());
 
-            // Приёмник ввода поверх сетки — прозрачный, но кликабельный.
-            var inputCatcher = NewImage("GridInput", _game, 41f, 132f, 308f, 432f);
+            // Приёмник ввода ложится ровно на сетку, а не на всю область рамки:
+            // при некратном размере картинка центрируется, и промах был бы на полклетки.
+            var inputCatcher = NewImage("GridInput", _game,
+                                        grid.OriginX, grid.OriginY,
+                                        grid.CellW * grid.Cols, grid.CellH * grid.Rows);
             inputCatcher.color = new Color(0f, 0f, 0f, 0f);
             inputCatcher.raycastTarget = true;
             var input = inputCatcher.gameObject.AddComponent<GridInput>();
-            input.Setup(_controller, inputCatcher.rectTransform);
+            input.Setup(_controller, grid, inputCatcher.rectTransform);
             inputCatcher.transform.SetSiblingIndex(tongueLayer.GetSiblingIndex());
 
             shake.Setup(_game);

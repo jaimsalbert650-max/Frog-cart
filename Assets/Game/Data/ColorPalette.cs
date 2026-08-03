@@ -18,7 +18,7 @@ namespace FrogCart.Data
             public Color dark;
         }
 
-        [SerializeField] Entry[] entries = new Entry[5];
+        [SerializeField] Entry[] entries = new Entry[8];
 
         public int Count => entries.Length;
 

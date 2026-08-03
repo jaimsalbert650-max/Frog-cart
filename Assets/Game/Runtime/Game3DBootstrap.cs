@@ -93,15 +93,15 @@ namespace FrogCart.Runtime
             var light = lightGo.GetComponent<Light>();
             light.type = LightType.Directional;
             light.color = new Color(1f, 0.96f, 0.9f);
-            light.intensity = 1.15f;
+            light.intensity = 0.95f;
             light.shadows = LightShadows.Soft;
-            light.shadowStrength = 0.55f;
+            light.shadowStrength = 0.45f;
             lightGo.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
 
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = ProcSprite.Hex("8A7A66");
-            RenderSettings.ambientEquatorColor = ProcSprite.Hex("6B5B48");
-            RenderSettings.ambientGroundColor = ProcSprite.Hex("3A2A1A");
+            // Ровный неяркий ambient вместо трёхцветного: тот подсвечивал верхние грани
+            // и вместе с бликом Standard выбеливал блоки до неразличимости цвета.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = ProcSprite.Hex("746D62");
         }
 
         /// <summary>Область мира, которая обязана быть видна: контур рельсов и очередь.</summary>
@@ -189,12 +189,12 @@ namespace FrogCart.Runtime
 
             var panel = NewBox("Panel", _world,
                 Space3D.Size(316f), Space3D.Size(4f), Space3D.Size(496f),
-                ProcMesh.Glossy(ProcSprite.Hex("ECDCBB"), "mat_panel", 0.2f));
+                ProcMesh.Glossy(ProcSprite.Hex("C9B694"), "mat_panel", 0.05f));
             panel.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(1f));
 
             var frame = NewBox("Frame", _world,
                 Space3D.Size(332f), Space3D.Size(6f), Space3D.Size(512f),
-                ProcMesh.Glossy(ProcSprite.Hex("F8ECD2"), "mat_frame", 0.25f));
+                ProcMesh.Glossy(ProcSprite.Hex("DCCBA9"), "mat_frame", 0.05f));
             frame.transform.position = Space3D.ToWorld(195f, 348f, -Space3D.Size(3f));
         }
 

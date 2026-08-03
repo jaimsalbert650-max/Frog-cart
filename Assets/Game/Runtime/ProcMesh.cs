@@ -34,7 +34,7 @@ namespace FrogCart.Runtime
         // ── материалы ────────────────────────────────────────────────────────────────
 
         /// <summary>Глянцевый материал под casual-3D: мягкий блик, лёгкая металличность.</summary>
-        public static Material Glossy(Color color, string key, float smoothness = 0.45f)
+        public static Material Glossy(Color color, string key, float smoothness = 0.12f)
         {
             if (Materials.TryGetValue(key, out var cached)) return cached;
 

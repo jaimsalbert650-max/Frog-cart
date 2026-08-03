@@ -111,11 +111,11 @@ namespace FrogCart.Runtime
             _socketMesh = ProcMesh.RoundedBox(w * 0.82f, Space3D.Size(1.2f), d * 0.82f,
                                               Mathf.Min(w, d) * 0.2f, $"socket{Rows}x{Cols}");
 
-            _socketMaterial = ProcMesh.Glossy(ProcSprite.Hex("D9C097"), "mat_socket", 0.15f);
+            _socketMaterial = ProcMesh.Glossy(ProcSprite.Hex("B8A07C"), "mat_socket", 0.04f);
 
             _materials = new Material[GridModel.MaxColor + 1];
             for (int color = 1; color <= _palette.Count && color <= GridModel.MaxColor; color++)
-                _materials[color] = ProcMesh.Glossy(_palette.Get(color).baseColor, $"mat_block{color}");
+                _materials[color] = ProcMesh.Glossy(_palette.Get(color).baseColor, $"mat_block{color}", 0.06f);
         }
 
         public void SetCell(int r, int c, int colorId)

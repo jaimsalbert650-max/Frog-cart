@@ -145,6 +145,15 @@ namespace FrogCart.Runtime
             head.transform.localScale = new Vector3(Space3D.Size(26f), Space3D.Size(22f), Space3D.Size(24f));
             mini.Head = head.GetComponent<MeshRenderer>();
 
+            // Глаза и усики: рядом с жабами на контуре, у которых есть и то и другое,
+            // голый шар читался заготовкой. Очередь — это те же персонажи, просто
+            // ещё не выехавшие.
+            foreach (float side in new[] { -1f, 1f })
+            {
+                BuildQueueEye(root, side, bulk);
+                BuildQueueAntenna(root, side, bulk);
+            }
+
             mini.Count = BuildPlate(root, bulk);
 
             return mini;
@@ -210,6 +219,64 @@ namespace FrogCart.Runtime
 
             _plateImages.Add(text, image);
             return text;
+        }
+
+        /// <summary>Глаз с зрачком и бликом — те же три сферы, что у жаб на контуре.</summary>
+        static void BuildQueueEye(Transform parent, float side, float bulk)
+        {
+            var eye = NewSphere("Eye", parent, Space3D.Size(9f));
+            eye.transform.localPosition = new Vector3(
+                side * Space3D.Size(5.5f), Space3D.Size(38f * bulk / 1.2f), Space3D.Size(-13f));
+            eye.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Glossy(Color.white, "mat_frogEye", 0.8f);
+
+            var pupil = NewSphere("Pupil", eye.transform, 1f);
+            pupil.transform.localPosition = new Vector3(0f, 0f, -0.32f);
+            pupil.transform.localScale = Vector3.one * 0.5f;
+            pupil.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Glossy(ProcSprite.Hex("1D2127"), "mat_frogPupil", 0.9f);
+
+            var glint = NewSphere("Glint", pupil.transform, 1f);
+            glint.transform.localPosition = new Vector3(-0.24f, 0.26f, -0.34f);
+            glint.transform.localScale = Vector3.one * 0.42f;
+            glint.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Emissive(Color.white, "mat_frogGlint");
+        }
+
+        static void BuildQueueAntenna(Transform parent, float side, float bulk)
+        {
+            var root = new GameObject("Antenna").transform;
+            root.SetParent(parent, false);
+            root.localPosition = new Vector3(
+                side * Space3D.Size(7f), Space3D.Size(42f * bulk / 1.2f), Space3D.Size(-2f));
+            root.localRotation = Quaternion.Euler(-16f, 0f, -side * 32f);
+
+            var stalk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            stalk.name = "Stalk";
+            Destroy(stalk.GetComponent<Collider>());
+            stalk.transform.SetParent(root, false);
+            stalk.transform.localScale =
+                new Vector3(Space3D.Size(2.4f), Space3D.Size(8f), Space3D.Size(2.4f));
+            stalk.transform.localPosition = new Vector3(0f, Space3D.Size(8f), 0f);
+            stalk.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Glossy(ProcSprite.Hex("4A4038"), "mat_queueAntenna", 0.2f);
+
+            var tip = NewSphere("Tip", root, Space3D.Size(8f));
+            tip.transform.localPosition = new Vector3(0f, Space3D.Size(17f), 0f);
+            tip.GetComponent<MeshRenderer>().sharedMaterial =
+                ProcMesh.Glossy(ProcSprite.Hex("4A4038"), "mat_queueAntenna", 0.2f);
+        }
+
+        static GameObject NewSphere(string name, Transform parent, float size)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            go.name = name;
+            Destroy(go.GetComponent<Collider>());
+
+            go.transform.SetParent(parent, false);
+            go.transform.localScale = Vector3.one * size;
+
+            return go;
         }
 
         static void NewWheel(Transform parent, Vector3 localPosition, float bulk)

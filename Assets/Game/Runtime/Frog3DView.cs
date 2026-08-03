@@ -12,9 +12,17 @@ namespace FrogCart.Runtime
     /// </summary>
     public sealed class Frog3DView : MonoBehaviour, IFrogView
     {
+        struct Antenna
+        {
+            public MeshRenderer Stalk;
+            public MeshRenderer Tip;
+        }
+
         Transform _root;
         Transform _body;
         MeshRenderer _headRenderer;
+        MeshRenderer _muzzleRenderer;
+        Antenna _antennaL, _antennaR;
         Transform _mouth;
         Transform _pupilL, _pupilR;
         Camera _camera;
@@ -38,7 +46,7 @@ namespace FrogCart.Runtime
             _body = new GameObject("Body").transform;
             _body.SetParent(_root, false);
 
-            float head = Space3D.Size(30f);
+            float head = Space3D.Size(34f);
 
             var headGo = NewSphere("Head", _body, head);
             headGo.transform.localPosition = new Vector3(0f, head * 0.5f, 0f);
@@ -52,12 +60,56 @@ namespace FrogCart.Runtime
             _pupilL = BuildEye("EyeL", new Vector3(-head * 0.21f, head * 0.78f, -head * 0.26f), eye);
             _pupilR = BuildEye("EyeR", new Vector3( head * 0.21f, head * 0.78f, -head * 0.26f), eye);
 
+            // Светлая мордочка под глазами. Без неё голова была одноцветным шаром,
+            // и лицо читалось только по глазам.
+            var muzzle = NewSphere("Muzzle", _body, 1f);
+            muzzle.transform.localPosition = new Vector3(0f, head * 0.50f, -head * 0.36f);
+            muzzle.transform.localScale =
+                new Vector3(head * 0.52f, head * 0.30f, head * 0.28f);
+            _muzzleRenderer = muzzle.GetComponent<MeshRenderer>();
+
             var mouth = NewSphere("Mouth", _body, Space3D.Size(13f));
-            mouth.transform.localPosition = new Vector3(0f, head * 0.32f, -head * 0.42f);
+            mouth.transform.localPosition = new Vector3(0f, head * 0.42f, -head * 0.50f);
             mouth.transform.localScale = new Vector3(Space3D.Size(15f), Space3D.Size(6f), Space3D.Size(6f));
             mouth.GetComponent<MeshRenderer>().sharedMaterial =
                 ProcMesh.Glossy(ProcSprite.Hex("77293B"), "mat_frogMouth", 0.3f);
             _mouth = mouth.transform;
+
+            // Усики. Это та самая деталь, по которой персонажи оригинала читаются
+            // живыми существами, а не цветными шарами: силуэт перестаёт быть
+            // окружностью и получает характер.
+            _antennaL = BuildAntenna("AntennaL", -1f, head);
+            _antennaR = BuildAntenna("AntennaR", 1f, head);
+        }
+
+        /// <summary>Усик: тонкий стебель от макушки и шарик на конце.</summary>
+        Antenna BuildAntenna(string name, float side, float head)
+        {
+            var root = new GameObject(name).transform;
+            root.SetParent(_body, false);
+            root.localPosition = new Vector3(side * head * 0.22f, head * 0.80f, -head * 0.04f);
+            // Знак поворота отрицательный: при положительном оба усика заваливались
+            // внутрь и складывались на лбу крестиком вместо того, чтобы расходиться.
+            root.localRotation = Quaternion.Euler(-16f, 0f, -side * 32f);
+
+            var stalk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            stalk.name = "Stalk";
+            Destroy(stalk.GetComponent<Collider>());
+            stalk.transform.SetParent(root, false);
+            // Цилиндр Unity высотой 2, поэтому половина длины идёт в масштаб,
+            // а центр поднимается на неё же — стебель растёт вверх от макушки.
+            stalk.transform.localScale =
+                new Vector3(Space3D.Size(2.4f), Space3D.Size(10f), Space3D.Size(2.4f));
+            stalk.transform.localPosition = new Vector3(0f, Space3D.Size(10f), 0f);
+
+            var tip = NewSphere("Tip", root, Space3D.Size(9f));
+            tip.transform.localPosition = new Vector3(0f, Space3D.Size(21f), 0f);
+
+            return new Antenna
+            {
+                Stalk = stalk.GetComponent<MeshRenderer>(),
+                Tip = tip.GetComponent<MeshRenderer>(),
+            };
         }
 
         Transform BuildEye(string name, Vector3 localPosition, float size)
@@ -96,10 +148,23 @@ namespace FrogCart.Runtime
         /// </summary>
         public void SetColor(ColorPalette palette, int colorId)
         {
-            _headRenderer.sharedMaterial =
-                ProcMesh.Glossy(palette.Get(colorId).baseColor, $"mat_frogHead{colorId}");
+            var entry = palette.Get(colorId);
 
-            float head = Space3D.Size(30f);
+            _headRenderer.sharedMaterial =
+                ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{colorId}");
+
+            // Мордочка светлее тела, усики темнее: три оттенка одного цвета вместо
+            // одной заливки, и голова перестаёт быть плоским пятном.
+            _muzzleRenderer.sharedMaterial = ProcMesh.Glossy(
+                Color.Lerp(entry.baseColor, Color.white, 0.5f), $"mat_frogMuzzle{colorId}");
+
+            var stalkMaterial = ProcMesh.Glossy(entry.dark, $"mat_frogAntenna{colorId}");
+            var tipMaterial = ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{colorId}");
+
+            _antennaL.Stalk.sharedMaterial = _antennaR.Stalk.sharedMaterial = stalkMaterial;
+            _antennaL.Tip.sharedMaterial = _antennaR.Tip.sharedMaterial = tipMaterial;
+
+            float head = Space3D.Size(34f);
             var shape = HeadShape(colorId);
 
             _headRenderer.transform.localScale =

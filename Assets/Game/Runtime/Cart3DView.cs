@@ -82,7 +82,7 @@ namespace FrogCart.Runtime
             // Табличка над головой, а не на её высоте. На 30 она стояла ровно там же,
             // где голова жабы, и цифру закрывала сама жаба: из-за головы торчали
             // только белые уголки таблички, и счётчик на контуре нельзя было прочесть.
-            _plate.localPosition = new Vector3(0f, Space3D.Size(76f), Space3D.Size(18.5f));
+            _plate.localPosition = new Vector3(0f, Space3D.Size(98f), Space3D.Size(18.5f));
 
             var canvas = plateGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;

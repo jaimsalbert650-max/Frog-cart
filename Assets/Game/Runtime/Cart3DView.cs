@@ -32,6 +32,39 @@ namespace FrogCart.Runtime
         readonly Renderer[] _fadeTargets = new Renderer[8];
         int _fadeCount;
 
+        /// <summary>Собрана ли вагонетка из готовой модели вместо процедурных коробок.</summary>
+        bool _fromModel;
+
+        /// <summary>
+        /// Корпус из готовой модели.
+        ///
+        /// Модель приведена импортёром к единице по наибольшей стороне и опорой вниз,
+        /// поэтому здесь остаётся задать только длину — ту же, что у процедурного
+        /// корпуса, чтобы вагонетка не выросла относительно рельса и жабы.
+        /// </summary>
+        void BuildFromModel(Mesh mesh)
+        {
+            var go = new GameObject("CartModel", typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(_root, false);
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+            go.transform.localScale = Vector3.one * Space3D.Size(44f * 1.5f);
+
+            // Разворот на 90: у вагона длинная сторона — глубина, а у нашей вагонетки
+            // длина идёт вдоль рельса. Без него вагон ложится поперёк пути доской.
+            go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+            // Материала в файле один и он текстурный, а текстуры импортёр не берёт.
+            // Цвета назначаются по частям: корпус деревянный, колёса тёмные. Части
+            // идут в порядке мешей файла — корпус, передние колёса, задние.
+            var wood = ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartModelBody");
+            var metal = ProcMesh.Metal(ProcSprite.Hex("6A7178"), "mat_wheel");
+
+            var materials = new Material[mesh.subMeshCount];
+            for (int i = 0; i < materials.Length; i++) materials[i] = i == 0 ? wood : metal;
+
+            go.GetComponent<MeshRenderer>().sharedMaterials = materials;
+        }
+
         public void Build(Transform parent, Tweener tweener, Camera camera)
         {
             _tweener = tweener;
@@ -39,6 +72,13 @@ namespace FrogCart.Runtime
 
             _root = new GameObject("Cart3D").transform;
             _root.SetParent(parent, false);
+
+            // Готовая модель, если она лежит в Resources. Как и у жабы, это подмена,
+            // а не замена: файла нет — собирается прежняя вагонетка из коробок.
+            var model = Resources.Load<Mesh>("CartModel");
+            if (model != null) BuildFromModel(model);
+
+            _fromModel = model != null;
 
             // Корпус 44x27 из спеки, вглубь контура — та же 27. В объёме вагонетка
             // стоит дальше от камеры, чем доска, и в исходном размере читалась мелкой,
@@ -48,11 +88,16 @@ namespace FrogCart.Runtime
             float bodyH = Space3D.Size(20f * Bulk);
             float bodyD = Space3D.Size(27f * Bulk);
 
+            // Корпус модели заменяет процедурный, но не всё остальное: цветной полосы
+            // и таблички с числом в модели нет, а они несут смысл — цвет вагонетки и
+            // её ёмкость. Поэтому подменяются только корпус и колёса.
             var body = NewPiece("Body", _root,
                 ProcMesh.RoundedBox(bodyW, bodyH, bodyD, Space3D.Size(6f), "cartBody3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartBody"));
             body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), 0f);
             _body = body.transform;
+
+            if (_fromModel) body.GetComponent<MeshRenderer>().enabled = false;
 
             // Колёса вынесены за борта корпуса.
             //
@@ -79,10 +124,11 @@ namespace FrogCart.Runtime
             const float Base = 22f;    // половина колёсной базы, вдоль пути
             const float Gauge = 20f;   // половина колеи, поперёк — совпадает с нитями
 
-            foreach (float along in new[] { -Base, Base })
-            foreach (float across in new[] { -Gauge, Gauge })
-                NewWheel($"Wheel{along}_{across}",
-                    new Vector3(Space3D.Size(along), Space3D.Size(7f), Space3D.Size(across)));
+            if (!_fromModel)
+                foreach (float along in new[] { -Base, Base })
+                foreach (float across in new[] { -Gauge, Gauge })
+                    NewWheel($"Wheel{along}_{across}",
+                        new Vector3(Space3D.Size(along), Space3D.Size(7f), Space3D.Size(across)));
 
             // Цветная полоса по низу корпуса — по ней цвет читается издалека.
             var stripe = NewPiece("Stripe", _root,

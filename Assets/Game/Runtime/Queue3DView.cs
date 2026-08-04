@@ -190,11 +190,36 @@ namespace FrogCart.Runtime
             // налезала бы на соседнюю, а очередь теперь длиннее.
             float bulk = 0.82f;
 
+            // Корпус из готовой модели, если она есть, — иначе очередь выглядела бы
+            // иначе, чем контур, где модель уже стоит.
+            var model = Resources.Load<Mesh>("CartModel");
+
+            if (model != null)
+            {
+                var go = new GameObject("CartModel", typeof(MeshFilter), typeof(MeshRenderer));
+                go.transform.SetParent(root, false);
+                go.GetComponent<MeshFilter>().sharedMesh = model;
+                go.transform.localScale = Vector3.one * Space3D.Size(44f * bulk);
+
+                // Тот же разворот, что на контуре: у вагона длинная сторона — глубина.
+                go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+                var wood = ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartModelBody");
+                var metal = ProcMesh.Metal(ProcSprite.Hex("6A7178"), "mat_wheel");
+
+                var parts = new Material[model.subMeshCount];
+                for (int i = 0; i < parts.Length; i++) parts[i] = i == 0 ? wood : metal;
+
+                go.GetComponent<MeshRenderer>().sharedMaterials = parts;
+            }
+
             var body = NewPiece("Body", root,
                 ProcMesh.RoundedBox(Space3D.Size(44f * bulk), Space3D.Size(20f * bulk),
                                     Space3D.Size(27f * bulk), Space3D.Size(6f), "queueBody3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartBody"));
             body.transform.localPosition = new Vector3(0f, Space3D.Size(11f * bulk), 0f);
+
+            if (model != null) body.GetComponent<MeshRenderer>().enabled = false;
 
             var stripe = NewPiece("Stripe", root,
                 ProcMesh.RoundedBox(Space3D.Size(38f * bulk), Space3D.Size(3f),
@@ -203,10 +228,12 @@ namespace FrogCart.Runtime
             stripe.transform.localPosition = new Vector3(0f, Space3D.Size(2.5f * bulk), 0f);
             mini.Stripe = stripe.GetComponent<MeshRenderer>();
 
-            foreach (float x in new[] { -13f, 13f })
-            foreach (float z in new[] { -8f, 8f })
-                NewWheel(root, new Vector3(Space3D.Size(x * bulk), Space3D.Size(6f * bulk),
-                                           Space3D.Size(z * bulk)), bulk);
+            // Колёса рисуются только у процедурного корпуса: у модели они свои.
+            if (model == null)
+                foreach (float x in new[] { -13f, 13f })
+                foreach (float z in new[] { -8f, 8f })
+                    NewWheel(root, new Vector3(Space3D.Size(x * bulk), Space3D.Size(6f * bulk),
+                                               Space3D.Size(z * bulk)), bulk);
 
             // Голова жабы над корпусом — по ней цвет очереди читается сразу.
             var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);

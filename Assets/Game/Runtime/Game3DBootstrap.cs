@@ -394,7 +394,7 @@ namespace FrogCart.Runtime
                 var frogGo = new GameObject($"Frog3D_{i}");
                 frogGo.transform.SetParent(transform, false);
                 frogs[i] = frogGo.AddComponent<Frog3DView>();
-                frogs[i].Build(_world, _camera);
+                frogs[i].Build(_world, _camera, i);
 
                 var tongueGo = new GameObject($"Tongue3D_{i}");
                 tongueGo.transform.SetParent(transform, false);

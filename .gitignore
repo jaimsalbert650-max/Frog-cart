@@ -126,3 +126,9 @@ InitTestScene*.unity*
 
 # Scratch. Prompt queues and working files that belong to a session, not to the game.
 /tmp/
+
+# Из более свежего шаблона Unity, пришедшего с удалённой веткой.
+# Новый формат файла решения Visual Studio и кэш зависимостей сцен —
+# оба генерируются и в репозитории не нужны.
+*.slnx
+/[Aa]ssets/[Ss]ceneDependencyCache*

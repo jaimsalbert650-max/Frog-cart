@@ -51,7 +51,7 @@ namespace FrogCart.Tests
         [Test]
         public void MovementAndInputMatchTheSpec()
         {
-            Assert.AreEqual(52f, _config.railSpeed, 0.001f, "скорость по рельсам");
+            Assert.AreEqual(64f, _config.railSpeed, 0.001f, "скорость по рельсам");
             Assert.AreEqual(0.09f, _config.chainDelay, 0.001f, "задержка цепочки");
             Assert.AreEqual(10, _config.shakeEvery, "тряска каждый N-й блок");
         }

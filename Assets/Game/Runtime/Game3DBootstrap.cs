@@ -131,7 +131,7 @@ namespace FrogCart.Runtime
         // сцену на пятую часть: доска теряла больше, чем выигрывала очередь.
         // Теперь ряды сознательно уходят за нижний край, а подтягиваются по мере
         // того, как игрок разбирает передние.
-        static readonly Vector2 WorldMax = new Vector2(382f, 880f);
+        static readonly Vector2 WorldMax = new Vector2(382f, 806f);
 
         /// <summary>
         /// Наводка камеры подбором, а не формулой.
@@ -413,14 +413,6 @@ namespace FrogCart.Runtime
             // Очередь теперь тоже объёмная: стоит на своём рельсе перед доской.
             var queue = gameObject.AddComponent<Queue3DView>();
             queue.Build(_world, palette, tween, _camera);
-
-            // Ветка от контура к очереди. Точка её начала — середина нижней стороны
-            // контура, та же, куда вагонетки въезжают: держать это число в двух
-            // местах нельзя, поэтому оно считается по LoopPath и здесь, и в контроллере.
-            var spur = gameObject.AddComponent<Spur3DView>();
-            spur.Build(_world, tween,
-                       new Vector2((LoopPath.RL + LoopPath.RR) * 0.5f, LoopPath.RB));
-            queue.SetSpur(spur);
 
             _controller = gameObject.AddComponent<GameController>();
             _controller.Config = config;

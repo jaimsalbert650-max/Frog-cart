@@ -45,15 +45,20 @@ namespace FrogCart.Runtime
         const float TurnTime = 0.34f;
 
         /// <summary>
-        /// Насколько сильно жаба доворачивается к цели. Единица — строго рот в цель,
-        /// и это оказалось хуже, чем ничего: камера смотрит сверху, и когда цель за
-        /// спиной, полный доворот показывает игроку затылок, а корень языка остаётся
-        /// закрыт головой — та же беда, только с другой стороны.
+        /// Пределы доворота к цели.
         ///
-        /// Вполоборота рот остаётся на кромке силуэта: и морду видно, и язык выходит
-        /// именно из неё.
+        /// Одинаковый доворот на все стороны не годится, и обе крайности уже
+        /// проверены. Полный ставит рот точно в цель — язык выходит прямо, — но
+        /// когда цель за спиной, камера сверху видит затылок, а корень языка
+        /// прячется за головой. Слабый бережёт морду, зато рот смотрит в одну
+        /// сторону, а язык летит в другую, и выстрел читается как «боком».
+        ///
+        /// Поэтому сила зависит от того, куда цель. К игроку — доворачиваемся почти
+        /// полностью, там поворот ничего не прячет. За спину — остаёмся вполоборота,
+        /// чтобы рот держался на кромке силуэта.
         /// </summary>
-        const float MaxTurn = 0.36f;
+        const float MinTurn = 0.35f;
+        const float MaxTurn = 0.95f;
 
         Vector2 _aimSpec;
         bool _aiming;
@@ -86,7 +91,25 @@ namespace FrogCart.Runtime
         /// Зовётся из языка — у него dt уже правильный, замирающий на паузе.
         /// </summary>
         public void AdvanceAim(float dt)
-            => _aimWeight = Mathf.MoveTowards(_aimWeight, _aiming ? MaxTurn : 0f, dt / TurnTime);
+            => _aimWeight = Mathf.MoveTowards(_aimWeight, _aiming ? 1f : 0f, dt / TurnTime);
+
+        /// <summary>
+        /// Доля доворота для цели в заданном направлении, от <see cref="MinTurn"/> до
+        /// <see cref="MaxTurn"/>. Оба вектора берутся от жабы: один к цели, другой к
+        /// камере; высота отбрасывается, поворот идёт только вокруг вертикали.
+        /// </summary>
+        public static float AimStrength(Vector3 toTarget, Vector3 toCamera)
+        {
+            toTarget.y = 0f;
+            toCamera.y = 0f;
+
+            if (toTarget.sqrMagnitude < 1e-6f || toCamera.sqrMagnitude < 1e-6f)
+                return MinTurn;
+
+            // Единица — цель ровно со стороны камеры, минус единица — точно за спиной.
+            float alignment = Vector3.Dot(toTarget.normalized, toCamera.normalized);
+            return Mathf.Lerp(MinTurn, MaxTurn, (alignment + 1f) * 0.5f);
+        }
 
         /// <summary>
         /// Рот в мировых координатах — точка, из которой обязан выходить язык.
@@ -483,10 +506,16 @@ namespace FrogCart.Runtime
                     fromTarget.y = 0f;
 
                     if (fromTarget.sqrMagnitude > 0.0001f)
+                    {
+                        var toCamera = _camera != null
+                            ? _camera.transform.position - _root.position
+                            : Vector3.zero;
+
                         facing = Quaternion.Slerp(
                             facing,
                             Quaternion.LookRotation(fromTarget, Vector3.up),
-                            _aimWeight);
+                            _aimWeight * AimStrength(-fromTarget, toCamera));
+                    }
                 }
 
                 _root.rotation = facing;

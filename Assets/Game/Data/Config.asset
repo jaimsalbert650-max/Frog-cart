@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 649538aea84fada42917c5aa182c4e03, type: 3}
   m_Name: Config
   m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig
-  railSpeed: 34
+  railSpeed: 42
   biteRange: 190
   cartLaunch: 0.5
   chainDelay: 0.09

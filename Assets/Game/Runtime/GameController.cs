@@ -32,6 +32,20 @@ namespace FrogCart.Runtime
             /// <summary>Номер связки: вагонетки с одним номером уезжают вместе.</summary>
             public int LinkGroup;
 
+            /// <summary>
+            /// Пройденный путь по контуру — у каждой вагонетки свой.
+            ///
+            /// Раньше место на контуре считалось от номера слота: `slot * Периметр/5`,
+            /// пять мест намертво разнесены по кругу и едут вместе. Вагонетка тогда
+            /// не въезжала, а возникала на своём месте, где бы оно ни было, и въезд
+            /// в одной точке был невозможен: своего места пришлось бы ждать до 10 с.
+            ///
+            /// Столкнуться вагонетки не могут: скорость у всех одна, поэтому
+            /// расстояния между ними после въезда не меняются. Проверять надо только
+            /// сам въезд.
+            /// </summary>
+            public float Dist;
+
             public bool Frosted => Frozen > 0;
         }
 
@@ -85,7 +99,8 @@ namespace FrogCart.Runtime
         readonly int[] _reservedPerColor = new int[GridModel.MaxColor + 1];
         readonly int[] _capacity = new int[GridModel.MaxColor + 1];
 
-        float _dist;
+        /// <summary>Точка въезда на контур, считается один раз при построении уровня.</summary>
+        float _entryDist;
         int _eaten;
         int _total;
         float _clapPhase;
@@ -138,7 +153,7 @@ namespace FrogCart.Runtime
             _exposure = new Exposure(_grid);
             _total = _grid.TotalBlocks;
             _eaten = 0;
-            _dist = 0f;
+            _entryDist = FindEntryDist();
             _queueIndex = 0;
             _clapPhase = 0f;
 
@@ -312,8 +327,10 @@ namespace FrogCart.Runtime
             // Выезд показывается до того, как вагонетка выпадет из списка: очередь
             // должна успеть снять её со своего места, чтобы она поехала на контур.
             // Иначе ход игрока не виден — вагонетка исчезает здесь и появляется там.
-            Sample(slot, out var slotPos, out float slotAngle);
-            float flight = Queue.Depart(index - _queueIndex, slotPos, slotAngle, Config.cartLaunch);
+            // Целимся в точку въезда, а не в место слота: своего места у слота больше
+            // нет, вагонетка входит на контур там же, где и все остальные.
+            _path.Sample(_entryDist, out var entryPos, out float entryAngle);
+            float flight = Queue.Depart(index - _queueIndex, entryPos, entryAngle, Config.cartLaunch);
 
             // Из середины очереди брать можно: игрок сам решает, какой цвет нужен
             // сейчас. Взятая вагонетка выпадает из списка, остальные сдвигаются.
@@ -379,6 +396,14 @@ namespace FrogCart.Runtime
                 yield return null;
             }
 
+            // Въезд в одну точку — единственное место, где вагонетки могут наложиться
+            // друг на друга: после въезда скорость у всех одна и расстояния больше не
+            // меняются. Занят вход бывает примерно седьмую часть времени, так что
+            // ожидание обычно нулевое, изредка секунда-полторы.
+            while (!EntryClear(slot)) yield return null;
+
+            _slots[slot].Dist = _entryDist;
+
             if (flight > 0f)
             {
                 _slots[slot].EnterT = 0f;
@@ -415,6 +440,11 @@ namespace FrogCart.Runtime
             {
                 if (!_slots[slot].Live || _slots[slot].Exiting) continue;
                 if (_slots[slot].Count <= 0) continue;
+
+                // Ещё не въехавшая не стреляет: она либо летит из очереди, либо ждёт
+                // свободного входа, и места на контуре у неё пока нет — язык вылетал
+                // бы из точки, где вагонетки нет.
+                if (_slots[slot].EnterT > 0.001f) continue;
 
                 // Ожидание идёт только пока идёт игра: ранний выход по State выше и
                 // делает паузу непроходимой для отсчёта.
@@ -921,7 +951,9 @@ namespace FrogCart.Runtime
             float liveDt = State == GameState.Pause ? 0f : dt;
 
             // dist растёт только в Play: в паузе и на исходах контур стоит.
-            if (State == GameState.Play) _dist += Config.railSpeed * dt;
+            if (State == GameState.Play)
+                for (int i = 0; i < _slots.Length; i++)
+                    if (_slots[i].Live) _slots[i].Dist += Config.railSpeed * dt;
 
             // Работающие вагонетки едят сами — в этом теперь весь игровой процесс.
             AutoBite(dt);
@@ -967,9 +999,66 @@ namespace FrogCart.Runtime
         /// </summary>
         void Sample(int slot, out Vector2 pos, out float angle)
         {
-            float offset = slot * _path.Perimeter / _slots.Length + 60f;
             float exitExtra = _slots[slot].ExitT * 90f;
-            _path.Sample(_dist + offset + exitExtra, out pos, out angle);
+            _path.Sample(_slots[slot].Dist + exitExtra, out pos, out angle);
+        }
+
+        /// <summary>
+        /// Точка въезда на контур — середина нижней стороны.
+        ///
+        /// Ищется по контуру, а не задаётся числом: геометрия рельса живёт в LoopPath,
+        /// и зашитое здесь расстояние молча разъехалось бы с ней при первой же правке
+        /// углов или размеров.
+        /// </summary>
+        float FindEntryDist()
+        {
+            var target = new Vector2((LoopPath.RL + LoopPath.RR) * 0.5f, LoopPath.RB);
+
+            float best = 0f;
+            float bestDistance = float.MaxValue;
+
+            for (float s = 0f; s < _path.Perimeter; s += 0.5f)
+            {
+                _path.Sample(s, out var pos, out _);
+
+                float distance = Vector2.SqrMagnitude(pos - target);
+                if (distance >= bestDistance) continue;
+
+                bestDistance = distance;
+                best = s;
+            }
+
+            return best;
+        }
+
+        /// <summary>Сколько места нужно вагонетке на въезде: её длина плюс запас.</summary>
+        const float EntryGap = 70f;
+
+        /// <summary>
+        /// Свободна ли точка въезда прямо сейчас. Саму въезжающую не считаем: её слот
+        /// уже помечен живым, а место на контуре ещё не занял, и она мешала бы себе.
+        /// </summary>
+        bool EntryClear(int exceptSlot)
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (i == exceptSlot) continue;
+
+                var slot = _slots[i];
+                if (!slot.Live) continue;
+
+                // Ещё не въехавшая места не занимает.
+                if (slot.EnterT > 0.001f) continue;
+
+                // Расстояние по кольцу, а не по прямой: вагонетка перед самой точкой
+                // въезда и сразу за ней мешает одинаково.
+                float gap = Mathf.Abs(Mathf.Repeat(slot.Dist - _entryDist + _path.Perimeter * 0.5f,
+                                                   _path.Perimeter) - _path.Perimeter * 0.5f);
+
+                if (gap < EntryGap) return false;
+            }
+
+            return true;
         }
 
         /// <summary>Отдача как приседание корпуса: 1 в покое, меньше — сразу после выстрела.</summary>

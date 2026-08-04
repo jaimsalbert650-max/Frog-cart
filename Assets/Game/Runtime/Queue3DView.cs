@@ -40,12 +40,16 @@ namespace FrogCart.Runtime
         const float AreaLeft = 18f;
         const float AreaRight = 372f;
         /// <summary>
-        /// Передний ряд. Отодвинут от контура: на 664 крупные вагонетки садились
-        /// прямо на нижнюю нитку рельса и жабы налезали на шпалы. Нижний край
-        /// контура — 628, вагонетка вместе с жабой занимает около 50 вверх от
-        /// своей точки, отсюда 700.
+        /// Передний ряд. Отодвинут от контура ровно настолько, чтобы между ними
+        /// поместилась ветка.
+        ///
+        /// Считается, а не подбирается: нижняя нитка контура на 628, ветка длиной 76
+        /// кончается на 704, вагонетка вместе с жабой занимает около 50 вверх от
+        /// своей точки — значит передний ряд стоит на 754. На прежних 700 ветка
+        /// упиралась в очередь и была видна только столбиками упора: между контуром
+        /// и верхом крупных вагонеток оставалось 22 единицы вместо нужных 76.
         /// </summary>
-        const float AreaTop = 700f;
+        const float AreaTop = 754f;
 
         /// <summary>
         /// Шаг вглубь. Взят под размер вагонетки, а не под высоту площадки: площадки
@@ -469,6 +473,11 @@ namespace FrogCart.Runtime
         /// </summary>
         public int DepartingCount { get; private set; }
 
+        /// <summary>Ветка, по которой вагонетка выкатывается на контур.</summary>
+        Spur3DView _spur;
+
+        public void SetSpur(Spur3DView spur) => _spur = spur;
+
         public float Depart(int index, Vector2 toSpec, float toAngleDeg, float duration)
         {
             if (index < 0 || index >= _minis.Count) return 0f;
@@ -480,12 +489,19 @@ namespace FrogCart.Runtime
             var leaving = _minis[index];
             _minis.RemoveAt(index);
 
-            Vector3 from = leaving.Root.position;
-            Vector3 to = Space3D.ToWorld(toSpec);
+            // Путь считается в spec-координатах и лежит на земле: вагонетка едет по
+            // рельсам, а не летит. Изгиб задаётся подножием ветки — от своего места
+            // она сворачивает к ней и дальше идёт прямо по ней вверх, на контур.
+            Vector3 fromWorld = leaving.Root.position;
+            var fromSpec = new Vector2(fromWorld.x / Space3D.Scale, -fromWorld.z / Space3D.Scale);
+            Vector2 bend = _spur != null ? _spur.PointAt(1f) : fromSpec;
+
             float fromScale = leaving.Root.localScale.x;
 
             DepartingCount++;
             _departingRoot = leaving.Root;
+
+            _spur?.Deploy();
 
             // Сглаживание здесь линейное, и это не мелочь. QueueShift — кривая с
             // перелётом (cubic-bezier(.3, 1.4, .5, 1)), она заходит за единицу.
@@ -500,43 +516,42 @@ namespace FrogCart.Runtime
                 {
                     if (leaving.Root == null) return;
 
-                    // По горизонтали — с замедлением к концу: бросок начинается
-                    // резко и мягко доводится до места. Равномерное движение
-                    // читалось перемещением фишки, а не выездом.
-                    float travel = 1f - (1f - t) * (1f - t);
+                    // С разгона и с доводкой: трогается плавно, к контуру приходит
+                    // мягко. Равномерное движение читалось перемещением фишки.
+                    float travel = t * t * (3f - 2f * t);
 
-                    // Высота дуги зажата с двух сторон, и обе границы настоящие.
-                    // Снизу — доска: путь к дальнему месту проходит прямо над ней.
-                    // Сверху — кадрируемый объём, у него потолок 112 (11.2 мира),
-                    // и выше этого вагонетка уходит за верхний край экрана.
-                    Vector3 point = Vector3.Lerp(from, to, travel);
-                    point.y += Mathf.Sin(t * Mathf.PI) * Space3D.Size(90f);
-                    leaving.Root.position = point;
+                    // Квадратичная кривая через подножие ветки: сначала сворачивает
+                    // из своего ряда, потом идёт прямо по ветке.
+                    float mt = 1f - travel;
+                    Vector2 point = mt * mt * fromSpec
+                                  + 2f * mt * travel * bend
+                                  + travel * travel * toSpec;
 
-                    // Размер сводится к размеру вагонетки на контуре, а не к нулю.
-                    // Раньше она истончалась до 0.15 — это пряталось от того, что
-                    // на рельсе уже стояла вторая такая же. Теперь та появляется
-                    // только в момент приземления, и прятать нечего.
+                    leaving.Root.position = Space3D.ToWorld(point);
+
+                    // Размер сводится к размеру вагонетки на контуре.
                     float scale = Mathf.Lerp(fromScale, 1f, travel);
 
-                    // Приседание на взлёте и на приземлении: по вертикали сжимается,
-                    // по горизонтали расходится. Это и читается как «оттолкнулась».
-                    float crouch = Mathf.Sin(t * Mathf.PI * 2f) * 0.12f;
-                    leaving.Root.localScale = new Vector3(scale * (1f + crouch),
-                                                          scale * (1f - crouch),
-                                                          scale * (1f + crouch));
+                    // Покачивание на ходу — подвеска, а не прыжок: по рельсам
+                    // вагонетка не отрывается от земли.
+                    float sway = Mathf.Sin(travel * Mathf.PI * 2f) * 0.05f;
+                    leaving.Root.localScale = new Vector3(scale * (1f + sway),
+                                                          scale * (1f - sway),
+                                                          scale * (1f + sway));
 
-                    // Доворот к направлению рельса — вагонетка приземляется вдоль
-                    // пути, а не поперёк. Плюс задранный нос в полёте, который
-                    // выравнивается к посадке.
+                    // Доворот к направлению рельса: на контур вагонетка выходит
+                    // вдоль пути, а не поперёк.
                     leaving.Root.rotation =
-                        Quaternion.Slerp(Quaternion.identity, toRotation, travel)
-                      * Quaternion.Euler(-Mathf.Sin(t * Mathf.PI) * 16f, 0f, 0f);
+                        Quaternion.Slerp(Quaternion.identity, toRotation, travel);
                 },
                 () =>
                 {
                     DepartingCount--;
                     if (leaving.Root != null) Object.Destroy(leaving.Root.gameObject);
+
+                    // Ветка убирается только когда по ней некому ехать: подряд
+                    // отправленные вагонетки идут по одной и той же.
+                    if (DepartingCount == 0) _spur?.Retract();
                 });
 
             return duration;

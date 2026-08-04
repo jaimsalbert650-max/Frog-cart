@@ -40,9 +40,23 @@ namespace FrogCart.Tests
                 var toTarget = Quaternion.Euler(0f, deg, 0f) * Vector3.forward * 7f;
                 float strength = Frog3DView.AimStrength(toTarget, ToCamera);
 
-                Assert.That(strength, Is.InRange(0.35f, 0.95f),
+                Assert.That(strength, Is.InRange(0.55f, 0.95f),
                     $"Направление {deg}° выпало из пределов доворота.");
             }
+        }
+
+        [Test]
+        public void Нижний_предел_держит_рот_рядом_с_языком()
+        {
+            // Самый тяжёлый случай — цель точно за спиной. Даже там между ртом и
+            // языком должно оставаться меньше прямого угла, иначе выстрел снова
+            // читается как «боком». Полный оборот равен 180°, отсюда и пересчёт.
+            float worst = Frog3DView.AimStrength(-ToCamera, ToCamera);
+            float leftover = 180f * (1f - worst);
+
+            Assert.Less(leftover, 90f,
+                $"При цели за спиной рот отстаёт от языка на {leftover:F0}° — "
+              + "это и есть выстрел вбок.");
         }
 
         [Test]
@@ -64,8 +78,8 @@ namespace FrogCart.Tests
         {
             // Камеры может не быть вовсе — в тестах и на сборке без вида. Тогда
             // выбирается осторожный вариант, а не случайный поворот.
-            Assert.AreEqual(0.35f, Frog3DView.AimStrength(Vector3.forward, Vector3.zero), 1e-4f);
-            Assert.AreEqual(0.35f, Frog3DView.AimStrength(Vector3.zero, ToCamera), 1e-4f);
+            Assert.AreEqual(0.55f, Frog3DView.AimStrength(Vector3.forward, Vector3.zero), 1e-4f);
+            Assert.AreEqual(0.55f, Frog3DView.AimStrength(Vector3.zero, ToCamera), 1e-4f);
         }
     }
 }

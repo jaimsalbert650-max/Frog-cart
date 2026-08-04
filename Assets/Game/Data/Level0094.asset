@@ -73,111 +73,7 @@ MonoBehaviour:
     linkGroup: 0
   queue:
   - colorId: 1
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 2
-    capacity: 18
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 3
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 24
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 6
-    capacity: 15
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 7
-    capacity: 6
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 1
-    capacity: 18
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 2
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 3
-    capacity: 24
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 14
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 6
-    capacity: 6
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 7
-    capacity: 30
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 1
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 2
-    capacity: 24
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 3
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 15
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 6
-    capacity: 30
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 7
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 1
-    capacity: 24
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 2
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 3
-    capacity: 15
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 6
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 6
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 7
-    capacity: 18
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 1
-    capacity: 12
+    capacity: 4
     frozenCount: 0
     linkGroup: 0
   - colorId: 2
@@ -185,15 +81,19 @@ MonoBehaviour:
     frozenCount: 0
     linkGroup: 0
   - colorId: 3
-    capacity: 6
+    capacity: 3
     frozenCount: 0
     linkGroup: 0
   - colorId: 4
-    capacity: 30
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 6
     frozenCount: 0
     linkGroup: 0
   - colorId: 6
-    capacity: 18
+    capacity: 8
     frozenCount: 0
     linkGroup: 0
   - colorId: 7
@@ -201,14 +101,22 @@ MonoBehaviour:
     frozenCount: 0
     linkGroup: 0
   - colorId: 1
-    capacity: 15
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 3
     frozenCount: 0
     linkGroup: 0
   - colorId: 3
-    capacity: 18
+    capacity: 12
     frozenCount: 0
     linkGroup: 0
   - colorId: 4
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
     capacity: 8
     frozenCount: 0
     linkGroup: 0
@@ -217,19 +125,259 @@ MonoBehaviour:
     frozenCount: 0
     linkGroup: 0
   - colorId: 7
-    capacity: 23
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 7
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 8
     frozenCount: 0
     linkGroup: 0
   - colorId: 1
     capacity: 4
     frozenCount: 0
     linkGroup: 0
+  - colorId: 2
+    capacity: 7
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
   - colorId: 4
-    capacity: 21
+    capacity: 12
     frozenCount: 0
     linkGroup: 0
   - colorId: 6
-    capacity: 24
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 6
     frozenCount: 0
     linkGroup: 0
   - colorId: 6
@@ -237,6 +385,10 @@ MonoBehaviour:
     frozenCount: 0
     linkGroup: 0
   - colorId: 6
-    capacity: 9
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 5
     frozenCount: 0
     linkGroup: 0

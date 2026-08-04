@@ -45,17 +45,21 @@ namespace FrogCart.Runtime
         static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
 
         /// <summary>
-        /// Сколько столбиков и рядов нужно, чтобы разложить столько мест по площадке.
-        /// Считается от её пропорций, поэтому места распределяются равномерно, а не
-        /// вытягиваются в длинную ленту.
+        /// Рядов всегда три, как в оригинале. Число столбиков подгоняется под очередь.
+        ///
+        /// Раньше и то и другое считалось из пропорций площадки. На уровне 4 это
+        /// случайно давало те же три ряда, но на уровне 283 со 116 вагонетками — семь,
+        /// и подача разъезжалась от уровня к уровню. Ряд — это то, что игрок видит и
+        /// к чему привыкает, поэтому он закреплён, а тянется вширь.
         /// </summary>
+        const int Rows = 3;
+
         static void GridFor(int places, out int columns, out int rows)
         {
             places = Mathf.Max(places, 1);
 
-            float aspect = (AreaRight - AreaLeft) / (AreaBottom - AreaTop);
-            columns = Mathf.Clamp(Mathf.CeilToInt(Mathf.Sqrt(places * aspect)), 1, places);
-            rows = Mathf.CeilToInt(places / (float)columns);
+            rows = Rows;
+            columns = Mathf.Max(1, Mathf.CeilToInt(places / (float)rows));
         }
 
         /// <summary>

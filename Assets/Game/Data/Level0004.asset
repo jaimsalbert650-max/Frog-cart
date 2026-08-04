@@ -1,0 +1,157 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7491263f5b5340d4bbd168cdadd8e8de, type: 3}
+  m_Name: Level0004
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData
+  levelNumber: 4
+  rows:
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000100000222220000000000
+  - 0001010002333332000001000
+  - 0000100023444443200010100
+  - 0000000023444443200001000
+  - 0000000234444444320000000
+  - 0000000234444444320000000
+  - 0000000234444444320000000
+  - 0000000234444444320000000
+  - 0010002344444444432000000
+  - 0000002344444444432000000
+  - 0000023444555554443200000
+  - 0000023445555555443200000
+  - 0000234455155555544320000
+  - 0000234455555555544320000
+  - 0000234455555555544320000
+  - 0000234455555555544320000
+  - 0000234455555555544320000
+  - 0000234445555555444320000
+  - 0000234444555554444320000
+  - 0000023444444444443200000
+  - 0000023344444444433200000
+  - 0000002233333333322000000
+  - 0000000022222222200000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  hpRows: []
+  hiddenRows: []
+  loopCarts:
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  queue:
+  - colorId: 1
+    capacity: 10
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 11
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 13
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 7
+    frozenCount: 0
+    linkGroup: 0

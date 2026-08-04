@@ -1,0 +1,242 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7491263f5b5340d4bbd168cdadd8e8de, type: 3}
+  m_Name: Level0094
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData
+  levelNumber: 94
+  rows:
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000111000000002200000000000000000
+  - 00000000000011334110000023420000000000000000
+  - 00000000000133453441100002200000000000000000
+  - 00000000000145344335510000000000000000000000
+  - 00000000001344433553451000000110000000000000
+  - 00000000001434334455343100011661000000000000
+  - 00002200001433553444435510166710000000000000
+  - 00024420000143445344353001666710000220000000
+  - 00023442000143444433555007667100002442000000
+  - 00002332000144344334445437667100023454200000
+  - 00000220000014333553444437667100023444200000
+  - 00000000000013434445344347666100023334200000
+  - 00000000011174434444433447666710002332000000
+  - 00000000166667773444343447666661000220000000
+  - 00000001777666667733444344766661000000000000
+  - 00000000111176666677444434766666100000000000
+  - 00000000000011667666744333766766100000000000
+  - 00002200000000166666677443766666100000000000
+  - 00024420000000176667666777766766610000220000
+  - 00234542000000017666766666766766610002442000
+  - 00233442000000017766677667666766710024454200
+  - 00023320000000001776666777666766710023444200
+  - 00002200000222000177766677667666710002332000
+  - 00000000002444200017777776667667710000220000
+  - 00000000023445420001177777006677161000000000
+  - 00000000023344420000011177007771761000000000
+  - 00000000002333200000000011111117771000000000
+  - 00000000000222000000000000000001110000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  hpRows: []
+  hiddenRows: []
+  loopCarts:
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  queue:
+  - colorId: 1
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 23
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 21
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0

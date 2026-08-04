@@ -1,0 +1,261 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7491263f5b5340d4bbd168cdadd8e8de, type: 3}
+  m_Name: Level0070
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData
+  levelNumber: 70
+  rows:
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000111111100000
+  - 00000000000000000000000000000001122222100000
+  - 00000000000000000000000000000001211111111000
+  - 00000000000000001111111111111111113331000000
+  - 00000044444400013333331555555551133131000000
+  - 00000000000000133333331666115561333333100000
+  - 00000000000001333111111611555556133331000000
+  - 00000000000013331000001155555555611111000000
+  - 00000000000013310000001555555555510000000000
+  - 00000000000001100000015555665555551000000000
+  - 00044444400000000000155555566555551000000000
+  - 00000000000000000001555666666155551011100000
+  - 00000000000000000015566566661015551133100000
+  - 00000000000000000015555566610011111333100000
+  - 00000000000000000016666666610001331331000000
+  - 00000000000440400016666666610001333331000000
+  - 00000000000000000171111111110001333310000000
+  - 00000000000000001700788888881100111100000000
+  - 00000000000000001700877888177810000000000000
+  - 00000000000000017778788881787881000000000000
+  - 00000000000001177887888117778788100000000000
+  - 00000011111111778778881001777877100000000000
+  - 00000172244333177788810000177777100000000000
+  - 00000172444333317888100000177777100000000000
+  - 00000172211111101888100000011111100000000000
+  - 00000172100000001111000000133100000000000000
+  - 00000172100000000000000001333100000000000000
+  - 00000171000000000000000001331000000000000000
+  - 00000110000000000000000001441000000000000000
+  - 00000000000000000000000001441000000000000000
+  - 00000000000000000000000012422110000000000000
+  - 00004444444440000000000012222221000000000000
+  - 00000000000000011100000017777771001110000000
+  - 00000000000000001611111111111111116100000000
+  - 00000000000444000166666666666666661000000000
+  - 00000000000000000011111111111111110000000000
+  - 00000000000000000000100000000001000000000000
+  - 00000000000000000001810000000018100000000000
+  - 00000000000000000000100000000001000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  - 00000000000000000000000000000000000000000000
+  hpRows: []
+  hiddenRows: []
+  loopCarts:
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  queue:
+  - colorId: 1
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 8
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 13
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 8
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 8
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 6
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 7
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 7
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 18
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 24
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 15
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 30
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 10
+    frozenCount: 0
+    linkGroup: 0

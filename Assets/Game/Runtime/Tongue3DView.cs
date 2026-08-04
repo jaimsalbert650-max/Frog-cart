@@ -33,6 +33,18 @@ namespace FrogCart.Runtime
 
         public bool Active { get; private set; }
 
+        /// <summary>
+        /// Жаба, которой принадлежит этот язык. Нужна ради одного — истинной точки
+        /// рта в мире. Через общий контракт `ITongueView` её не передать: там рот
+        /// приходит плоской точкой, а плоская точка не знает высоты головы.
+        /// </summary>
+        Frog3DView _frog;
+
+        public void SetMouth(Frog3DView frog) => _frog = frog;
+
+        /// <summary>Начало нарисованного языка — для проверок, что он растёт изо рта.</summary>
+        public Vector3 RootWorldPos => _line.GetPosition(0);
+
         public void Build(Transform parent)
         {
             var go = new GameObject("Tongue3D");
@@ -123,20 +135,33 @@ namespace FrogCart.Runtime
 
         void Draw(Vector2 mouth, float p)
         {
-            Vector2 d = _target - mouth;
-            Vector2 perp = new Vector2(-d.y, d.x).normalized;
-            Vector2 ctrl = (mouth + _target) * 0.5f + perp * d.magnitude * 0.17f * _side;
+            // Язык растёт изо рта, а рот у жабы поднят над доской. Плоскую точку из
+            // контракта используем только как запасную: без жабы взять высоту негде.
+            Vector3 mouthWorld = _frog != null ? _frog.MouthWorldPos : Space3D.ToWorld(mouth, Height);
 
-            Vector2 ctrl1 = Vector2.Lerp(mouth, ctrl, p);
-            Vector2 tipSpec = Quad(mouth, ctrl, _target, p);
+            Vector2 mouthSpec = new Vector2(mouthWorld.x / Space3D.Scale,
+                                           -mouthWorld.z / Space3D.Scale);
+            float mouthHeight = mouthWorld.y;
+
+            Vector2 d = _target - mouthSpec;
+            Vector2 perp = new Vector2(-d.y, d.x).normalized;
+            Vector2 ctrl = (mouthSpec + _target) * 0.5f + perp * d.magnitude * 0.17f * _side;
+
+            Vector2 ctrl1 = Vector2.Lerp(mouthSpec, ctrl, p);
+            Vector2 tipSpec = Quad(mouthSpec, ctrl, _target, p);
 
             for (int i = 0; i <= Segments; i++)
             {
                 float t = i / (float)Segments;
-                Vector2 point = Quad(mouth, ctrl1, tipSpec, t);
+                Vector2 point = Quad(mouthSpec, ctrl1, tipSpec, t);
 
-                // Дуга по высоте: язык выгибается над доской, а не скребёт по ней.
-                float lift = Height + Mathf.Sin(t * Mathf.PI) * 0.25f;
+                // Высота спускается ото рта к доске. Считать её надо по доле **всей**
+                // кривой, а не нарисованного куска: `t` пробегает 0..1 по тому, что
+                // видно сейчас, и на коротком языке спуск до доски случился бы весь
+                // сразу — язык нырял бы вниз, едва высунувшись.
+                float lift = Mathf.Lerp(mouthHeight, Height, t * p)
+                           + Mathf.Sin(t * Mathf.PI) * 0.25f;
+
                 _line.SetPosition(i, Space3D.ToWorld(point, lift));
             }
 
@@ -144,11 +169,12 @@ namespace FrogCart.Runtime
             _line.startWidth = width;
             _line.endWidth = width * 0.75f;
 
-            _tip.position = Space3D.ToWorld(tipSpec, Height);
+            float tipHeight = Mathf.Lerp(mouthHeight, Height, p);
+            _tip.position = Space3D.ToWorld(tipSpec, tipHeight);
 
             if (_stuck)
             {
-                _carried.position = Space3D.ToWorld(tipSpec, Height);
+                _carried.position = Space3D.ToWorld(tipSpec, tipHeight);
                 _carried.localScale = Vector3.one * Mathf.Max(0.25f, p);
             }
         }

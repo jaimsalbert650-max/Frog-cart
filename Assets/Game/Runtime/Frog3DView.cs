@@ -36,6 +36,14 @@ namespace FrogCart.Runtime
 
         public Vector2 MouthSpecPos { get; private set; }
 
+        /// <summary>
+        /// Рот в мировых координатах — точка, из которой обязан выходить язык.
+        /// Плоской проекции для этого мало: она теряет высоту головы, а именно
+        /// на высоте вся разница между «язык вылетает изо рта» и «язык лежит
+        /// на доске рядом с вагонеткой».
+        /// </summary>
+        public Vector3 MouthWorldPos => _mouth != null ? _mouth.position : _root.position;
+
         public void Build(Transform parent, Camera camera)
         {
             _camera = camera;
@@ -227,7 +235,17 @@ namespace FrogCart.Runtime
                                             Space3D.Size(Mathf.Lerp(6f, 11f, _mouthOpen)),
                                             Space3D.Size(6f));
 
-            MouthSpecPos = new Vector2(bodyC.x, bodyC.y - 11f);
+            // Точка рта берётся у самого рта, а не считается заново от вагонетки.
+            //
+            // Раньше здесь стояло `bodyC.y - 11` — формула плоской версии, где spec-Y
+            // это экранный Y и «минус 11» означает «на 11 пикселей выше по экрану».
+            // В объёме spec-Y уходит в Z доски, поэтому та же строка сдвигала корень
+            // языка на 11 единиц вглубь доски, а высоту не задавала вовсе: язык висел
+            // на постоянной высоте 0.55, тогда как голова поднята на 2.8. Корень
+            // языка и рот оказывались разными точками и по глубине, и по высоте —
+            // язык шёл поверх морды и обрывался у корпуса вагонетки.
+            Vector3 mouthWorld = _mouth.position;
+            MouthSpecPos = new Vector2(mouthWorld.x / Space3D.Scale, -mouthWorld.z / Space3D.Scale);
         }
 
         public void SetSquash(float value)

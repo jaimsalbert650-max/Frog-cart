@@ -394,6 +394,10 @@ namespace FrogCart.Runtime
                 tongueGo.transform.SetParent(transform, false);
                 tongues[i] = tongueGo.AddComponent<Tongue3DView>();
                 tongues[i].Build(_world);
+
+                // Язык должен знать свою жабу: рот в мире берётся у неё, иначе
+                // корень языка остаётся на доске под головой.
+                tongues[i].SetMouth(frogs[i]);
             }
 
             var canvas = BuildOverlayCanvas(out var flash);

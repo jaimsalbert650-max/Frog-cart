@@ -111,6 +111,14 @@ namespace FrogCart.Runtime
             var controller = FindAnyObjectByType<GameController>();
             if (controller == null) yield break;
 
+            // Размер доски спрашиваем у контроллера. Раньше здесь стояли 16 и 14 —
+            // размеры уровня 1. Уровни давно режутся из картинок и после обрезки
+            // бывают меньше, и выход за массив ронял эту корутину исключением. Молча:
+            // Capture ждала её на yield и не возобновлялась, поэтому снимок не писался,
+            // Application.Quit не вызывался, и плеер висел до тех пор, пока его не убьют.
+            var board = controller.Rows;
+            if (board == null) yield break;
+
             int done = 0;
             int guard = 0;
 
@@ -118,8 +126,8 @@ namespace FrogCart.Runtime
             {
                 int atPassStart = done;
 
-                for (int r = 0; r < 16 && done < _taps; r++)
-                for (int c = 0; c < 14 && done < _taps; c++)
+                for (int r = 0; r < board.Length && done < _taps; r++)
+                for (int c = 0; c < board[r].Length && done < _taps; c++)
                 {
                     // Считаем только состоявшиеся ходы: тап по пустой или замурованной
                     // клетке языка не выпускает.
@@ -144,8 +152,19 @@ namespace FrogCart.Runtime
             {
                 case "win": panel.ShowWin(); break;
                 case "lose": panel.ShowLose(); break;
-                case "pause": panel.ShowPause(); break;
+
+                // Паузу нельзя изображать одной панелью. Раньше здесь рисовалась
+                // только она, а игра под ней продолжала идти — на снимке выходила
+                // не пауза, а панель поверх живого хода, и проверить по такому
+                // кадру было нечего. Просим паузу у контроллера, панель он покажет сам.
+                case "pause": TogglePauseOnController(); break;
             }
+        }
+
+        void TogglePauseOnController()
+        {
+            var controller = FindAnyObjectByType<GameController>();
+            if (controller != null) controller.TogglePause();
         }
     }
 }

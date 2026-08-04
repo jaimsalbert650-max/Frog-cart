@@ -75,7 +75,7 @@ namespace FrogCart.Runtime
         /// Цвет клетки на доске прямо сейчас, 0 — пусто. `Rows` для этого не годится:
         /// там картинка, какой она была на старте, и съеденное в ней остаётся.
         /// </summary>
-        public int Cell(int r, int c) => _grid.Get(r, c);
+        public int Cell(int r, int c) => _grid.InBounds(r, c) ? _grid.Get(r, c) : 0;
 
         Slot[] _slots;
         List<LevelData.CartDef> _queue;
@@ -439,6 +439,12 @@ namespace FrogCart.Runtime
         public bool Eat(int r, int c)
         {
             if (State != GameState.Play) return false;
+
+            // Координаты приходят снаружи — от ввода, от тестов, от снималки, — и доска
+            // больше не 14x16: уровни режутся из картинок и после обрезки бывают любого
+            // размера. Промах мимо доски это такой же несостоявшийся ход, как тап по
+            // пустой клетке, и отвечать на него надо false, а не исключением.
+            if (!_grid.InBounds(r, c)) return false;
 
             int color = _grid.Get(r, c);
             if (color == 0) return false;

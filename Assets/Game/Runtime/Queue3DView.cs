@@ -28,10 +28,30 @@ namespace FrogCart.Runtime
         /// поверх. Настоящей случайности здесь нет, смещение считается от номера
         /// места, иначе уровень выглядел бы по-разному при каждом запуске.
         /// </summary>
-        const float AreaLeft = 24f;
-        const float AreaRight = 366f;
-        const float AreaTop = 652f;
-        const float AreaBottom = 800f;
+        /// <summary>
+        /// Три вагонетки на всю ширину экрана — от неё и считается их размер.
+        ///
+        /// Прошлый заход растягивал под очередь кадр камеры, чтобы вместить все
+        /// ряды сразу, и доска от этого теряла пятую часть размера. Здесь наоборот:
+        /// кадр не трогаем, ряды уходят вниз за экран, а игрок видит ближние. Когда
+        /// одну забирают, остальные подтягиваются — так очередь может быть любой
+        /// длины и ничего не мельчает.
+        /// </summary>
+        const float AreaLeft = 18f;
+        const float AreaRight = 372f;
+        /// <summary>
+        /// Передний ряд. Отодвинут от контура: на 664 крупные вагонетки садились
+        /// прямо на нижнюю нитку рельса и жабы налезали на шпалы. Нижний край
+        /// контура — 628, вагонетка вместе с жабой занимает около 50 вверх от
+        /// своей точки, отсюда 700.
+        /// </summary>
+        const float AreaTop = 700f;
+
+        /// <summary>
+        /// Шаг вглубь. Взят под размер вагонетки, а не под высоту площадки: площадки
+        /// с фиксированной высотой здесь больше нет, ряды уходят за экран.
+        /// </summary>
+        const float RowStep = 112f;
 
         /// <summary>
         /// Потолок на число мини-вагонеток. Не про вкус, а про здравый смысл:
@@ -45,21 +65,21 @@ namespace FrogCart.Runtime
         static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
 
         /// <summary>
-        /// Рядов всегда три, как в оригинале. Число столбиков подгоняется под очередь.
+        /// Столбиков всегда три, вглубь уходит столько рядов, сколько нужно.
         ///
-        /// Раньше и то и другое считалось из пропорций площадки. На уровне 4 это
-        /// случайно давало те же три ряда, но на уровне 283 со 116 вагонетками — семь,
-        /// и подача разъезжалась от уровня к уровню. Ряд — это то, что игрок видит и
-        /// к чему привыкает, поэтому он закреплён, а тянется вширь.
+        /// Закреплена именно ширина, а не глубина: ширина — это то, что игрок видит
+        /// и к чему привыкает, а число вагонеток на уровне гуляет от 22 до 116.
+        /// Раньше обе стороны считались из пропорций площадки, и раскладка менялась
+        /// от уровня к уровню.
         /// </summary>
-        const int Rows = 3;
+        const int Columns = 3;
 
         static void GridFor(int places, out int columns, out int rows)
         {
             places = Mathf.Max(places, 1);
 
-            rows = Rows;
-            columns = Mathf.Max(1, Mathf.CeilToInt(places / (float)rows));
+            columns = Columns;
+            rows = Mathf.Max(1, Mathf.CeilToInt(places / (float)columns));
         }
 
         /// <summary>
@@ -76,16 +96,15 @@ namespace FrogCart.Runtime
         /// </summary>
         static Vector2 SlotPos(int index, int places)
         {
-            GridFor(places, out int columns, out int rows);
+            GridFor(places, out int columns, out _);
 
             float cellW = (AreaRight - AreaLeft) / columns;
-            float cellH = (AreaBottom - AreaTop) / rows;
 
             int column = index % columns;
             int row = index / columns;
 
             return new Vector2(AreaLeft + (column + 0.5f) * cellW,
-                               AreaTop + (row + 0.5f) * cellH);
+                               AreaTop + row * RowStep);
         }
 
         /// <summary>
@@ -93,16 +112,20 @@ namespace FrogCart.Runtime
         /// масштаб остаётся единичным, на сотне с лишним — падает, иначе толпа
         /// слипается в кашу.
         /// </summary>
+        /// <summary>
+        /// Размер вагонетки. Задаётся шириной столбика, а не подгоняется под число
+        /// вагонеток: их размер не должен зависеть от того, длинная очередь или
+        /// короткая. Верхний предел снят — раньше стояла единица, и вагонетки не
+        /// могли вырасти, сколько бы места им ни дали.
+        /// </summary>
         static float MiniScale(int places)
         {
-            GridFor(places, out int columns, out int rows);
+            GridFor(places, out int columns, out _);
 
             float cellW = (AreaRight - AreaLeft) / columns;
-            float cellH = (AreaBottom - AreaTop) / rows;
 
-            // 56 на 52 — габарит мини-вагонетки вместе с табличкой и запасом под
-            // разброс. По голому корпусу (52 на 46) соседи сходились вплотную.
-            return Mathf.Clamp(Mathf.Min(cellW / 56f, cellH / 52f), 0.35f, 1f);
+            // 56 на 52 — габарит мини-вагонетки вместе с табличкой.
+            return Mathf.Clamp(Mathf.Min(cellW / 56f, RowStep / 52f), 0.35f, 3f);
         }
 
         static int VisibleCount(List<LevelData.CartDef> queue, int startIndex)

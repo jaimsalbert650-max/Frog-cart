@@ -20,9 +20,27 @@ namespace FrogCart.Runtime
         /// Теперь вагонетки уровня целиком лежат в очереди, и на уровне 106 их семь,
         /// поэтому ряд рассчитан на девять: столько же, сколько цветов в палитре.
         /// </summary>
-        const int Visible = 9;
-        const float SlotY = 664f;    // spec-координата рельса очереди
-        const float Step = 42f;
+        /// <summary>
+        /// Очередь стоит столбиками, а не одной шеренгой.
+        ///
+        /// Шеренгой она упиралась в ширину экрана: девять мест по 42 занимали
+        /// почти всю его ширину, и больше уже не помещалось. Столбиками на том же
+        /// месте помещается пятнадцать, и видно, что за передними кто-то стоит —
+        /// когда переднюю забирают, задние подъезжают ближе.
+        /// </summary>
+        const int Columns = 5;
+        const int Depth = 3;
+        const int Visible = Columns * Depth;
+
+        const float SlotY = 664f;    // spec-координата переднего ряда очереди
+        const float Step = 56f;      // шаг между столбиками
+        /// <summary>
+        /// Шаг вглубь. Считается не от корпуса вагонетки, а от таблички с ёмкостью:
+        /// она висит над вагонеткой, и при шаге по корпусу (42) её закрывала соседка
+        /// из ближнего ряда — числа читались только у последнего ряда, то есть
+        /// очередь переставала быть выбором.
+        /// </summary>
+        const float RowStep = 56f;
         const float DockCenterX = 195f;
 
         /// <summary>Цвет ледяной таблички — тот же, что у вагонеток на контуре.</summary>
@@ -33,8 +51,28 @@ namespace FrogCart.Runtime
         /// выкладывается от левого края: на уровне с тремя вагонетками в очереди
         /// ряд жался к левому краю и выглядел обрубленным.
         /// </summary>
-        static float SlotX(int index, int count)
-            => DockCenterX - (count - 1) * Step * 0.5f + index * Step;
+        /// <summary>
+        /// Место слота в spec-координатах. Заполнение идёт **по столбикам**:
+        /// первые <see cref="Depth"/> мест — передний столбик сверху вниз, затем
+        /// следующий. Так забранная вагонетка освобождает место в своём столбике,
+        /// и задние подъезжают вперёд, а не разъезжаются по всей ширине.
+        /// </summary>
+        static Vector2 SlotPos(int index, int count)
+        {
+            int column = index / Depth;
+            int row = index % Depth;
+
+            return new Vector2(DockCenterX - (UsedColumns(count) - 1) * Step * 0.5f + column * Step,
+                               SlotY + row * RowStep);
+        }
+
+        /// <summary>Сколько столбиков занято — очередь центруется по ним, а не по пустым.</summary>
+        static int UsedColumns(int count)
+            => Mathf.Clamp(Mathf.CeilToInt(count / (float)Depth), 1, Columns);
+
+        /// <summary>Сколько мест занято в конкретном столбике.</summary>
+        static int RowsInColumn(int column, int count)
+            => Mathf.Clamp(count - column * Depth, 0, Depth);
 
         static int VisibleCount(List<LevelData.CartDef> queue, int startIndex)
             => Mathf.Clamp(queue.Count - startIndex, 0, Visible);
@@ -78,41 +116,68 @@ namespace FrogCart.Runtime
         /// </summary>
         const float DockMeshLength = 400f;
 
-        readonly List<Transform> _dockParts = new List<Transform>();
+        /// <summary>Части дока по рядам: свой отрезок пути под каждым рядом очереди.</summary>
+        readonly List<Transform>[] _dockRows = new List<Transform>[Depth];
 
         void BuildDockRail()
         {
-            var plank = NewPiece("DockPlank", _root,
-                ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(4f), Space3D.Size(34f),
-                                    Space3D.Size(3f), "dockPlank3D"),
-                ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_dockPlank", 0.1f));
-            plank.transform.position = Space3D.ToWorld(DockCenterX, SlotY + 6f, Space3D.Size(1f));
-            _dockParts.Add(plank.transform);
-
-            foreach (float offset in new[] { -8f, 8f })
+            for (int row = 0; row < Depth; row++)
             {
-                var rail = NewPiece($"DockRail{offset}", _root,
-                    ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(3f), Space3D.Size(3f),
-                                        Space3D.Size(1f), "dockRail3D"),
-                    ProcMesh.Metal(ProcSprite.Hex("CFD6DA"), "mat_rail"));
-                rail.transform.position =
-                    Space3D.ToWorld(DockCenterX, SlotY + 6f + offset, Space3D.Size(3f));
-                _dockParts.Add(rail.transform);
+                _dockRows[row] = new List<Transform>();
+                float y = SlotY + row * RowStep + 6f;
+
+                var plank = NewPiece($"DockPlank{row}", _root,
+                    ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(4f), Space3D.Size(34f),
+                                        Space3D.Size(3f), "dockPlank3D"),
+                    ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_dockPlank", 0.1f));
+                plank.transform.position = Space3D.ToWorld(DockCenterX, y, Space3D.Size(1f));
+                _dockRows[row].Add(plank.transform);
+
+                foreach (float offset in new[] { -8f, 8f })
+                {
+                    var rail = NewPiece($"DockRail{row}_{offset}", _root,
+                        ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(3f), Space3D.Size(3f),
+                                            Space3D.Size(1f), "dockRail3D"),
+                        ProcMesh.Metal(ProcSprite.Hex("CFD6DA"), "mat_rail"));
+                    rail.transform.position =
+                        Space3D.ToWorld(DockCenterX, y + offset, Space3D.Size(3f));
+                    _dockRows[row].Add(rail.transform);
+                }
             }
 
             FitDock(Visible);
         }
 
-        /// <summary>Длина дока под число занятых слотов плюс небольшой выпуск по краям.</summary>
+        /// <summary>Сколько столбиков дотягиваются до этого ряда.</summary>
+        static int ColumnsInRow(int row, int count)
+            => count > row ? (count - 1 - row) / Depth + 1 : 0;
+
+        /// <summary>
+        /// Каждый ряд дока подгоняется под свои занятые места и прячется, когда их
+        /// нет. Фиксированная длина торчала бы из-под очереди пустой доской —
+        /// на неполном ряду это особенно заметно.
+        /// </summary>
         void FitDock(int count)
         {
-            float length = count <= 0 ? 0f : (count - 1) * Step + 68f;
-            float scale = length / DockMeshLength;
-
-            foreach (var part in _dockParts)
+            for (int row = 0; row < Depth; row++)
             {
-                part.gameObject.SetActive(count > 0);
-                part.localScale = new Vector3(scale, 1f, 1f);
+                int columns = ColumnsInRow(row, count);
+                bool has = columns > 0;
+
+                float length = has ? (columns - 1) * Step + 68f : 0f;
+                float centerX = has
+                    ? (SlotPos(row, count).x + SlotPos(row + (columns - 1) * Depth, count).x) * 0.5f
+                    : DockCenterX;
+
+                foreach (var part in _dockRows[row])
+                {
+                    part.gameObject.SetActive(has);
+                    part.localScale = new Vector3(length / DockMeshLength, 1f, 1f);
+
+                    var position = part.position;
+                    position.x = Space3D.ToWorld(centerX, 0f).x;
+                    part.position = position;
+                }
             }
         }
 
@@ -122,7 +187,7 @@ namespace FrogCart.Runtime
 
             var root = new GameObject($"QueueCart_{index}").transform;
             root.SetParent(_root, false);
-            root.position = Space3D.ToWorld(SlotX(index, Visible), SlotY);
+            root.position = Space3D.ToWorld(SlotPos(index, Visible));
             mini.Root = root;
 
             // Корпус ужат под шаг 42: при прежних 1.2 вагонетка шириной 53
@@ -326,7 +391,7 @@ namespace FrogCart.Runtime
         {
             for (int i = 0; i < _shown; i++)
             {
-                var center = new Vector2(SlotX(i, _shown), SlotY);
+                var center = SlotPos(i, _shown);
                 if (Vector2.SqrMagnitude(spec - center) <= radius * radius) return i;
             }
 
@@ -345,7 +410,7 @@ namespace FrogCart.Runtime
                 bool has = source < queue.Count;
 
                 _minis[i].Root.gameObject.SetActive(has);
-                _minis[i].Root.position = Space3D.ToWorld(SlotX(i, count), SlotY);
+                _minis[i].Root.position = Space3D.ToWorld(SlotPos(i, count));
 
                 if (!has) continue;
 
@@ -387,9 +452,11 @@ namespace FrogCart.Runtime
                 {
                     for (int i = 0; i < Visible; i++)
                     {
-                        // Слот уезжает на место предыдущего: нулевой уходит за левый
-                        // край дока, остальные подтягиваются в новую центровку.
-                        Vector3 target = Space3D.ToWorld(SlotX(i - 1, count), SlotY);
+                        // Слот уезжает на место предыдущего: нулевой уходит вперёд
+                        // с дока, остальные подтягиваются — задние в своём столбике
+                        // подъезжают ближе, а первый из следующего столбика
+                        // перебирается в освободившийся хвост предыдущего.
+                        Vector3 target = Space3D.ToWorld(SlotPos(i - 1, count));
                         _minis[i].Root.position = Vector3.Lerp(from[i], target, t);
                     }
                 },

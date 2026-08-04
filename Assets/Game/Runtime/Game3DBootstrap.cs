@@ -125,7 +125,11 @@ namespace FrogCart.Runtime
 
         /// <summary>Область мира, которая обязана быть видна: контур рельсов и очередь.</summary>
         static readonly Vector2 WorldMin = new Vector2(8f, 56f);
-        static readonly Vector2 WorldMax = new Vector2(382f, 706f);
+        // Нижняя граница считается от очереди, а не подобрана: очередь стоит
+        // столбиками в три ряда от 664 с шагом 56, задний ряд заканчивается около
+        // 799 вместе с доком. Было 706 — под одну шеренгу, — и задние ряды просто
+        // не попадали в кадр.
+        static readonly Vector2 WorldMax = new Vector2(382f, 806f);
 
         /// <summary>
         /// Наводка камеры подбором, а не формулой.

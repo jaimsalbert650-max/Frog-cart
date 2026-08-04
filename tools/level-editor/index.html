@@ -1,0 +1,2539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frog Cart — Level Editor</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #1e2128;
+    --panel-2: #252932;
+    --line: #333844;
+    --text: #dfe3ea;
+    --muted: #8b93a3;
+    --accent: #5bc236;
+    --danger: #ef4136;
+    --warn: #ffd52e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button, select, input {
+    font: inherit; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 4px; padding: 4px 8px;
+  }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { background: #2f3542; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #10240a; font-weight: 600; }
+  input[type=number] { width: 58px; }
+  h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: .09em;
+       text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  #top {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+  }
+  #top .sep { width: 1px; height: 22px; background: var(--line); }
+  #top .grow { flex: 1; }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.dirty { color: var(--warn); }
+  #status.err { color: var(--danger); }
+  #status.saved { color: var(--accent); }
+  .toggle { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+            color: var(--muted); font-size: 12px; user-select: none; }
+  .toggle input { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; }
+  .toggle.on { color: var(--accent); }
+
+  #main { flex: 1; display: flex; min-height: 0; }
+  #left, #right {
+    background: var(--panel); display: flex; flex-direction: column;
+    min-height: 0; flex: none;
+  }
+  #left { width: 216px; border-right: 1px solid var(--line); }
+  #right { width: 320px; border-left: 1px solid var(--line); overflow-y: auto; }
+  #center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .pad { padding: 10px; }
+  .section { padding: 10px; border-bottom: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 6px; }
+  .row + .row { margin-top: 6px; }
+  .muted { color: var(--muted); }
+
+  #levelList { overflow-y: auto; flex: 1; }
+  .lvl {
+    display: flex; align-items: center; gap: 8px; padding: 5px 10px;
+    cursor: pointer; border-left: 3px solid transparent;
+  }
+  .lvl:hover { background: var(--panel-2); }
+  .lvl.on { background: var(--panel-2); border-left-color: var(--accent); }
+  .lvl canvas { background: #0d0f13; border-radius: 3px; flex: none; }
+  .lvl .nm { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lvl .dot { color: var(--warn); margin-left: auto; }
+
+  #toolbar {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap;
+  }
+  #stage { flex: 1; overflow: auto; display: grid; place-items: center; padding: 20px; }
+  #grid { image-rendering: pixelated; cursor: crosshair;
+          box-shadow: 0 0 0 1px var(--line); touch-action: none; }
+
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .sw {
+    height: 34px; border-radius: 4px; border: 2px solid transparent;
+    cursor: pointer; position: relative; display: grid; place-items: center;
+    font-size: 11px; font-weight: 700; color: #0009; text-shadow: 0 1px 0 #fff6;
+  }
+  .sw.on { border-color: #fff; }
+  .sw.empty { background: repeating-conic-gradient(#2a2f38 0 25%, #20242b 0 50%) 0 0/12px 12px; color: var(--muted); text-shadow: none; }
+
+  table.pal { width: 100%; border-collapse: collapse; }
+  table.pal td { padding: 2px 3px 2px 0; }
+  table.pal input[type=text] { width: 100%; min-width: 0; font-family: ui-monospace, monospace; }
+  table.pal input[type=color] { width: 26px; height: 24px; padding: 0; border: none; background: none; }
+
+  .cart {
+    display: grid; grid-template-columns: 14px 46px 1fr 1fr 1fr 22px;
+    gap: 4px; align-items: center; margin-bottom: 4px;
+  }
+  .cart .handle { cursor: grab; color: var(--muted); text-align: center; user-select: none; }
+  .cart.drag { opacity: .35; }
+  .cart .del { padding: 2px 0; color: var(--muted); }
+  .cart select { padding: 3px 4px; }
+  .cart input { width: 100%; padding: 3px 4px; }
+  .heads { display: grid; grid-template-columns: 14px 46px 1fr 1fr 1fr 22px;
+           gap: 4px; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+
+  #issues div { padding: 3px 0; border-bottom: 1px solid #ffffff0d; }
+  .bad { color: var(--danger); }
+  .ok { color: var(--accent); }
+
+  #banner { background: #3a2a12; color: var(--warn); padding: 8px 10px;
+            border-bottom: 1px solid var(--line); display: none; }
+  #banner.show { display: block; }
+
+  /* ---- assistant ---- */
+  #ai {
+    width: 360px; flex: none; background: var(--panel);
+    border-left: 1px solid var(--line);
+    display: none; flex-direction: column; min-height: 0;
+  }
+  #ai.show { display: flex; }
+  #chat { flex: 1; overflow-y: auto; padding: 10px; display: flex;
+          flex-direction: column; gap: 8px; }
+  .msg { padding: 7px 10px; border-radius: 8px; max-width: 100%;
+         white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { background: #2f3542; align-self: flex-end; max-width: 88%; }
+  .msg.bot { background: var(--panel-2); }
+  .msg.err { background: #3a1a17; color: #ff9d94; }
+  .msg.think { background: transparent; color: var(--muted); font-style: italic;
+               border-left: 2px solid var(--line); border-radius: 0; padding: 2px 0 2px 10px; }
+  .tool { display: flex; align-items: center; gap: 6px; font-size: 12px;
+          color: var(--muted); padding: 2px 0; }
+  .tool b { color: var(--accent); font-weight: 600; }
+  .tool.bad b { color: var(--danger); }
+  #composer { border-top: 1px solid var(--line); padding: 8px; flex: none; }
+  #prompt { width: 100%; resize: vertical; min-height: 56px; font: inherit;
+            background: var(--panel-2); border: 1px solid var(--line);
+            border-radius: 4px; color: var(--text); padding: 6px 8px; }
+  #keyRow input { flex: 1; min-width: 0; }
+  .spin { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+          border: 2px solid var(--line); border-top-color: var(--accent);
+          animation: sp .7s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line);
+           border-radius: 8px; max-width: 720px; }
+  dialog::backdrop { background: #000a; }
+  pre { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div id="banner"></div>
+
+<div id="top">
+  <button id="btnOpen">Open Data folder…</button>
+  <button id="btnSave" disabled>Save (Ctrl+S)</button>
+  <label class="toggle" title="Write every change straight to the .asset file"><input type="checkbox" id="autoSave"> Auto</label>
+  <button id="btnUndo" disabled title="Ctrl+Z">↶</button>
+  <button id="btnRedo" disabled title="Ctrl+Y">↷</button>
+  <div class="sep"></div>
+  <button id="btnNew" disabled>New level</button>
+  <button id="btnPng" disabled>Import PNG…</button>
+  <input type="file" id="pngInput" accept="image/*" hidden>
+  <div class="grow"></div>
+  <span id="status">No folder opened.</span>
+  <div class="sep"></div>
+  <button id="btnAi">Assistant</button>
+  <button id="btnTests">Self-test</button>
+</div>
+
+<div id="main">
+  <div id="left">
+    <div class="section"><h3>Levels</h3><span id="lvlCount" class="muted">—</span></div>
+    <div id="levelList"></div>
+  </div>
+
+  <div id="center">
+    <div id="toolbar">
+      <span class="muted">Layer</span>
+      <button class="tab on" data-layer="rows">Colour</button>
+      <button class="tab" data-layer="hpRows">HP</button>
+      <button class="tab" data-layer="hiddenRows">Hidden</button>
+      <div class="sep"></div>
+      <span class="muted">Tool</span>
+      <button class="tool on" data-tool="pencil" title="B">Pencil</button>
+      <button class="tool" data-tool="eraser" title="E">Eraser</button>
+      <button class="tool" data-tool="fill" title="G">Fill</button>
+      <button class="tool" data-tool="pick" title="I">Pick</button>
+      <span class="muted">Size</span>
+      <input type="number" id="brush" value="1" min="1" max="9" style="width:44px">
+      <div class="sep"></div>
+      <span class="muted">Zoom</span>
+      <input type="number" id="zoom" value="18" min="4" max="48" style="width:48px">
+      <div class="sep"></div>
+      <span id="cursor" class="muted">—</span>
+    </div>
+    <div id="stage"><canvas id="grid" width="10" height="10"></canvas></div>
+  </div>
+
+  <div id="right">
+    <div class="section">
+      <h3>Level</h3>
+      <div class="row">
+        <span class="muted" style="width:74px">Number</span>
+        <input type="number" id="levelNumber" min="0" disabled>
+        <span id="fileName" class="muted" style="overflow:hidden;text-overflow:ellipsis"></span>
+      </div>
+      <div class="row">
+        <span class="muted" style="width:74px">Size</span>
+        <input type="number" id="gw" min="1" max="128" disabled>
+        <span class="muted">×</span>
+        <input type="number" id="gh" min="1" max="128" disabled>
+        <button id="btnResize" disabled>Apply</button>
+      </div>
+      <div class="row">
+        <button id="btnTrim" disabled title="Crop empty margins away">Trim empty margins</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Palette <span id="palDirty" class="muted"></span></h3>
+      <div class="swatches" id="swatches"></div>
+      <div id="swatchHint" class="muted" style="margin-top:6px;font-size:11px"></div>
+      <div style="margin-top:8px">
+        <button id="btnPalEdit">Edit colours…</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Loop carts (5)</h3>
+      <div class="heads"><span></span><span>colour</span><span>cap</span><span>ice</span><span>link</span><span></span></div>
+      <div id="loopCarts"></div>
+    </div>
+
+    <div class="section">
+      <h3>Queue (<span id="queueCount">0</span>)</h3>
+      <div class="heads"><span></span><span>colour</span><span>cap</span><span>ice</span><span>link</span><span></span></div>
+      <div id="queue"></div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnQAdd" disabled>+ Cart</button>
+        <button id="btnQAuto" disabled title="Top up the queue so every colour is covered">Auto-fill shortfall</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Checks</h3>
+      <div id="issues" class="muted">—</div>
+    </div>
+  </div>
+
+  <div id="ai">
+    <div class="section">
+      <h3>Assistant <span id="aiModel" class="muted"></span></h3>
+      <div class="row" id="keyRow">
+        <input type="password" id="apiKey" placeholder="Anthropic API key (sk-ant-…)" autocomplete="off">
+        <button id="btnKey">Save</button>
+      </div>
+      <div class="row muted" style="font-size:11px" id="keyHint">
+        Stored in this browser only (localStorage), never sent anywhere but api.anthropic.com.
+      </div>
+    </div>
+    <div id="chat"></div>
+    <div id="composer">
+      <textarea id="prompt" placeholder="Draw a frog head. / Fill the queue for this picture. / Make colour 3 warmer."></textarea>
+      <div class="row" style="margin-top:6px">
+        <button id="btnSend">Send</button>
+        <button id="btnStop" disabled>Stop</button>
+        <div class="grow" style="flex:1"></div>
+        <button id="btnClear">Clear chat</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="palDlg">
+  <h3>Palette.asset</h3>
+  <table class="pal" id="palTable"></table>
+  <div class="row" style="margin-top:10px;justify-content:flex-end">
+    <span class="muted" style="margin-right:auto">light / dark are the shading tints</span>
+    <button id="palAuto">Derive light+dark</button>
+    <button id="palClose">Done</button>
+  </div>
+</dialog>
+
+<dialog id="testDlg">
+  <h3>Self-test</h3>
+  <pre id="testOut"></pre>
+  <div class="row" style="justify-content:flex-end"><button id="testClose">Close</button></div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   PURE CORE — no DOM, no browser APIs. Everything below this block is UI.
+   Covered by the self-test suite at the bottom (button "Self-test").
+   ========================================================================== */
+
+const LEVEL_SCRIPT_GUID = "7491263f5b5340d4bbd168cdadd8e8de";
+const MAX_COLOR = 9;   // GridModel.MaxColor — one digit per cell
+const MAX_HP = 9;      // CellLayers.MaxHp
+const ALPHA_THRESHOLD = 128; // LevelImage.AlphaThreshold
+
+const CART_KEYS = ["colorId", "capacity", "frozenCount", "linkGroup"];
+const LEVEL_FIELD_ORDER = ["levelNumber", "rows", "hpRows", "hiddenRows", "loopCarts", "queue"];
+
+/** Unity ends every .asset with a newline and uses LF throughout. */
+function normaliseEol(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/**
+ * Splits a Unity .asset into the boilerplate preamble (kept verbatim, so GUIDs
+ * and hide flags survive a round trip untouched) and the serialised fields.
+ *
+ * Regenerating the preamble would mean guessing at Unity's bookkeeping; keeping
+ * the original text means a file this editor never edits comes back byte-identical.
+ */
+function splitPreamble(text) {
+  const lines = normaliseEol(text).split("\n");
+  const cut = lines.findIndex(l => l.startsWith("  m_EditorClassIdentifier:"));
+  if (cut < 0) throw new Error("Not a Unity ScriptableObject asset: m_EditorClassIdentifier missing");
+  return { preamble: lines.slice(0, cut + 1), body: lines.slice(cut + 1) };
+}
+
+/**
+ * Reads the `  key: value` / `  key:` + `  - item` shape Unity emits for a flat
+ * ScriptableObject. Returns field order too, so serialisation can preserve it.
+ */
+function parseBody(body) {
+  const fields = {};
+  const order = [];
+  let i = 0;
+
+  while (i < body.length) {
+    const line = body[i];
+    if (!line.trim()) { i++; continue; }
+
+    const m = /^ {2}([A-Za-z_][A-Za-z0-9_]*):(.*)$/.exec(line);
+    if (!m) { i++; continue; }
+
+    const key = m[1];
+    const rest = m[2].trim();
+    order.push(key);
+    i++;
+
+    if (rest === "[]") { fields[key] = []; continue; }
+    if (rest !== "") { fields[key] = rest; continue; }
+
+    // A sequence: either scalars (`  - 0001`) or objects (`  - colorId: 1` + `    capacity: 0`).
+    const items = [];
+    while (i < body.length && body[i].startsWith("  - ")) {
+      const head = body[i].slice(4);
+      i++;
+      const kv = /^([A-Za-z_][A-Za-z0-9_]*): (.*)$/.exec(head);
+      if (!kv) { items.push(head); continue; }
+
+      const obj = { [kv[1]]: kv[2] };
+      while (i < body.length && /^ {4}[A-Za-z_]/.test(body[i])) {
+        const sub = /^ {4}([A-Za-z_][A-Za-z0-9_]*): (.*)$/.exec(body[i]);
+        if (sub) obj[sub[1]] = sub[2];
+        i++;
+      }
+      items.push(obj);
+    }
+    fields[key] = items;
+  }
+
+  return { fields, order };
+}
+
+function toCart(raw) {
+  const cart = {};
+  for (const key of CART_KEYS) cart[key] = raw && raw[key] !== undefined ? parseInt(raw[key], 10) || 0 : 0;
+  return cart;
+}
+
+function emptyCart(colorId) {
+  return { colorId: colorId || 1, capacity: 0, frozenCount: 0, linkGroup: 0 };
+}
+
+function parseLevelAsset(text, fileName) {
+  const { preamble, body } = splitPreamble(text);
+  const { fields, order } = parseBody(body);
+
+  const asStrings = value => (Array.isArray(value) ? value.filter(v => typeof v === "string") : []);
+  const asCarts = value => (Array.isArray(value) ? value.map(toCart) : []);
+
+  const loop = asCarts(fields.loopCarts);
+  while (loop.length < 5) loop.push(emptyCart(1));
+
+  return {
+    fileName,
+    preamble,
+    fieldOrder: order.length ? order : LEVEL_FIELD_ORDER.slice(),
+    extra: Object.fromEntries(
+      Object.entries(fields).filter(([k]) => !LEVEL_FIELD_ORDER.includes(k))),
+    levelNumber: parseInt(fields.levelNumber, 10) || 0,
+    rows: asStrings(fields.rows),
+    hpRows: asStrings(fields.hpRows),
+    hiddenRows: asStrings(fields.hiddenRows),
+    loopCarts: loop.slice(0, 5),
+    queue: asCarts(fields.queue),
+  };
+}
+
+/** A layer that is entirely zeroes means "defaults" — write [] and keep files small. */
+function layerIsBlank(layer) {
+  return !layer || layer.length === 0 || layer.every(row => /^0*$/.test(row));
+}
+
+function serialiseCarts(carts) {
+  const out = [];
+  for (const cart of carts) {
+    out.push(`  - colorId: ${cart.colorId}`);
+    out.push(`    capacity: ${cart.capacity}`);
+    out.push(`    frozenCount: ${cart.frozenCount}`);
+    out.push(`    linkGroup: ${cart.linkGroup}`);
+  }
+  return out;
+}
+
+function serialiseField(key, level) {
+  if (key === "levelNumber") return [`  levelNumber: ${level.levelNumber}`];
+
+  if (key === "rows" || key === "hpRows" || key === "hiddenRows") {
+    const value = key === "rows" ? level.rows : level[key];
+    const blank = key !== "rows" && layerIsBlank(value);
+    if (blank || !value.length) return [`  ${key}: []`];
+    return [`  ${key}:`, ...value.map(r => `  - ${r}`)];
+  }
+
+  if (key === "loopCarts" || key === "queue") {
+    const value = level[key];
+    if (!value.length) return [`  ${key}: []`];
+    return [`  ${key}:`, ...serialiseCarts(value)];
+  }
+
+  // Anything the editor does not model is echoed back exactly as parsed.
+  const raw = level.extra[key];
+  if (raw === undefined) return [];
+  if (Array.isArray(raw)) {
+    if (!raw.length) return [`  ${key}: []`];
+    const out = [`  ${key}:`];
+    for (const item of raw) {
+      if (typeof item === "string") { out.push(`  - ${item}`); continue; }
+      const entries = Object.entries(item);
+      out.push(`  - ${entries[0][0]}: ${entries[0][1]}`);
+      for (const [k, v] of entries.slice(1)) out.push(`    ${k}: ${v}`);
+    }
+    return out;
+  }
+  return [`  ${key}: ${raw}`];
+}
+
+function serialiseLevelAsset(level) {
+  const stem = level.fileName.replace(/\.asset$/, "");
+  const preamble = level.preamble.map(line =>
+    line.startsWith("  m_Name:") ? `  m_Name: ${stem}` : line);
+
+  const seen = new Set();
+  const ordered = [];
+  for (const key of level.fieldOrder.concat(LEVEL_FIELD_ORDER)) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(key);
+  }
+
+  const out = preamble.slice();
+  for (const key of ordered) out.push(...serialiseField(key, level));
+  return out.join("\n") + "\n";
+}
+
+function newLevelAsset(fileName, levelNumber, width, height) {
+  const preamble = [
+    "%YAML 1.1",
+    "%TAG !u! tag:unity3d.com,2011:",
+    "--- !u!114 &11400000",
+    "MonoBehaviour:",
+    "  m_ObjectHideFlags: 0",
+    "  m_CorrespondingSourceObject: {fileID: 0}",
+    "  m_PrefabInstance: {fileID: 0}",
+    "  m_PrefabAsset: {fileID: 0}",
+    "  m_GameObject: {fileID: 0}",
+    "  m_Enabled: 1",
+    "  m_EditorHideFlags: 0",
+    `  m_Script: {fileID: 11500000, guid: ${LEVEL_SCRIPT_GUID}, type: 3}`,
+    `  m_Name: ${fileName.replace(/\.asset$/, "")}`,
+    "  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData",
+  ];
+  return {
+    fileName, preamble,
+    fieldOrder: LEVEL_FIELD_ORDER.slice(),
+    extra: {},
+    levelNumber,
+    rows: Array.from({ length: height }, () => "0".repeat(width)),
+    hpRows: [], hiddenRows: [],
+    loopCarts: Array.from({ length: 5 }, () => emptyCart(1)),
+    queue: [],
+  };
+}
+
+/* ---------- Palette.asset ---------- */
+
+/**
+ * Unity writes floats as the shortest decimal that round-trips through float32.
+ * Reproducing that keeps diffs to the colours actually changed instead of
+ * rewriting every number in the file.
+ */
+function formatUnityFloat(value) {
+  const f = Math.fround(value);
+  if (Number.isInteger(f)) return String(f);
+  for (let digits = 1; digits <= 9; digits++) {
+    const text = f.toPrecision(digits);
+    if (Math.fround(parseFloat(text)) === f) return String(parseFloat(text));
+  }
+  return String(f);
+}
+
+function hexToRgb(hex) {
+  const clean = hex.replace("#", "").trim();
+  return {
+    r: parseInt(clean.slice(0, 2), 16) / 255,
+    g: parseInt(clean.slice(2, 4), 16) / 255,
+    b: parseInt(clean.slice(4, 6), 16) / 255,
+    a: 1,
+  };
+}
+
+function rgbToHex(c) {
+  const byte = v => Math.max(0, Math.min(255, Math.round((v || 0) * 255)))
+    .toString(16).padStart(2, "0");
+  return "#" + byte(c.r) + byte(c.g) + byte(c.b);
+}
+
+function parseColorLiteral(text) {
+  const out = { r: 0, g: 0, b: 0, a: 1 };
+  for (const [, key, value] of text.matchAll(/([rgba]):\s*(-?[\d.eE+]+)/g)) out[key] = parseFloat(value);
+  return out;
+}
+
+function serialiseColorLiteral(c) {
+  return `{r: ${formatUnityFloat(c.r)}, g: ${formatUnityFloat(c.g)}, ` +
+         `b: ${formatUnityFloat(c.b)}, a: ${formatUnityFloat(c.a === undefined ? 1 : c.a)}}`;
+}
+
+function parsePaletteAsset(text) {
+  const { preamble, body } = splitPreamble(text);
+  const { fields } = parseBody(body);
+  const entries = (fields.entries || []).map(raw => ({
+    name: raw.name || "",
+    baseColor: parseColorLiteral(raw.baseColor || ""),
+    light: parseColorLiteral(raw.light || ""),
+    dark: parseColorLiteral(raw.dark || ""),
+  }));
+  return { preamble, entries };
+}
+
+function serialisePaletteAsset(palette) {
+  const out = palette.preamble.slice();
+  if (!palette.entries.length) {
+    out.push("  entries: []");
+    return out.join("\n") + "\n";
+  }
+  out.push("  entries:");
+  for (const entry of palette.entries) {
+    out.push(`  - name: ${entry.name}`);
+    out.push(`    baseColor: ${serialiseColorLiteral(entry.baseColor)}`);
+    out.push(`    light: ${serialiseColorLiteral(entry.light)}`);
+    out.push(`    dark: ${serialiseColorLiteral(entry.dark)}`);
+  }
+  return out.join("\n") + "\n";
+}
+
+/** Same shading feel as the hand-authored palette: lighten toward white, darken toward black. */
+function deriveShades(base) {
+  const mix = (c, target, t) => ({
+    r: c.r + (target - c.r) * t,
+    g: c.g + (target - c.g) * t,
+    b: c.b + (target - c.b) * t,
+    a: 1,
+  });
+  return { light: mix(base, 1, 0.45), dark: mix(base, 0, 0.3) };
+}
+
+/* ---------- Image import — port of FrogCart.Core.LevelImage ---------- */
+
+function squaredDistance(a, b) {
+  const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+  return dr * dr + dg * dg + db * db;
+}
+
+function colorIdOf(pixel, palette) {
+  if (pixel[3] < ALPHA_THRESHOLD) return 0;
+  let best = 0, bestDistance = Infinity;
+  for (let i = 0; i < palette.length; i++) {
+    const distance = squaredDistance(pixel, palette[i]);
+    if (distance >= bestDistance) continue;
+    bestDistance = distance;
+    best = i + 1;
+  }
+  return best;
+}
+
+/**
+ * Canvas ImageData is already top-down, which is the order level rows use —
+ * unlike Unity's GetPixels32, so there is deliberately no vertical flip here.
+ */
+function imageDataToRows(data, width, height, palette) {
+  if (palette.length === 0) throw new Error("Palette is empty");
+  if (palette.length > MAX_COLOR) throw new Error("More than nine colours will not fit in one digit");
+
+  const rows = [];
+  for (let y = 0; y < height; y++) {
+    let row = "";
+    for (let x = 0; x < width; x++) {
+      const o = (y * width + x) * 4;
+      row += colorIdOf([data[o], data[o + 1], data[o + 2], data[o + 3]], palette);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function countByColor(rows, colorCount) {
+  const counts = new Array(colorCount + 1).fill(0);
+  for (const row of rows)
+    for (const ch of row) {
+      const id = ch.charCodeAt(0) - 48;
+      if (id > 0 && id <= colorCount) counts[id]++;
+    }
+  return counts;
+}
+
+/* ---------- Grid operations ---------- */
+
+function setCell(rows, r, c, digit) {
+  if (r < 0 || r >= rows.length) return rows;
+  const row = rows[r];
+  if (c < 0 || c >= row.length || row[c] === digit) return rows;
+  const next = rows.slice();
+  next[r] = row.slice(0, c) + digit + row.slice(c + 1);
+  return next;
+}
+
+function floodFill(rows, r, c, digit) {
+  if (r < 0 || r >= rows.length || c < 0 || c >= rows[r].length) return rows;
+  const target = rows[r][c];
+  if (target === digit) return rows;
+
+  const grid = rows.map(row => row.split(""));
+  const stack = [[r, c]];
+  while (stack.length) {
+    const [y, x] = stack.pop();
+    if (y < 0 || y >= grid.length || x < 0 || x >= grid[y].length) continue;
+    if (grid[y][x] !== target) continue;
+    grid[y][x] = digit;
+    stack.push([y + 1, x], [y - 1, x], [y, x + 1], [y, x - 1]);
+  }
+  return grid.map(row => row.join(""));
+}
+
+/** Grows or crops anchored at the top-left, padding with empty cells. */
+function resizeRows(rows, width, height, pad) {
+  const out = [];
+  for (let y = 0; y < height; y++) {
+    const source = rows[y] || "";
+    out.push((source.length >= width ? source.slice(0, width) : source.padEnd(width, pad)));
+  }
+  return out;
+}
+
+/** Bounding box of non-empty cells, or null when the picture is blank. */
+function contentBounds(rows) {
+  let top = Infinity, left = Infinity, bottom = -1, right = -1;
+  for (let y = 0; y < rows.length; y++)
+    for (let x = 0; x < rows[y].length; x++)
+      if (rows[y][x] !== "0") {
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+        if (x < left) left = x;
+        if (x > right) right = x;
+      }
+  return bottom < 0 ? null : { top, left, bottom, right };
+}
+
+function cropRows(rows, bounds) {
+  return rows.slice(bounds.top, bounds.bottom + 1)
+             .map(row => row.slice(bounds.left, bounds.right + 1));
+}
+
+/* ---------- Validation ---------- */
+
+/**
+ * The one check worth having up front: a colour with more blocks on the picture
+ * than the queue can ever carry makes the level unwinnable, and that is invisible
+ * until you play it.
+ */
+function validateLevel(level, paletteSize) {
+  const issues = [];
+  const width = level.rows.length ? level.rows[0].length : 0;
+
+  if (!level.rows.length) issues.push({ bad: true, text: "Picture is empty" });
+  if (level.rows.some(r => r.length !== width))
+    issues.push({ bad: true, text: "Rows are not all the same length" });
+
+  for (const key of ["hpRows", "hiddenRows"]) {
+    const layer = level[key];
+    if (!layer.length) continue;
+    if (layer.length !== level.rows.length || layer.some(r => r.length !== width))
+      issues.push({ bad: true, text: `${key} does not match the picture's shape` });
+  }
+
+  const counts = countByColor(level.rows, MAX_COLOR);
+  const capacity = new Array(MAX_COLOR + 1).fill(0);
+  for (const cart of level.queue)
+    if (cart.colorId >= 1 && cart.colorId <= MAX_COLOR) capacity[cart.colorId] += cart.capacity;
+
+  let totalBlocks = 0, totalCapacity = 0;
+  for (let id = 1; id <= MAX_COLOR; id++) {
+    totalBlocks += counts[id];
+    totalCapacity += capacity[id];
+    if (!counts[id] && !capacity[id]) continue;
+
+    if (id > paletteSize)
+      issues.push({ bad: true, text: `Colour ${id} is used but the palette only has ${paletteSize}` });
+
+    const short = counts[id] - capacity[id];
+    issues.push({
+      bad: short > 0,
+      text: `Colour ${id}: ${counts[id]} blocks vs ${capacity[id]} capacity` +
+            (short > 0 ? ` — ${short} short` : short < 0 ? ` (+${-short} spare)` : " — exact"),
+    });
+  }
+
+  issues.push({ bad: totalCapacity < totalBlocks, text: `Total: ${totalBlocks} blocks vs ${totalCapacity} capacity` });
+  return issues;
+}
+
+/** Carts needed to cover a colour shortfall, in the same size steps the packs use. */
+function fillShortfall(level) {
+  const counts = countByColor(level.rows, MAX_COLOR);
+  const capacity = new Array(MAX_COLOR + 1).fill(0);
+  for (const cart of level.queue)
+    if (cart.colorId >= 1 && cart.colorId <= MAX_COLOR) capacity[cart.colorId] += cart.capacity;
+
+  const added = [];
+  for (let id = 1; id <= MAX_COLOR; id++) {
+    let short = counts[id] - capacity[id];
+    while (short > 0) {
+      const size = short >= 24 ? 24 : short >= 12 ? 12 : short;
+      added.push({ colorId: id, capacity: size, frozenCount: 0, linkGroup: 0 });
+      short -= size;
+    }
+  }
+  return added;
+}
+
+/* ==========================================================================
+   SELF-TEST — the safety net a no-build tool would otherwise lack.
+   ========================================================================== */
+
+const SAMPLE_LEVEL = `%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ${LEVEL_SCRIPT_GUID}, type: 3}
+  m_Name: Level0004
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.LevelData
+  levelNumber: 4
+  rows:
+  - 00100
+  - 01210
+  - 00100
+  hpRows: []
+  hiddenRows: []
+  loopCarts:
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 1
+    capacity: 0
+    frozenCount: 0
+    linkGroup: 0
+  queue:
+  - colorId: 1
+    capacity: 10
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 2
+    capacity: 18
+    frozenCount: 2
+    linkGroup: 1
+`;
+
+const SAMPLE_PALETTE = `%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 475da97ed6e789c45854b442c6361cbc, type: 3}
+  m_Name: Palette
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.ColorPalette
+  entries:
+  - name: black
+    baseColor: {r: 0.20392157, g: 0.22352941, b: 0.25490198, a: 1}
+    light: {r: 0.3529412, g: 0.38039216, b: 0.42352942, a: 1}
+    dark: {r: 0.09803922, g: 0.10980392, b: 0.12941177, a: 1}
+  - name: red
+    baseColor: {r: 0.9372549, g: 0.25490198, b: 0.21176471, a: 1}
+    light: {r: 1, g: 0.5411765, b: 0.49019608, a: 1}
+    dark: {r: 0.65882355, g: 0.12156863, b: 0.09411765, a: 1}
+`;
+
+function runSelfTest() {
+  const results = [];
+  const check = (name, fn) => {
+    try { fn(); results.push({ ok: true, name }); }
+    catch (e) { results.push({ ok: false, name, message: e.message }); }
+  };
+  const eq = (actual, expected, what) => {
+    if (actual !== expected)
+      throw new Error(`${what || "value"}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  };
+
+  check("level asset round-trips byte for byte", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    eq(serialiseLevelAsset(level), SAMPLE_LEVEL, "round trip");
+  });
+
+  check("level fields parse", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    eq(level.levelNumber, 4, "levelNumber");
+    eq(level.rows.length, 3, "row count");
+    eq(level.rows[1], "01210", "middle row");
+    eq(level.hpRows.length, 0, "hpRows");
+    eq(level.loopCarts.length, 5, "loop carts");
+    eq(level.queue.length, 2, "queue length");
+    eq(level.queue[1].frozenCount, 2, "frozenCount");
+    eq(level.queue[1].linkGroup, 1, "linkGroup");
+  });
+
+  check("edited level serialises with the edit only", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.rows = setCell(level.rows, 0, 0, "3");
+    const text = serialiseLevelAsset(level);
+    eq(text.includes("  - 30100"), true, "edited row present");
+    eq(text.split("\n").length, SAMPLE_LEVEL.split("\n").length, "line count unchanged");
+  });
+
+  check("m_Name follows the file name", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.fileName = "Level0099.asset";
+    eq(serialiseLevelAsset(level).includes("  m_Name: Level0099"), true, "renamed");
+  });
+
+  check("blank layers serialise as []", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.hpRows = ["000", "000"];
+    eq(serialiseLevelAsset(level).includes("  hpRows: []"), true, "blank hp collapsed");
+    level.hpRows = ["000", "090"];
+    eq(serialiseLevelAsset(level).includes("  - 090"), true, "used hp kept");
+  });
+
+  check("empty queue serialises as []", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.queue = [];
+    eq(serialiseLevelAsset(level).includes("  queue: []"), true, "empty queue");
+  });
+
+  check("new level is well formed", () => {
+    const level = newLevelAsset("Level0100.asset", 100, 4, 3);
+    const text = serialiseLevelAsset(level);
+    eq(level.rows.join("|"), "0000|0000|0000", "blank rows");
+    eq(text.includes("  levelNumber: 100"), true, "number");
+    eq(serialiseLevelAsset(parseLevelAsset(text, "Level0100.asset")), text, "re-parse stable");
+  });
+
+  check("palette round-trips byte for byte", () => {
+    const palette = parsePaletteAsset(SAMPLE_PALETTE);
+    eq(palette.entries.length, 2, "entry count");
+    eq(palette.entries[0].name, "black", "name");
+    eq(serialisePaletteAsset(palette), SAMPLE_PALETTE, "round trip");
+  });
+
+  check("hex maps to Unity's float formatting", () => {
+    eq(rgbToHex(hexToRgb("#343941")), "#343941", "hex round trip");
+    eq(formatUnityFloat(52 / 255), "0.20392157", "0x34");
+    eq(formatUnityFloat(239 / 255), "0.9372549", "0xEF");
+    eq(formatUnityFloat(1), "1", "one");
+    eq(formatUnityFloat(0), "0", "zero");
+  });
+
+  check("palette colour edit keeps every other byte", () => {
+    const palette = parsePaletteAsset(SAMPLE_PALETTE);
+    palette.entries[1].baseColor = hexToRgb("#00FF80");
+    const text = serialisePaletteAsset(palette);
+    eq(text.includes("baseColor: {r: 0, g: 1, b: 0.5019608, a: 1}"), true, "new colour written");
+    eq(text.includes("{r: 0.20392157, g: 0.22352941, b: 0.25490198, a: 1}"), true, "other colour intact");
+  });
+
+  check("image import matches LevelImage rules", () => {
+    const palette = [[255, 0, 0, 255], [0, 0, 255, 255]];
+    // 2x2, top-down: red, blue / transparent, near-red
+    const data = [
+      255, 0, 0, 255,   0, 0, 255, 255,
+      0, 0, 0, 0,       250, 10, 10, 255,
+    ];
+    eq(imageDataToRows(data, 2, 2, palette).join("|"), "12|01", "rows");
+    eq(colorIdOf([10, 10, 10, 100], palette), 0, "below alpha threshold");
+  });
+
+  check("image import rejects an oversized palette", () => {
+    let threw = false;
+    try { imageDataToRows([], 0, 0, new Array(10).fill([0, 0, 0, 255])); }
+    catch { threw = true; }
+    eq(threw, true, "ten colours rejected");
+  });
+
+  check("flood fill stays inside its region", () => {
+    const rows = ["110", "110", "002"];
+    eq(floodFill(rows, 0, 0, "3").join("|"), "330|330|002", "filled");
+    eq(floodFill(rows, 0, 0, "1").join("|"), "110|110|002", "same digit is a no-op");
+  });
+
+  check("resize anchors top-left", () => {
+    eq(resizeRows(["12", "34"], 3, 3, "0").join("|"), "120|340|000", "grow");
+    eq(resizeRows(["12", "34"], 1, 1, "0").join("|"), "1", "crop");
+  });
+
+  check("trim finds the content box", () => {
+    const rows = ["000", "010", "000"];
+    eq(JSON.stringify(contentBounds(rows)), JSON.stringify({ top: 1, left: 1, bottom: 1, right: 1 }), "bounds");
+    eq(cropRows(rows, contentBounds(rows)).join("|"), "1", "cropped");
+    eq(contentBounds(["00", "00"]), null, "blank picture");
+  });
+
+  check("validation flags a colour the queue cannot carry", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.queue = [{ colorId: 1, capacity: 1, frozenCount: 0, linkGroup: 0 }];
+    const issues = validateLevel(level, 9);
+    eq(issues.some(i => i.bad && i.text.startsWith("Colour 1")), true, "shortfall flagged");
+  });
+
+  check("validation flags a ragged picture", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.rows = ["000", "0000"];
+    eq(validateLevel(level, 9).some(i => i.bad && i.text.includes("same length")), true, "ragged flagged");
+  });
+
+  check("auto-fill closes every shortfall", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL, "Level0004.asset");
+    level.queue = [];
+    level.queue = fillShortfall(level);
+    eq(validateLevel(level, 9).some(i => i.bad), false, "no shortfall left");
+  });
+
+  check("CRLF input is accepted", () => {
+    const level = parseLevelAsset(SAMPLE_LEVEL.replace(/\n/g, "\r\n"), "Level0004.asset");
+    eq(serialiseLevelAsset(level), SAMPLE_LEVEL, "normalised to LF");
+  });
+
+  return results;
+}
+
+/* ==========================================================================
+   BROWSER LAYER — file access, state, rendering.
+   ========================================================================== */
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  dir: null,
+  files: [],          // [{name, handle, level, dirty}]
+  index: -1,
+  palette: null,      // {preamble, entries}
+  paletteHandle: null,
+  paletteDirty: false,
+  layer: "rows",
+  tool: "pencil",
+  color: 1,
+  brush: 1,
+  zoom: 18,
+  undo: [],
+  redo: [],
+  autoSave: false,
+  canWrite: typeof window.showDirectoryPicker === "function",
+};
+
+const current = () => (state.index >= 0 ? state.files[state.index] : null);
+const currentLevel = () => (current() ? current().level : null);
+
+function paletteHex(id) {
+  if (!state.palette || id < 1 || id > state.palette.entries.length) return "#ff00ff";
+  return rgbToHex(state.palette.entries[id - 1].baseColor);
+}
+
+function paletteSize() {
+  return state.palette ? state.palette.entries.length : MAX_COLOR;
+}
+
+function setStatus(text, kind) {
+  const el = $("status");
+  el.textContent = text;
+  el.className = kind || "";
+}
+
+function banner(text) {
+  const el = $("banner");
+  el.textContent = text;
+  el.classList.toggle("show", Boolean(text));
+}
+
+/* ---------- undo ---------- */
+
+function snapshot() {
+  const level = currentLevel();
+  if (!level) return;
+  state.undo.push(JSON.stringify({
+    rows: level.rows, hpRows: level.hpRows, hiddenRows: level.hiddenRows,
+    loopCarts: level.loopCarts, queue: level.queue, levelNumber: level.levelNumber,
+  }));
+  if (state.undo.length > 100) state.undo.shift();
+  state.redo.length = 0;
+}
+
+function applySnapshot(text) {
+  Object.assign(currentLevel(), JSON.parse(text));
+}
+
+function captureNow() {
+  const level = currentLevel();
+  return JSON.stringify({
+    rows: level.rows, hpRows: level.hpRows, hiddenRows: level.hiddenRows,
+    loopCarts: level.loopCarts, queue: level.queue, levelNumber: level.levelNumber,
+  });
+}
+
+function undo() {
+  if (!state.undo.length || !currentLevel()) return;
+  state.redo.push(captureNow());
+  applySnapshot(state.undo.pop());
+  markDirty();
+  renderAll();
+}
+
+function redo() {
+  if (!state.redo.length || !currentLevel()) return;
+  state.undo.push(captureNow());
+  applySnapshot(state.redo.pop());
+  markDirty();
+  renderAll();
+}
+
+function markDirty() {
+  const file = current();
+  if (file) file.dirty = true;
+  updateTopBar();
+  renderLevelList();
+  scheduleAutoSave();
+}
+
+/* ---------- auto-save ----------
+   Debounced rather than immediate: a brush stroke or a dragged slider would
+   otherwise write the file dozens of times a second, and Unity would reimport
+   on every one of them. */
+
+const AUTOSAVE_KEY = "frogcart-level-editor-autosave";
+const AUTOSAVE_MS = 600;
+
+let saveTimer = null;
+let saveRunning = false;
+let saveQueued = false;
+
+function scheduleAutoSave() {
+  if (!state.autoSave || !state.dir) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runAutoSave, AUTOSAVE_MS);
+}
+
+async function runAutoSave() {
+  if (!state.autoSave || !state.dir) return;
+
+  // Never write mid-stroke: wait for the pointer to come up, or the file on
+  // disk would capture half a brush stroke.
+  if (painting) { scheduleAutoSave(); return; }
+
+  const file = current();
+  if (!file || (!file.dirty && !state.paletteDirty)) return;
+
+  if (saveRunning) { saveQueued = true; return; }
+  saveRunning = true;
+  try {
+    await saveCurrent(true);
+  } finally {
+    saveRunning = false;
+    if (saveQueued) { saveQueued = false; scheduleAutoSave(); }
+  }
+}
+
+/** Write now instead of waiting out the debounce — used when focus leaves the page. */
+function flushAutoSave() {
+  if (!state.autoSave) return;
+  clearTimeout(saveTimer);
+  runAutoSave();
+}
+
+/* ---------- file access ---------- */
+
+const DB_NAME = "frogcart-level-editor";
+
+function idb(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(DB_NAME, 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("handles");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const tx = open.result.transaction("handles", mode);
+      const request = fn(tx.objectStore("handles"));
+      tx.oncomplete = () => resolve(request && request.result);
+      tx.onerror = () => reject(tx.error);
+    };
+  });
+}
+
+async function openFolder(handle) {
+  try {
+    if (!handle) handle = await window.showDirectoryPicker({ id: "frogcart-data", mode: "readwrite" });
+    const permission = await handle.requestPermission({ mode: "readwrite" });
+    if (permission !== "granted") { setStatus("Write permission denied.", "err"); return; }
+
+    state.dir = handle;
+    await idb("readwrite", store => store.put(handle, "dir")).catch(() => {});
+    await loadFolder();
+  } catch (e) {
+    if (e.name !== "AbortError") setStatus("Could not open folder: " + e.message, "err");
+  }
+}
+
+async function loadFolder() {
+  const files = [];
+  state.palette = null;
+  state.paletteHandle = null;
+
+  for await (const [name, handle] of state.dir.entries()) {
+    if (handle.kind !== "file") continue;
+    if (name === "Palette.asset") { state.paletteHandle = handle; continue; }
+    if (!/^Level.*\.asset$/.test(name)) continue;
+    files.push({ name, handle, level: null, dirty: false });
+  }
+
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  if (state.paletteHandle) {
+    try {
+      state.palette = parsePaletteAsset(await (await state.paletteHandle.getFile()).text());
+    } catch (e) {
+      setStatus("Palette.asset could not be read: " + e.message, "err");
+    }
+  }
+
+  const failed = [];
+  for (const file of files) {
+    try {
+      file.level = parseLevelAsset(await (await file.handle.getFile()).text(), file.name);
+    } catch (e) {
+      failed.push(`${file.name}: ${e.message}`);
+    }
+  }
+
+  state.files = files.filter(f => f.level);
+  state.index = state.files.length ? 0 : -1;
+  state.undo.length = 0;
+  state.redo.length = 0;
+  state.paletteDirty = false;
+
+  const warnings = [];
+  if (!state.palette) warnings.push("Palette.asset not found in this folder — colours fall back to magenta.");
+  if (failed.length) warnings.push("Skipped: " + failed.join("; "));
+  banner(warnings.join("  "));
+
+  setStatus(`${state.files.length} levels from ${state.dir.name}`);
+  renderAll();
+}
+
+async function saveCurrent(auto) {
+  const file = current();
+  if (!file && !state.paletteDirty) return;
+
+  if (!state.canWrite) { if (!auto) downloadFallback(); return; }
+
+  const saved = [];
+  try {
+    if (file && file.dirty) {
+      const writable = await file.handle.createWritable();
+      await writable.write(serialiseLevelAsset(file.level));
+      await writable.close();
+      file.dirty = false;
+      saved.push(file.name);
+    }
+
+    if (state.paletteDirty && state.paletteHandle) {
+      const writable = await state.paletteHandle.createWritable();
+      await writable.write(serialisePaletteAsset(state.palette));
+      await writable.close();
+      state.paletteDirty = false;
+      saved.push("Palette.asset");
+    } else if (state.paletteDirty) {
+      setStatus("Palette edited but Palette.asset is not in this folder.", "err");
+      return;
+    }
+
+    if (!saved.length) setStatus(auto ? "" : "Nothing to save.");
+    else if (auto) setStatus(`Auto-saved ${saved.join(" + ")} at ${clockNow()}`, "saved");
+    else setStatus(`Saved ${saved.join(" + ")} — switch to Unity to reimport`);
+
+    updateTopBar();
+    renderLevelList();
+    renderPalette();
+  } catch (e) {
+    setStatus("Save failed: " + e.message, "err");
+  }
+}
+
+function clockNow() {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map(n => String(n).padStart(2, "0")).join(":");
+}
+
+function downloadFallback() {
+  const file = current();
+  const blob = new Blob([serialiseLevelAsset(file.level)], { type: "text/yaml" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = file.name;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  setStatus(`Downloaded ${file.name} — copy it back into Assets/Game/Data`);
+}
+
+/* ---------- rendering ---------- */
+
+function activeLayer() {
+  const level = currentLevel();
+  if (!level) return [];
+  if (state.layer === "rows") return level.rows;
+
+  // hp and hidden start out empty; they only take shape once you paint on them.
+  const layer = level[state.layer];
+  if (!layer.length) return level.rows.map(row => "0".repeat(row.length));
+  return layer;
+}
+
+function writeActiveLayer(rows) {
+  currentLevel()[state.layer] = rows;
+}
+
+function renderGrid() {
+  const canvas = $("grid");
+  const level = currentLevel();
+  const ctx = canvas.getContext("2d");
+
+  if (!level || !level.rows.length) {
+    canvas.width = canvas.height = 10;
+    ctx.clearRect(0, 0, 10, 10);
+    return;
+  }
+
+  const cols = level.rows[0].length;
+  const rows = level.rows.length;
+  const z = state.zoom;
+  canvas.width = cols * z;
+  canvas.height = rows * z;
+
+  ctx.fillStyle = "#0d0f13";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const layer = activeLayer();
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const colorId = level.rows[y].charCodeAt(x) - 48;
+      const solid = colorId > 0;
+
+      if (solid) {
+        ctx.fillStyle = paletteHex(colorId);
+        if (state.layer !== "rows") ctx.globalAlpha = 0.4;
+        ctx.fillRect(x * z, y * z, z, z);
+        ctx.globalAlpha = 1;
+      }
+
+      if (state.layer !== "rows") {
+        const value = layer[y] ? layer[y].charCodeAt(x) - 48 : 0;
+        if (state.layer === "hpRows" && value > 1 && z >= 10) {
+          ctx.fillStyle = "#000a";
+          ctx.fillRect(x * z, y * z, z, z);
+          ctx.fillStyle = "#fff";
+          ctx.font = `bold ${Math.floor(z * 0.62)}px ui-monospace, monospace`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(value), x * z + z / 2, y * z + z / 2 + 1);
+        } else if (state.layer === "hiddenRows" && value > 0) {
+          ctx.fillStyle = "#ffffffcc";
+          ctx.fillRect(x * z, y * z, z, z);
+          ctx.fillStyle = "#0d0f13";
+          ctx.fillRect(x * z + z * 0.3, y * z + z * 0.3, z * 0.4, z * 0.4);
+        }
+      }
+
+      if (z >= 8) {
+        ctx.strokeStyle = "#ffffff10";
+        ctx.strokeRect(x * z + 0.5, y * z + 0.5, z - 1, z - 1);
+      }
+    }
+  }
+}
+
+function renderThumb(canvas, rows) {
+  const ctx = canvas.getContext("2d");
+  const cols = rows.length ? rows[0].length : 1;
+  const scale = Math.max(1, Math.floor(Math.min(32 / cols, 32 / rows.length))) || 1;
+  canvas.width = cols * scale;
+  canvas.height = rows.length * scale;
+  canvas.style.width = Math.min(34, canvas.width) + "px";
+  canvas.style.height = "auto";
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < rows.length; y++)
+    for (let x = 0; x < rows[y].length; x++) {
+      const id = rows[y].charCodeAt(x) - 48;
+      if (!id) continue;
+      ctx.fillStyle = paletteHex(id);
+      ctx.fillRect(x * scale, y * scale, scale, scale);
+    }
+}
+
+function renderLevelList() {
+  const list = $("levelList");
+  list.textContent = "";
+  $("lvlCount").textContent = state.files.length ? `${state.files.length} files` : "—";
+
+  state.files.forEach((file, i) => {
+    const item = document.createElement("div");
+    item.className = "lvl" + (i === state.index ? " on" : "");
+
+    const thumb = document.createElement("canvas");
+    renderThumb(thumb, file.level.rows);
+    item.append(thumb);
+
+    const name = document.createElement("span");
+    name.className = "nm";
+    name.textContent = file.name.replace(/\.asset$/, "");
+    item.append(name);
+
+    if (file.dirty) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.textContent = "●";
+      item.append(dot);
+    }
+
+    item.onclick = () => selectLevel(i);
+    list.append(item);
+  });
+}
+
+function renderSwatches() {
+  const box = $("swatches");
+  box.textContent = "";
+
+  $("swatchHint").textContent =
+    state.layer === "hpRows" ? "HP layer: the swatch number is how many hits the cell takes (1 = normal)."
+    : state.layer === "hiddenRows" ? "Hidden layer: paint marks a cell hidden, erase reveals it."
+    : "";
+
+  for (let id = 0; id <= paletteSize(); id++) {
+    const sw = document.createElement("div");
+    sw.className = "sw" + (id === 0 ? " empty" : "") + (state.color === id ? " on" : "");
+    if (id > 0) sw.style.background = paletteHex(id);
+    sw.textContent = id === 0 ? "∅" : id;
+    sw.title = id === 0 ? "Empty cell" : (state.palette ? state.palette.entries[id - 1].name : "");
+    sw.onclick = () => { state.color = id; renderSwatches(); };
+    box.append(sw);
+  }
+}
+
+function renderPalette() {
+  $("palDirty").textContent = state.paletteDirty ? "· unsaved" : "";
+  renderSwatches();
+  $("btnSave").disabled = !current() && !state.paletteDirty;
+}
+
+function cartRow(cart, index, list, fixed) {
+  const row = document.createElement("div");
+  row.className = "cart";
+
+  const handle = document.createElement("span");
+  handle.className = "handle";
+  handle.textContent = fixed ? String(index + 1) : "⠿";
+  row.append(handle);
+
+  const colour = document.createElement("select");
+  for (let id = 1; id <= paletteSize(); id++) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    colour.append(option);
+  }
+  colour.value = cart.colorId;
+  colour.style.background = paletteHex(cart.colorId);
+  colour.style.color = "#000";
+  colour.onchange = () => {
+    snapshot();
+    cart.colorId = parseInt(colour.value, 10);
+    markDirty();
+    renderCarts();
+    renderIssues();
+  };
+  row.append(colour);
+
+  for (const key of ["capacity", "frozenCount", "linkGroup"]) {
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = 0;
+    input.value = cart[key];
+    input.title = key;
+    input.onchange = () => {
+      snapshot();
+      cart[key] = Math.max(0, parseInt(input.value, 10) || 0);
+      input.value = cart[key];
+      markDirty();
+      renderIssues();
+    };
+    row.append(input);
+  }
+
+  const del = document.createElement("button");
+  del.className = "del";
+  del.textContent = fixed ? "↺" : "✕";
+  del.title = fixed ? "Reset slot" : "Remove";
+  del.onclick = () => {
+    snapshot();
+    if (fixed) list[index] = emptyCart(1);
+    else list.splice(index, 1);
+    markDirty();
+    renderCarts();
+    renderIssues();
+  };
+  row.append(del);
+
+  if (!fixed) {
+    row.draggable = true;
+    row.ondragstart = e => { e.dataTransfer.setData("text/plain", String(index)); row.classList.add("drag"); };
+    row.ondragend = () => row.classList.remove("drag");
+    row.ondragover = e => e.preventDefault();
+    row.ondrop = e => {
+      e.preventDefault();
+      const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
+      if (Number.isNaN(from) || from === index) return;
+      snapshot();
+      list.splice(index, 0, list.splice(from, 1)[0]);
+      markDirty();
+      renderCarts();
+    };
+  }
+
+  return row;
+}
+
+function renderCarts() {
+  const level = currentLevel();
+  const loop = $("loopCarts");
+  const queue = $("queue");
+  loop.textContent = "";
+  queue.textContent = "";
+  $("queueCount").textContent = level ? level.queue.length : 0;
+  if (!level) return;
+
+  level.loopCarts.forEach((cart, i) => loop.append(cartRow(cart, i, level.loopCarts, true)));
+  level.queue.forEach((cart, i) => queue.append(cartRow(cart, i, level.queue, false)));
+}
+
+function renderIssues() {
+  const box = $("issues");
+  box.textContent = "";
+  const level = currentLevel();
+  if (!level) { box.textContent = "—"; return; }
+
+  for (const issue of validateLevel(level, paletteSize())) {
+    const line = document.createElement("div");
+    line.className = issue.bad ? "bad" : "ok";
+    line.textContent = (issue.bad ? "✕ " : "✓ ") + issue.text;
+    box.append(line);
+  }
+}
+
+function renderMeta() {
+  const level = currentLevel();
+  const enabled = Boolean(level);
+  for (const id of ["levelNumber", "gw", "gh", "btnResize", "btnTrim", "btnQAdd", "btnQAuto", "btnNew", "btnPng"])
+    $(id).disabled = !enabled && id !== "btnNew";
+  $("btnNew").disabled = !state.dir;
+
+  $("fileName").textContent = level ? level.fileName : "";
+  if (!level) return;
+  $("levelNumber").value = level.levelNumber;
+  $("gw").value = level.rows.length ? level.rows[0].length : 0;
+  $("gh").value = level.rows.length;
+}
+
+function updateTopBar() {
+  const file = current();
+  $("btnSave").disabled = !file && !state.paletteDirty;
+  $("btnUndo").disabled = !state.undo.length;
+  $("btnRedo").disabled = !state.redo.length;
+  if (file && (file.dirty || state.paletteDirty))
+    setStatus(`${file.name} — unsaved changes`, "dirty");
+}
+
+function renderAll() {
+  renderLevelList();
+  renderPalette();
+  renderCarts();
+  renderIssues();
+  renderMeta();
+  renderGrid();
+  updateTopBar();
+}
+
+function selectLevel(i) {
+  flushAutoSave();   // commit the level being left before the selection moves
+  state.index = i;
+  state.undo.length = 0;
+  state.redo.length = 0;
+  renderAll();
+}
+
+/* ---------- painting ---------- */
+
+let painting = false;
+
+function cellAt(event) {
+  const canvas = $("grid");
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((event.clientX - rect.left) / rect.width * canvas.width / state.zoom);
+  const y = Math.floor((event.clientY - rect.top) / rect.height * canvas.height / state.zoom);
+  return { x, y };
+}
+
+function paintValue(erase) {
+  if (erase) return "0";
+  if (state.layer === "rows") return String(state.color);
+  if (state.layer === "hiddenRows") return "1";
+  return String(Math.min(MAX_HP, Math.max(1, state.color || 1)));
+}
+
+function paintAt(x, y, erase) {
+  const level = currentLevel();
+  if (!level) return;
+
+  let rows = activeLayer();
+
+  if (state.tool === "pick") {
+    const value = rows[y] ? rows[y][x] : "0";
+    state.color = value.charCodeAt(0) - 48;
+    renderSwatches();
+    return;
+  }
+
+  const digit = paintValue(erase);
+
+  if (state.tool === "fill") {
+    rows = floodFill(rows, y, x, digit);
+  } else {
+    const reach = Math.floor((state.brush - 1) / 2);
+    for (let dy = -reach; dy <= reach; dy++)
+      for (let dx = -reach; dx <= reach; dx++)
+        rows = setCell(rows, y + dy, x + dx, digit);
+  }
+
+  writeActiveLayer(rows);
+  renderGrid();
+}
+
+function bindCanvas() {
+  const canvas = $("grid");
+
+  canvas.oncontextmenu = e => e.preventDefault();
+
+  canvas.onpointerdown = e => {
+    if (!currentLevel()) return;
+    const { x, y } = cellAt(e);
+    if (state.tool !== "pick") snapshot();
+    painting = state.tool !== "pick" && state.tool !== "fill";
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* capture is a nicety, not a requirement */ }
+    paintAt(x, y, e.button === 2 || state.tool === "eraser");
+    markDirty();
+    renderIssues();
+  };
+
+  canvas.onpointermove = e => {
+    const { x, y } = cellAt(e);
+    $("cursor").textContent = `${x}, ${y}`;
+    if (!painting) return;
+    paintAt(x, y, (e.buttons & 2) !== 0 || state.tool === "eraser");
+  };
+
+  const stop = () => {
+    if (!painting) return;
+    painting = false;
+    renderIssues();
+    renderLevelList();
+    scheduleAutoSave();   // the stroke is finished — start the clock from here
+  };
+  canvas.onpointerup = stop;
+  canvas.onpointercancel = stop;
+  canvas.onpointerleave = () => { $("cursor").textContent = "—"; stop(); };
+}
+
+/* ---------- palette dialog ---------- */
+
+function renderPaletteDialog() {
+  const table = $("palTable");
+  table.textContent = "";
+  if (!state.palette) return;
+
+  state.palette.entries.forEach((entry, i) => {
+    const tr = document.createElement("tr");
+
+    const idx = document.createElement("td");
+    idx.textContent = i + 1;
+    idx.className = "muted";
+    tr.append(idx);
+
+    const nameCell = document.createElement("td");
+    const name = document.createElement("input");
+    name.type = "text";
+    name.value = entry.name;
+    name.oninput = () => { entry.name = name.value.trim(); state.paletteDirty = true; renderPalette(); };
+    nameCell.append(name);
+    tr.append(nameCell);
+
+    for (const key of ["baseColor", "light", "dark"]) {
+      const cell = document.createElement("td");
+      const picker = document.createElement("input");
+      picker.type = "color";
+      picker.value = rgbToHex(entry[key]);
+      picker.title = key;
+
+      const hex = document.createElement("input");
+      hex.type = "text";
+      hex.value = rgbToHex(entry[key]);
+      hex.style.width = "76px";
+
+      const apply = value => {
+        if (!/^#?[0-9a-fA-F]{6}$/.test(value)) return;
+        entry[key] = hexToRgb(value);
+        picker.value = rgbToHex(entry[key]);
+        hex.value = rgbToHex(entry[key]);
+        state.paletteDirty = true;
+        renderPalette();
+        renderGrid();
+        renderLevelList();
+        renderCarts();
+      };
+
+      picker.oninput = () => apply(picker.value);
+      hex.onchange = () => apply(hex.value);
+
+      cell.style.whiteSpace = "nowrap";
+      cell.append(picker, hex);
+      tr.append(cell);
+    }
+
+    table.append(tr);
+  });
+}
+
+/* ---------- PNG import ---------- */
+
+async function importPng(file) {
+  const level = currentLevel();
+  if (!level || !state.palette) return;
+
+  const bitmap = await createImageBitmap(file);
+  if (bitmap.width > 128 || bitmap.height > 128) {
+    setStatus(`${bitmap.width}×${bitmap.height} is too large — level pictures are pixel art, not photos.`, "err");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(bitmap, 0, 0);
+  const data = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+
+  const colours = state.palette.entries.slice(0, MAX_COLOR).map(entry => {
+    const c = entry.baseColor;
+    return [Math.round(c.r * 255), Math.round(c.g * 255), Math.round(c.b * 255), 255];
+  });
+
+  try {
+    snapshot();
+    level.rows = imageDataToRows(data, bitmap.width, bitmap.height, colours);
+    // The mechanic layers are indexed by the old shape; drop them rather than
+    // leave rows silently misaligned with the new picture.
+    level.hpRows = [];
+    level.hiddenRows = [];
+    markDirty();
+    renderAll();
+
+    const counts = countByColor(level.rows, MAX_COLOR);
+    const used = counts.map((n, id) => (id && n ? `${id}:${n}` : null)).filter(Boolean).join(" ");
+    setStatus(`Imported ${bitmap.width}×${bitmap.height} — ${used}`, "dirty");
+  } catch (e) {
+    setStatus("Import failed: " + e.message, "err");
+  }
+}
+
+/* ---------- new level ---------- */
+
+async function createLevel() {
+  const nextNumber = state.files.reduce((max, f) => Math.max(max, f.level.levelNumber), 0) + 1;
+  const input = prompt("Level number for the new file:", String(nextNumber));
+  if (input === null) return;
+
+  const number = parseInt(input, 10);
+  if (!Number.isFinite(number) || number < 0) { setStatus("Not a level number.", "err"); return; }
+
+  const fileName = `Level${String(number).padStart(4, "0")}.asset`;
+  if (state.files.some(f => f.name === fileName)) { setStatus(`${fileName} already exists.`, "err"); return; }
+
+  const source = currentLevel();
+  const width = source && source.rows.length ? source.rows[0].length : 25;
+  const height = source ? source.rows.length : 29;
+  const level = newLevelAsset(fileName, number, width, height);
+
+  try {
+    const handle = await state.dir.getFileHandle(fileName, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(serialiseLevelAsset(level));
+    await writable.close();
+
+    state.files.push({ name: fileName, handle, level, dirty: false });
+    state.files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    selectLevel(state.files.findIndex(f => f.name === fileName));
+    setStatus(`Created ${fileName} — Unity will generate its .meta on next focus`);
+  } catch (e) {
+    setStatus("Could not create the file: " + e.message, "err");
+  }
+}
+
+/* ==========================================================================
+   ASSISTANT — Claude edits the level through tools.
+
+   Runs the tool-use loop by hand against /v1/messages: there is no bundler
+   here, so the SDK is not an option, and raw fetch keeps the whole editor a
+   single file. The API key lives in localStorage and is sent only to
+   api.anthropic.com, which requires the direct-browser-access header.
+   ========================================================================== */
+
+const AI_MODEL = "claude-opus-5";
+const AI_ENDPOINT = "https://api.anthropic.com/v1/messages";
+const AI_KEY_STORE = "frogcart-anthropic-key";
+
+const ai = {
+  key: "",
+  history: [],     // [{role, content}] — content is the raw block array for assistant turns
+  busy: false,
+  abort: null,
+};
+
+const AI_SYSTEM = `You are the level assistant inside the Frog Cart level editor.
+
+# The game
+Blocks of colour sit on a grid. Carts arrive from a queue, each with one colour
+and a capacity; a cart collects blocks of its own colour until it is full. If a
+colour has more blocks on the picture than the queue can ever carry, the level
+is unwinnable.
+
+# Level format
+- The picture is an array of equal-length strings, one per row, top row first.
+  Each character is a digit: "0" is an empty cell, "1".."9" are palette colours.
+- hpRows is an optional layer of the same shape. A digit is how many hits the
+  cell takes before it breaks; "0" or a missing layer means the default of 1.
+- hiddenRows is an optional layer of the same shape. "1" means the cell's colour
+  stays hidden until it is exposed; "0" means visible.
+- Both layers must match the picture's width and height exactly when present.
+- A cart is {colorId, capacity, frozenCount, linkGroup}. frozenCount is how many
+  turns it spends frozen in ice (0 is normal); linkGroup ties carts that leave
+  together (0 means alone). loopCarts is always exactly 5 carts.
+
+# How to work
+- Call read_level first whenever you need to see or modify the current picture.
+- Drawing is pixel art on a small grid. Think about the silhouette before you
+  write rows, keep shapes readable at this size, and use outline colours to
+  separate large fields of the same colour.
+- Every row you write must be the same length, and every character a digit.
+- After changing the picture, check whether the queue still covers each colour;
+  offer to fix it rather than silently rewriting the designer's queue.
+- Make the edit the user asked for. Do not redraw parts of the picture they did
+  not mention, and do not invent extra mechanics layers.
+- Keep replies to a sentence or two. The user sees the result on the canvas, so
+  describe what changed, not how you did it.`;
+
+const AI_TOOLS = [
+  {
+    name: "read_level",
+    description: "Read the level as it stands right now: picture rows, both mechanic layers, queue, loop carts, palette, and a block count per colour. Call this before editing anything that depends on current content.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "set_picture",
+    description: "Replace the whole picture. Every row must be the same length and contain only digits 0-9, where 0 is an empty cell.",
+    input_schema: {
+      type: "object",
+      properties: {
+        rows: { type: "array", items: { type: "string" }, description: "Rows top to bottom, e.g. [\"00100\",\"01210\"]" },
+      },
+      required: ["rows"],
+    },
+  },
+  {
+    name: "set_layer",
+    description: "Replace the HP or hidden mechanic layer. Pass rows of the same shape as the picture, or null to clear the layer back to defaults.",
+    input_schema: {
+      type: "object",
+      properties: {
+        layer: { type: "string", enum: ["hp", "hidden"] },
+        rows: { type: ["array", "null"], items: { type: "string" } },
+      },
+      required: ["layer", "rows"],
+    },
+  },
+  {
+    name: "set_queue",
+    description: "Replace the cart queue, in the order the carts arrive.",
+    input_schema: {
+      type: "object",
+      properties: {
+        carts: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              colorId: { type: "integer", minimum: 1, maximum: 9 },
+              capacity: { type: "integer", minimum: 0 },
+              frozenCount: { type: "integer", minimum: 0 },
+              linkGroup: { type: "integer", minimum: 0 },
+            },
+            required: ["colorId", "capacity"],
+          },
+        },
+      },
+      required: ["carts"],
+    },
+  },
+  {
+    name: "set_loop_carts",
+    description: "Replace the five carts on the loop. Must be exactly five.",
+    input_schema: {
+      type: "object",
+      properties: {
+        carts: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              colorId: { type: "integer", minimum: 1, maximum: 9 },
+              capacity: { type: "integer", minimum: 0 },
+              frozenCount: { type: "integer", minimum: 0 },
+              linkGroup: { type: "integer", minimum: 0 },
+            },
+            required: ["colorId", "capacity"],
+          },
+        },
+      },
+      required: ["carts"],
+    },
+  },
+  {
+    name: "set_palette",
+    description: "Change palette colours. Only the entries you pass are touched; the rest keep their current values. Colour ids are 1-based. Omit light or dark and they are derived from the base colour.",
+    input_schema: {
+      type: "object",
+      properties: {
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              colorId: { type: "integer", minimum: 1, maximum: 9 },
+              name: { type: "string" },
+              base: { type: "string", description: "Hex colour, e.g. #5BC236" },
+              light: { type: "string" },
+              dark: { type: "string" },
+            },
+            required: ["colorId"],
+          },
+        },
+      },
+      required: ["entries"],
+    },
+  },
+  {
+    name: "set_level_number",
+    description: "Set the level's number field.",
+    input_schema: {
+      type: "object",
+      properties: { number: { type: "integer", minimum: 0 } },
+      required: ["number"],
+    },
+  },
+];
+
+/* ---------- tool execution ---------- */
+
+function checkRows(rows, width, height) {
+  if (!Array.isArray(rows) || !rows.length) throw new Error("rows must be a non-empty array");
+  if (rows.length > 128) throw new Error("more than 128 rows");
+  const w = rows[0].length;
+  if (!w || w > 128) throw new Error(`row width ${w} is out of range 1..128`);
+
+  rows.forEach((row, i) => {
+    if (typeof row !== "string") throw new Error(`row ${i} is not a string`);
+    if (row.length !== w) throw new Error(`row ${i} is ${row.length} long, row 0 is ${w}`);
+    if (!/^[0-9]+$/.test(row)) throw new Error(`row ${i} has characters other than digits 0-9`);
+  });
+
+  if (width !== undefined && (w !== width || rows.length !== height))
+    throw new Error(`shape ${w}x${rows.length} does not match the picture's ${width}x${height}`);
+
+  return rows;
+}
+
+function readCart(raw) {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, parseInt(v, 10) || 0));
+  return {
+    colorId: clamp(raw.colorId, 1, Math.max(1, paletteSize())),
+    capacity: clamp(raw.capacity, 0, 9999),
+    frozenCount: clamp(raw.frozenCount, 0, 99),
+    linkGroup: clamp(raw.linkGroup, 0, 99),
+  };
+}
+
+function levelSnapshotForModel() {
+  const level = currentLevel();
+  const width = level.rows.length ? level.rows[0].length : 0;
+  const counts = countByColor(level.rows, MAX_COLOR);
+  const capacity = new Array(MAX_COLOR + 1).fill(0);
+  for (const cart of level.queue)
+    if (cart.colorId >= 1 && cart.colorId <= MAX_COLOR) capacity[cart.colorId] += cart.capacity;
+
+  return {
+    fileName: level.fileName,
+    levelNumber: level.levelNumber,
+    width, height: level.rows.length,
+    palette: (state.palette ? state.palette.entries : []).map((e, i) => ({
+      colorId: i + 1, name: e.name, base: rgbToHex(e.baseColor),
+    })),
+    blocksByColour: counts.map((n, id) => (id && n ? { colorId: id, blocks: n, queueCapacity: capacity[id] } : null))
+      .filter(Boolean),
+    rows: level.rows,
+    hpRows: level.hpRows.length ? level.hpRows : null,
+    hiddenRows: level.hiddenRows.length ? level.hiddenRows : null,
+    queue: level.queue,
+    loopCarts: level.loopCarts,
+  };
+}
+
+/** Applies one tool call. Throws on bad input; the message becomes the tool error. */
+function runTool(name, input) {
+  const level = currentLevel();
+  if (!level) throw new Error("No level is open. The user must pick one in the left-hand list first.");
+
+  const width = level.rows.length ? level.rows[0].length : 0;
+  const height = level.rows.length;
+
+  switch (name) {
+    case "read_level":
+      return { result: levelSnapshotForModel(), summary: "read the level" };
+
+    case "set_picture": {
+      const rows = checkRows(input.rows);
+      const before = `${width}x${height}`;
+      const after = `${rows[0].length}x${rows.length}`;
+      // The layers are indexed by the old shape; drop them rather than leave
+      // them silently misaligned with the new picture.
+      if (rows[0].length !== width || rows.length !== height) {
+        level.hpRows = [];
+        level.hiddenRows = [];
+      }
+      level.rows = rows;
+      const total = countByColor(rows, MAX_COLOR).reduce((sum, n, i) => (i ? sum + n : sum), 0);
+      return { result: { ok: true, size: after, blocks: total },
+               summary: `picture ${before === after ? after : before + " → " + after}, ${total} blocks` };
+    }
+
+    case "set_layer": {
+      const key = input.layer === "hp" ? "hpRows" : "hiddenRows";
+      if (input.rows === null || input.rows === undefined) {
+        level[key] = [];
+        return { result: { ok: true, cleared: true }, summary: `cleared the ${input.layer} layer` };
+      }
+      level[key] = checkRows(input.rows, width, height);
+      return { result: { ok: true }, summary: `set the ${input.layer} layer` };
+    }
+
+    case "set_queue": {
+      if (!Array.isArray(input.carts)) throw new Error("carts must be an array");
+      if (input.carts.length > 200) throw new Error("more than 200 carts");
+      level.queue = input.carts.map(readCart);
+      return { result: { ok: true, count: level.queue.length },
+               summary: `queue: ${level.queue.length} carts` };
+    }
+
+    case "set_loop_carts": {
+      if (!Array.isArray(input.carts) || input.carts.length !== 5)
+        throw new Error("loop carts must be exactly five");
+      level.loopCarts = input.carts.map(readCart);
+      return { result: { ok: true }, summary: "set the five loop carts" };
+    }
+
+    case "set_palette": {
+      if (!state.palette) throw new Error("Palette.asset is not loaded in this folder");
+      if (!Array.isArray(input.entries) || !input.entries.length)
+        throw new Error("entries must be a non-empty array");
+
+      const hex = value => {
+        if (!/^#?[0-9a-fA-F]{6}$/.test(value || "")) throw new Error(`"${value}" is not a #RRGGBB colour`);
+        return hexToRgb(value);
+      };
+
+      const touched = [];
+      for (const raw of input.entries) {
+        const index = (parseInt(raw.colorId, 10) || 0) - 1;
+        if (index < 0 || index >= state.palette.entries.length)
+          throw new Error(`colour ${raw.colorId} is outside the palette's 1..${state.palette.entries.length}`);
+
+        const entry = state.palette.entries[index];
+        if (raw.name) entry.name = String(raw.name).trim();
+        if (raw.base) {
+          entry.baseColor = hex(raw.base);
+          Object.assign(entry, deriveShades(entry.baseColor));
+        }
+        if (raw.light) entry.light = hex(raw.light);
+        if (raw.dark) entry.dark = hex(raw.dark);
+        touched.push(index + 1);
+      }
+
+      state.paletteDirty = true;
+      return { result: { ok: true, changed: touched }, summary: `palette: colour ${touched.join(", ")}` };
+    }
+
+    case "set_level_number": {
+      const number = parseInt(input.number, 10);
+      if (!Number.isFinite(number) || number < 0) throw new Error("number must be zero or greater");
+      level.levelNumber = number;
+      return { result: { ok: true }, summary: `level number ${number}` };
+    }
+
+    default:
+      throw new Error(`unknown tool ${name}`);
+  }
+}
+
+/* ---------- transport ---------- */
+
+/**
+ * One streamed request. Rebuilds the assistant's content blocks from the SSE
+ * deltas, because the tool-use loop has to echo them back verbatim next turn.
+ */
+async function streamMessage(messages, onEvent, signal) {
+  const response = await fetch(AI_ENDPOINT, {
+    method: "POST",
+    signal,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": ai.key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: 32000,
+      stream: true,
+      system: [{ type: "text", text: AI_SYSTEM, cache_control: { type: "ephemeral" } }],
+      // Summarised thinking, so a long pause shows as visible progress.
+      thinking: { type: "adaptive", display: "summarized" },
+      tools: AI_TOOLS,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    let detail = await response.text();
+    try { detail = JSON.parse(detail).error.message; } catch { /* keep the raw body */ }
+    throw new Error(`${response.status} — ${detail}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const blocks = [];
+  let stopReason = null;
+  let buffer = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const chunk = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+
+      const line = chunk.split("\n").find(l => l.startsWith("data:"));
+      if (!line) continue;
+
+      let event;
+      try { event = JSON.parse(line.slice(5).trim()); } catch { continue; }
+
+      if (event.type === "content_block_start") {
+        blocks[event.index] = { ...event.content_block };
+        if (blocks[event.index].type === "tool_use") blocks[event.index]._json = "";
+
+      } else if (event.type === "content_block_delta") {
+        const block = blocks[event.index];
+        if (!block) continue;
+        const delta = event.delta;
+
+        if (delta.type === "text_delta") {
+          block.text = (block.text || "") + delta.text;
+          onEvent({ type: "text", text: delta.text });
+        } else if (delta.type === "thinking_delta") {
+          block.thinking = (block.thinking || "") + delta.thinking;
+          onEvent({ type: "thinking", text: delta.thinking });
+        } else if (delta.type === "signature_delta") {
+          block.signature = (block.signature || "") + delta.signature;
+        } else if (delta.type === "input_json_delta") {
+          block._json += delta.partial_json;
+        }
+
+      } else if (event.type === "content_block_stop") {
+        const block = blocks[event.index];
+        if (block && block.type === "tool_use") {
+          try { block.input = block._json ? JSON.parse(block._json) : {}; }
+          catch { block.input = {}; }
+          delete block._json;
+        }
+
+      } else if (event.type === "message_delta") {
+        if (event.delta && event.delta.stop_reason) stopReason = event.delta.stop_reason;
+
+      } else if (event.type === "error") {
+        throw new Error(event.error ? event.error.message : "stream error");
+      }
+    }
+  }
+
+  return { content: blocks.filter(Boolean), stopReason };
+}
+
+/* ---------- chat UI ---------- */
+
+function chatAdd(className, text) {
+  const el = document.createElement("div");
+  el.className = "msg " + className;
+  el.textContent = text;
+  $("chat").append(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return el;
+}
+
+function chatTool(name) {
+  const el = document.createElement("div");
+  el.className = "tool";
+  const spinner = document.createElement("span");
+  spinner.className = "spin";
+  const label = document.createElement("span");
+  label.textContent = name;
+  el.append(spinner, label);
+  $("chat").append(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+
+  return (ok, summary) => {
+    el.classList.toggle("bad", !ok);
+    el.textContent = "";
+    const mark = document.createElement("b");
+    mark.textContent = ok ? "✓" : "✕";
+    const text = document.createElement("span");
+    text.textContent = summary;
+    el.append(mark, text);
+  };
+}
+
+/** The state the model needs up front, kept out of stored history so the cached prefix stays stable. */
+function stateHeader() {
+  if (!currentLevel()) return "<level_state>No level is open.</level_state>\n\n";
+
+  const snapshot = levelSnapshotForModel();
+  const palette = snapshot.palette.map(p => `${p.colorId}=${p.name} ${p.base}`).join("  ");
+  const counts = snapshot.blocksByColour
+    .map(c => `${c.colorId}: ${c.blocks} blocks / ${c.queueCapacity} capacity`).join("; ") || "empty picture";
+
+  return `<level_state>
+file: ${snapshot.fileName}   levelNumber: ${snapshot.levelNumber}   size: ${snapshot.width}x${snapshot.height}
+palette: ${palette}
+per colour: ${counts}
+queue: ${snapshot.queue.length} carts   hp layer: ${snapshot.hpRows ? "in use" : "empty"}   hidden layer: ${snapshot.hiddenRows ? "in use" : "empty"}
+Call read_level for the picture rows themselves.
+</level_state>
+
+`;
+}
+
+async function aiSend(text) {
+  if (ai.busy) return;
+  if (!ai.key) { chatAdd("err", "Add an Anthropic API key above first."); return; }
+
+  chatAdd("user", text);
+  ai.history.push({ role: "user", content: text });
+
+  ai.busy = true;
+  ai.abort = new AbortController();
+  $("btnSend").disabled = true;
+  $("btnStop").disabled = false;
+
+  // One snapshot for the whole turn, so Ctrl+Z undoes the assistant's edits in one go.
+  let snapshotTaken = false;
+
+  try {
+    for (let round = 0; round < 12; round++) {
+      // State rides only on the final user message: older turns stay byte-stable,
+      // which is what keeps the cached prefix alive across rounds.
+      const messages = ai.history.map((entry, i) => {
+        const last = i === ai.history.length - 1;
+        if (last && entry.role === "user" && typeof entry.content === "string")
+          return { role: "user", content: stateHeader() + entry.content };
+        return { role: entry.role, content: entry.content };
+      });
+
+      let bubble = null;
+      let thoughts = null;
+
+      const { content, stopReason } = await streamMessage(messages, event => {
+        const target = event.type === "thinking"
+          ? (thoughts || (thoughts = chatAdd("think", "")))
+          : (bubble || (bubble = chatAdd("bot", "")));
+        target.textContent += event.text;
+        $("chat").scrollTop = $("chat").scrollHeight;
+      }, ai.abort.signal);
+
+      ai.history.push({ role: "assistant", content });
+
+      if (stopReason === "refusal") {
+        chatAdd("err", "Claude declined this request. Try rephrasing it.");
+        break;
+      }
+
+      const calls = content.filter(b => b.type === "tool_use");
+      if (!calls.length) break;
+
+      if (!snapshotTaken) { snapshot(); snapshotTaken = true; }
+
+      const results = [];
+      for (const call of calls) {
+        const finish = chatTool(call.name);
+        try {
+          const { result, summary } = runTool(call.name, call.input || {});
+          finish(true, summary);
+          results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(result) });
+        } catch (e) {
+          finish(false, `${call.name}: ${e.message}`);
+          results.push({ type: "tool_result", tool_use_id: call.id, content: e.message, is_error: true });
+        }
+      }
+
+      markDirty();
+      renderAll();
+      ai.history.push({ role: "user", content: results });
+    }
+  } catch (e) {
+    if (e.name === "AbortError") chatAdd("err", "Stopped.");
+    else if (e instanceof TypeError) chatAdd("err",
+      "Could not reach api.anthropic.com. If this page was opened from a file:// path, " +
+      "the browser is blocking the request — serve the folder over http instead.");
+    else chatAdd("err", e.message);
+  } finally {
+    ai.busy = false;
+    ai.abort = null;
+    $("btnSend").disabled = false;
+    $("btnStop").disabled = true;
+  }
+}
+
+function bindAi() {
+  ai.key = localStorage.getItem(AI_KEY_STORE) || "";
+  $("apiKey").value = ai.key;
+  $("aiModel").textContent = "· " + AI_MODEL;
+
+  $("btnAi").onclick = () => {
+    const panel = $("ai");
+    panel.classList.toggle("show");
+    $("btnAi").classList.toggle("on", panel.classList.contains("show"));
+    if (panel.classList.contains("show")) $("prompt").focus();
+  };
+
+  $("btnKey").onclick = () => {
+    ai.key = $("apiKey").value.trim();
+    localStorage.setItem(AI_KEY_STORE, ai.key);
+    $("keyHint").textContent = ai.key ? "Key saved in this browser." : "Key cleared.";
+  };
+
+  $("btnSend").onclick = () => {
+    const text = $("prompt").value.trim();
+    if (!text) return;
+    $("prompt").value = "";
+    aiSend(text);
+  };
+
+  $("btnStop").onclick = () => { if (ai.abort) ai.abort.abort(); };
+
+  $("btnClear").onclick = () => {
+    ai.history.length = 0;
+    $("chat").textContent = "";
+  };
+
+  $("prompt").onkeydown = e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("btnSend").click(); }
+    e.stopPropagation();  // the editor's single-key shortcuts must not fire while typing
+  };
+}
+
+/* ---------- wiring ---------- */
+
+function bindUi() {
+  $("btnOpen").onclick = () => openFolder();
+  $("btnSave").onclick = () => saveCurrent();
+  $("btnUndo").onclick = undo;
+  $("btnRedo").onclick = redo;
+  $("btnNew").onclick = createLevel;
+
+  $("btnPng").onclick = () => $("pngInput").click();
+  $("pngInput").onchange = e => {
+    if (e.target.files[0]) importPng(e.target.files[0]);
+    e.target.value = "";
+  };
+
+  for (const tab of document.querySelectorAll(".tab"))
+    tab.onclick = () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === tab));
+      state.layer = tab.dataset.layer;
+      if (state.layer === "hpRows" && (state.color < 1 || state.color > MAX_HP)) state.color = 2;
+      renderSwatches();
+      renderGrid();
+    };
+
+  for (const tool of document.querySelectorAll(".tool"))
+    tool.onclick = () => selectTool(tool.dataset.tool);
+
+  $("brush").onchange = e => { state.brush = Math.max(1, parseInt(e.target.value, 10) || 1); };
+  $("zoom").onchange = e => { state.zoom = Math.max(4, parseInt(e.target.value, 10) || 18); renderGrid(); };
+
+  $("levelNumber").onchange = e => {
+    snapshot();
+    currentLevel().levelNumber = Math.max(0, parseInt(e.target.value, 10) || 0);
+    markDirty();
+  };
+
+  $("btnResize").onclick = () => {
+    const level = currentLevel();
+    const width = Math.max(1, Math.min(128, parseInt($("gw").value, 10) || 1));
+    const height = Math.max(1, Math.min(128, parseInt($("gh").value, 10) || 1));
+    snapshot();
+    level.rows = resizeRows(level.rows, width, height, "0");
+    if (level.hpRows.length) level.hpRows = resizeRows(level.hpRows, width, height, "0");
+    if (level.hiddenRows.length) level.hiddenRows = resizeRows(level.hiddenRows, width, height, "0");
+    markDirty();
+    renderAll();
+  };
+
+  $("btnTrim").onclick = () => {
+    const level = currentLevel();
+    const bounds = contentBounds(level.rows);
+    if (!bounds) { setStatus("Nothing to trim — the picture is empty.", "err"); return; }
+    snapshot();
+    level.rows = cropRows(level.rows, bounds);
+    if (level.hpRows.length) level.hpRows = cropRows(level.hpRows, bounds);
+    if (level.hiddenRows.length) level.hiddenRows = cropRows(level.hiddenRows, bounds);
+    markDirty();
+    renderAll();
+  };
+
+  $("btnQAdd").onclick = () => {
+    snapshot();
+    currentLevel().queue.push(emptyCart(state.color || 1));
+    markDirty();
+    renderCarts();
+    renderIssues();
+  };
+
+  $("btnQAuto").onclick = () => {
+    const level = currentLevel();
+    const added = fillShortfall(level);
+    if (!added.length) { setStatus("Queue already covers every colour."); return; }
+    snapshot();
+    level.queue.push(...added);
+    markDirty();
+    renderCarts();
+    renderIssues();
+    setStatus(`Added ${added.length} carts`, "dirty");
+  };
+
+  $("btnPalEdit").onclick = () => { renderPaletteDialog(); $("palDlg").showModal(); };
+  $("palClose").onclick = () => $("palDlg").close();
+  $("palAuto").onclick = () => {
+    if (!state.palette) return;
+    for (const entry of state.palette.entries) Object.assign(entry, deriveShades(entry.baseColor));
+    state.paletteDirty = true;
+    renderPaletteDialog();
+    renderPalette();
+  };
+
+  $("btnTests").onclick = () => {
+    const results = runSelfTest();
+    const failed = results.filter(r => !r.ok);
+    $("testOut").textContent = results
+      .map(r => (r.ok ? "PASS  " : "FAIL  ") + r.name + (r.ok ? "" : "\n        " + r.message))
+      .join("\n") + `\n\n${results.length - failed.length}/${results.length} passed`;
+    $("testDlg").showModal();
+  };
+  $("testClose").onclick = () => $("testDlg").close();
+
+  document.onkeydown = e => {
+    if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === "s") { e.preventDefault(); saveCurrent(); }
+      else if (key === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+      else if (key === "y") { e.preventDefault(); redo(); }
+      return;
+    }
+
+    if (e.key >= "0" && e.key <= "9") { state.color = +e.key; renderSwatches(); return; }
+    const tools = { b: "pencil", e: "eraser", g: "fill", i: "pick" };
+    if (tools[e.key.toLowerCase()]) selectTool(tools[e.key.toLowerCase()]);
+  };
+
+  const auto = $("autoSave");
+  auto.checked = localStorage.getItem(AUTOSAVE_KEY) === "1";
+  auto.parentElement.classList.toggle("on", auto.checked);
+  state.autoSave = auto.checked;
+  auto.onchange = () => {
+    state.autoSave = auto.checked;
+    localStorage.setItem(AUTOSAVE_KEY, auto.checked ? "1" : "0");
+    auto.parentElement.classList.toggle("on", auto.checked);
+    if (auto.checked) scheduleAutoSave();
+    else clearTimeout(saveTimer);
+  };
+
+  // Switching to Unity is exactly when the file needs to be on disk already.
+  window.addEventListener("blur", flushAutoSave);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushAutoSave(); });
+
+  window.onbeforeunload = e => {
+    flushAutoSave();
+    if (state.files.some(f => f.dirty) || state.paletteDirty) e.preventDefault();
+  };
+}
+
+function selectTool(name) {
+  state.tool = name;
+  document.querySelectorAll(".tool").forEach(t => t.classList.toggle("on", t.dataset.tool === name));
+}
+
+async function boot() {
+  bindUi();
+  bindCanvas();
+  bindAi();
+  renderSwatches();
+
+  if (!state.canWrite) {
+    banner("This browser has no File System Access API — open in Chrome or Edge to edit a folder in place. " +
+           "Saving falls back to a download.");
+    $("btnOpen").disabled = true;
+  }
+
+  // A handle stored last session usually still carries permission, so the tool
+  // reopens where you left it instead of asking for the folder every time.
+  try {
+    const handle = await idb("readonly", store => store.get("dir"));
+    if (handle && (await handle.queryPermission({ mode: "readwrite" })) === "granted") {
+      state.dir = handle;
+      await loadFolder();
+    } else if (handle) {
+      setStatus("Click “Open Data folder…” to reconnect.");
+    }
+  } catch { /* first run, or the handle went stale */ }
+}
+
+boot();
+</script>
+</body>
+</html>

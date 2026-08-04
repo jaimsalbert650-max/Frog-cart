@@ -1,0 +1,1456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frog Cart — Game Settings</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #1e2128;
+    --panel-2: #252932;
+    --line: #333844;
+    --text: #dfe3ea;
+    --muted: #8b93a3;
+    --accent: #5bc236;
+    --danger: #ef4136;
+    --warn: #ffd52e;
+    --blue: #2e93e6;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button, input, select {
+    font: inherit; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 4px; padding: 4px 8px;
+  }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { background: #2f3542; }
+  button:disabled { opacity: .4; cursor: default; }
+  h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .09em;
+       text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .muted { color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .grow { flex: 1; }
+
+  #top {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+  }
+  #top .sep { width: 1px; height: 22px; background: var(--line); }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.dirty { color: var(--warn); }
+  #status.err { color: var(--danger); }
+  #status.saved { color: var(--accent); }
+  .auto { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+          color: var(--muted); font-size: 12px; user-select: none; }
+  .auto input { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; }
+  .auto.on { color: var(--accent); }
+
+  #banner { background: #3a2a12; color: var(--warn); padding: 8px 10px;
+            border-bottom: 1px solid var(--line); display: none; }
+  #banner.show { display: block; }
+
+  #main { flex: 1; display: flex; min-height: 0; }
+  #nav { width: 190px; flex: none; background: var(--panel);
+         border-right: 1px solid var(--line); overflow-y: auto; padding: 10px 0; }
+  #nav a { display: block; padding: 5px 14px; color: var(--muted);
+           text-decoration: none; border-left: 3px solid transparent; cursor: pointer; }
+  #nav a:hover { background: var(--panel-2); color: var(--text); }
+  #nav a .n { float: right; font-size: 11px; }
+  #nav a.changed { color: var(--warn); }
+
+  #fields { flex: 1; overflow-y: auto; padding: 14px 18px 60px; min-width: 0; }
+  .group { margin-bottom: 26px; }
+  .group > h2 { font-size: 13px; margin: 0 0 2px; color: var(--accent);
+                text-transform: uppercase; letter-spacing: .08em; }
+  .group > .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+
+  .field { padding: 10px 0; border-top: 1px solid #ffffff0d; }
+  .field:first-of-type { border-top: none; }
+  .field .head { display: flex; align-items: baseline; gap: 8px; }
+  .field .name { font-family: ui-monospace, monospace; font-weight: 600; }
+  .field.changed .name { color: var(--warn); }
+  .field .unit { color: var(--muted); font-size: 11px; }
+  .field .reset { margin-left: auto; padding: 1px 7px; font-size: 11px;
+                  color: var(--muted); visibility: hidden; }
+  .field.changed .reset { visibility: visible; }
+  .field .help { color: var(--muted); font-size: 12px; margin: 3px 0 7px;
+                 max-width: 74ch; }
+  .field .ctl { display: flex; align-items: center; gap: 10px; }
+  .field input[type=range] { flex: 1; min-width: 120px; accent-color: var(--accent); }
+  .field input[type=number] { width: 84px; font-family: ui-monospace, monospace; }
+  .field .bounds { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .field .bounds b { color: var(--blue); font-weight: 600; }
+  .field .was { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+  #side { width: 340px; flex: none; background: var(--panel);
+          border-left: 1px solid var(--line); overflow-y: auto; }
+  .card { padding: 12px; border-bottom: 1px solid var(--line); }
+  .card canvas { width: 100%; display: block; background: #0d0f13;
+                 border-radius: 6px; border: 1px solid var(--line); }
+  .stat { display: flex; justify-content: space-between; gap: 8px;
+          padding: 3px 0; font-size: 12px; }
+  .stat span:last-child { font-family: ui-monospace, monospace; color: var(--text); }
+  .stat.bad span:last-child { color: var(--danger); }
+  .stat.warn span:last-child { color: var(--warn); }
+  #warnings div { padding: 4px 0; font-size: 12px; border-bottom: 1px solid #ffffff0d; }
+  .bad { color: var(--danger); }
+  .warn { color: var(--warn); }
+  .ok { color: var(--accent); }
+
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line);
+           border-radius: 8px; max-width: 760px; width: 90vw; }
+  dialog::backdrop { background: #000a; }
+  pre { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap;
+        max-height: 60vh; overflow: auto; margin: 0; }
+</style>
+</head>
+<body>
+
+<div id="banner"></div>
+
+<div id="top">
+  <button id="btnOpen">Open Data folder…</button>
+  <button id="btnSave" disabled>Save (Ctrl+S)</button>
+  <label class="auto" title="Write every change straight to Config.asset"><input type="checkbox" id="autoSave"> Auto</label>
+  <button id="btnUndo" disabled title="Ctrl+Z">↶</button>
+  <div class="sep"></div>
+  <button id="btnResetAll" disabled>Reset all to defaults</button>
+  <button id="btnCode" disabled title="Emit these values as C# field initialisers">Copy as C#…</button>
+  <div class="grow"></div>
+  <span id="status">No folder opened.</span>
+  <div class="sep"></div>
+  <button id="btnTests">Self-test</button>
+</div>
+
+<div id="main">
+  <div id="nav"></div>
+  <div id="fields"></div>
+  <div id="side">
+    <div class="card">
+      <h3>Loop and reach</h3>
+      <canvas id="cvBoard" width="316" height="300"></canvas>
+      <div id="boardStats" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>Tongue</h3>
+      <canvas id="cvTongue" width="316" height="90"></canvas>
+      <div id="tongueStats" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>Win sequence</h3>
+      <canvas id="cvWin" width="316" height="112"></canvas>
+    </div>
+    <div class="card">
+      <h3>Decay</h3>
+      <canvas id="cvDecay" width="316" height="100"></canvas>
+      <div id="decayStats" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>Checks</h3>
+      <div id="warnings" class="muted">—</div>
+    </div>
+  </div>
+</div>
+
+<dialog id="codeDlg">
+  <h3>GameConfig.cs field initialisers</h3>
+  <p class="muted" style="margin:0 0 8px">
+    The project keeps its numbers in the spec and in the C# defaults. Paste these back into
+    <code>GameConfig.cs</code> (and update <code>docs/unity-spec</code>) so a fresh asset is born tuned.
+  </p>
+  <pre id="codeOut"></pre>
+  <div class="row" style="margin-top:10px;justify-content:flex-end">
+    <button id="codeCopy">Copy</button>
+    <button id="codeClose">Close</button>
+  </div>
+</dialog>
+
+<dialog id="testDlg">
+  <h3>Self-test</h3>
+  <pre id="testOut"></pre>
+  <div class="row" style="justify-content:flex-end"><button id="testClose">Close</button></div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   PURE CORE — no DOM. Covered by the self-test suite at the bottom.
+   ========================================================================== */
+
+const CONFIG_SCRIPT_GUID = "649538aea84fada42917c5aa182c4e03";
+
+/* ---------- loop geometry, mirrored from FrogCart.Core.LoopPath ---------- */
+
+const LOOP = { RL: 15, RR: 375, RT: 68, RB: 628, RAD: 48 };
+
+/** Rail perimeter in spec units: four straights plus four quarter-circles. */
+function loopPerimeter() {
+  const horizontal = (LOOP.RR - LOOP.RAD) - (LOOP.RL + LOOP.RAD);
+  const vertical = (LOOP.RB - LOOP.RAD) - (LOOP.RT + LOOP.RAD);
+  return 2 * horizontal + 2 * vertical + 4 * (LOOP.RAD * Math.PI / 2);
+}
+
+function boardCentre() {
+  return { x: (LOOP.RL + LOOP.RR) / 2, y: (LOOP.RT + LOOP.RB) / 2 };
+}
+
+/**
+ * Distance from the picture's centre to the nearest rail. This is where the
+ * biteRange floor of 180 comes from — below it the centre is unreachable from
+ * every point on the loop and the level simply stalls.
+ */
+function centreToNearestRail() {
+  const c = boardCentre();
+  return Math.min(c.x - LOOP.RL, LOOP.RR - c.x, c.y - LOOP.RT, LOOP.RB - c.y);
+}
+
+/* ---------- the fields, mirrored from FrogCart.Data.GameConfig ---------- */
+
+/**
+ * `range` is the C# [Range] attribute — Unity clamps to it in the inspector, so
+ * it is authoritative. `soft` is only a comfortable span for the slider; the
+ * number box still accepts anything.
+ */
+const GROUPS = [
+  {
+    id: "movement", title: "Движение · Movement",
+    sub: "How fast the carts run the loop.",
+    fields: [
+      { name: "railSpeed", type: "float", def: 64, range: [0, 90], step: 1, unit: "spec units / s",
+        help: "Speed along the rails. The ceiling was raised from 60 to 90 because 60 was hitting the top of the slider and the requests for “faster still” did not stop there." },
+    ],
+  },
+  {
+    id: "reach", title: "Досягаемость · Reach",
+    sub: "How far a cart can grab, and how it gets onto the loop.",
+    fields: [
+      { name: "biteRange", type: "float", def: 190, range: [180, 600], step: 1, unit: "spec units",
+        help: "How far a cart reaches with its tongue. The lower bound is computed, not round: the loop surrounds the board and the centre of the picture sits 180 from the nearest rail. Anything smaller leaves the centre unreachable from every point on the loop — the level can neither be won nor lost, it just stalls." },
+      { name: "cartLaunch", type: "float", def: 0.5, range: [0.2, 1.2], step: 0.01, unit: "s",
+        help: "How long a cart takes to travel out of the queue onto the loop. Deliberately separate from cartEnter: cartEnter is a cart appearing in place, this one crosses half the screen and at 0.30 the throw read as a jerk. While it flies it is not on the rail yet — the real one appears exactly on landing, otherwise there are two identical carts on screen." },
+    ],
+  },
+  {
+    id: "input", title: "Ввод · Input", sub: "",
+    fields: [
+      { name: "chainDelay", type: "float", def: 0.09, range: [0.04, 0.22], step: 0.005, unit: "s",
+        help: "Gap between the links of a chained bite." },
+    ],
+  },
+  {
+    id: "feedback", title: "Отдача · Feedback", sub: "Screen shake and haptics.",
+    fields: [
+      { name: "shakeEvery", type: "int", def: 10, range: [1, 40], step: 1, unit: "blocks",
+        help: "Shake the screen once every N blocks eaten." },
+      { name: "vibrate", type: "bool", def: true, help: "Haptic feedback on the device." },
+    ],
+  },
+  {
+    id: "tongue", title: "Язык · Tongue",
+    sub: "Bite pacing is derived from these two, so they can never desync.",
+    fields: [
+      { name: "tongueOut", type: "float", def: 0.42, soft: [0.05, 1.2], step: 0.01, unit: "s",
+        help: "Time for the tongue to reach out." },
+      { name: "tongueBack", type: "float", def: 0.20, soft: [0.05, 1.2], step: 0.01, unit: "s",
+        help: "Time for the tongue to come back. The pause between bites is tongueOut + tongueBack + 0.05, computed rather than fixed: a hardcoded 0.28 once fired the next bite before the tongue had returned, which looked like a tremble instead of a shot." },
+    ],
+  },
+  {
+    id: "decay", title: "Затухания · Decay",
+    sub: "Exponential rates: bigger settles faster.",
+    fields: [
+      { name: "squashDecay", type: "float", def: 9, soft: [1, 30], step: 0.5, unit: "1 / s",
+        help: "How quickly a squashed block returns to shape." },
+      { name: "recoilDecay", type: "float", def: 11, soft: [1, 30], step: 0.5, unit: "1 / s",
+        help: "How quickly a cart's recoil dies down." },
+      { name: "recoilImpulse", type: "float", def: 9, soft: [0, 30], step: 0.5, unit: "",
+        help: "Kick given to a cart on a bite. Also the divisor for the visual squeeze, which tops out at 12%." },
+    ],
+  },
+  {
+    id: "carts", title: "Вагонетки · Carts", sub: "The cart cycle around the dock.",
+    fields: [
+      { name: "cartExit", type: "float", def: 0.34, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "A full cart leaving." },
+      { name: "cartEnter", type: "float", def: 0.30, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "A cart appearing in place on the loop." },
+      { name: "emptyToExit", type: "float", def: 0.38, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "From the last block collected to the cart pulling away." },
+      { name: "exitToDock", type: "float", def: 0.34, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "From the cart pulling away to the next one docking." },
+      { name: "queueShift", type: "float", def: 0.30, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "The queue sliding up by one." },
+    ],
+  },
+  {
+    id: "outcomes", title: "Исходы · Outcomes", sub: "Win and lose sequences.",
+    fields: [
+      { name: "winDelay", type: "float", def: 0.26, soft: [0, 3], step: 0.01, unit: "s", help: "Pause after the last block before the win sequence starts." },
+      { name: "loseDelay", type: "float", def: 0.34, soft: [0, 3], step: 0.01, unit: "s", help: "Pause before the lose panel." },
+      { name: "startLoseCheckDelay", type: "float", def: 0.40, soft: [0, 3], step: 0.01, unit: "s", help: "Grace period at level start before the unwinnable check runs." },
+      { name: "winFlash", type: "float", def: 0.5, soft: [0, 3], step: 0.01, unit: "s", help: "The white flash over the picture: up to 0.85 alpha over the first 40%, back down over the rest." },
+      { name: "winSilhouette", type: "float", def: 1.2, soft: [0, 3], step: 0.01, unit: "s", help: "How long the picture stays as a flat silhouette." },
+      { name: "winPanelDelay", type: "float", def: 1.1, soft: [0, 3], step: 0.01, unit: "s",
+        help: "When the win panel appears, measured from the start of the silhouette. The code waits max(0, winPanelDelay − winSilhouette) after the silhouette ends, so a value at or below winSilhouette changes nothing." },
+    ],
+  },
+  {
+    id: "other", title: "Прочее · Other", sub: "Assorted UI timings.",
+    fields: [
+      { name: "shakeDuration", type: "float", def: 0.28, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "Length of one screen shake." },
+      { name: "wobbleDuration", type: "float", def: 0.34, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "Length of a wobble." },
+      { name: "numberPop", type: "float", def: 0.22, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "The counter's pop when it changes." },
+      { name: "panelAppear", type: "float", def: 0.30, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "Panel fade-in." },
+      { name: "progressTween", type: "float", def: 0.18, soft: [0.05, 1.5], step: 0.01, unit: "s", help: "Progress bar catching up." },
+    ],
+  },
+];
+
+const FIELDS = GROUPS.flatMap(g => g.fields.map(f => ({ ...f, group: g.id })));
+const FIELD_BY_NAME = Object.fromEntries(FIELDS.map(f => [f.name, f]));
+const FIELD_ORDER = FIELDS.map(f => f.name);
+
+function defaultConfig() {
+  const out = {};
+  for (const f of FIELDS) out[f.name] = f.def;
+  return out;
+}
+
+/* ---------- Unity asset text ---------- */
+
+function normaliseEol(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/**
+ * Splits off the boilerplate preamble, which is copied back verbatim rather
+ * than regenerated: guessing at Unity's bookkeeping is how a file stops
+ * round-tripping.
+ */
+function splitPreamble(text) {
+  const lines = normaliseEol(text).split("\n");
+  const cut = lines.findIndex(l => l.startsWith("  m_EditorClassIdentifier:"));
+  if (cut < 0) throw new Error("Not a Unity ScriptableObject asset: m_EditorClassIdentifier missing");
+  return { preamble: lines.slice(0, cut + 1), body: lines.slice(cut + 1) };
+}
+
+/**
+ * Unity writes floats as the shortest decimal that round-trips through float32.
+ * Reproducing that keeps the diff to the values actually changed.
+ */
+function formatUnityFloat(value) {
+  const f = Math.fround(value);
+  if (Number.isInteger(f)) return String(f);
+  for (let digits = 1; digits <= 9; digits++) {
+    const text = f.toPrecision(digits);
+    if (Math.fround(parseFloat(text)) === f) return String(parseFloat(text));
+  }
+  return String(f);
+}
+
+function parseConfigAsset(text) {
+  const { preamble, body } = splitPreamble(text);
+  const values = {};
+  const order = [];
+  const extra = {};
+
+  for (const line of body) {
+    const m = /^ {2}([A-Za-z_][A-Za-z0-9_]*): (.*)$/.exec(line);
+    if (!m) continue;
+
+    const [, key, raw] = m;
+    order.push(key);
+
+    const field = FIELD_BY_NAME[key];
+    if (!field) { extra[key] = raw; continue; }
+
+    if (field.type === "bool") values[key] = raw.trim() !== "0";
+    else if (field.type === "int") values[key] = parseInt(raw, 10) || 0;
+    else values[key] = parseFloat(raw) || 0;
+  }
+
+  // A field the asset never carried still needs its default, or saving would drop it.
+  for (const f of FIELDS) if (!(f.name in values)) values[f.name] = f.def;
+
+  return { preamble, order, extra, values };
+}
+
+function serialiseValue(name, value) {
+  const field = FIELD_BY_NAME[name];
+  if (!field) return String(value);
+  if (field.type === "bool") return value ? "1" : "0";
+  if (field.type === "int") return String(Math.round(value));
+  return formatUnityFloat(value);
+}
+
+function serialiseConfigAsset(config) {
+  const seen = new Set();
+  const keys = [];
+  for (const key of config.order.concat(FIELD_ORDER)) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    keys.push(key);
+  }
+
+  const out = config.preamble.slice();
+  for (const key of keys) {
+    if (key in config.values) out.push(`  ${key}: ${serialiseValue(key, config.values[key])}`);
+    else if (key in config.extra) out.push(`  ${key}: ${config.extra[key]}`);
+  }
+  return out.join("\n") + "\n";
+}
+
+function newConfigAsset() {
+  return {
+    preamble: [
+      "%YAML 1.1",
+      "%TAG !u! tag:unity3d.com,2011:",
+      "--- !u!114 &11400000",
+      "MonoBehaviour:",
+      "  m_ObjectHideFlags: 0",
+      "  m_CorrespondingSourceObject: {fileID: 0}",
+      "  m_PrefabInstance: {fileID: 0}",
+      "  m_PrefabAsset: {fileID: 0}",
+      "  m_GameObject: {fileID: 0}",
+      "  m_Enabled: 1",
+      "  m_EditorHideFlags: 0",
+      `  m_Script: {fileID: 11500000, guid: ${CONFIG_SCRIPT_GUID}, type: 3}`,
+      "  m_Name: Config",
+      "  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig",
+    ],
+    order: FIELD_ORDER.slice(),
+    extra: {},
+    values: defaultConfig(),
+  };
+}
+
+/* ---------- derived numbers the settings actually produce ---------- */
+
+/**
+ * Everything here mirrors a specific line of runtime code, so the readouts are
+ * facts about the game rather than decoration.
+ */
+function derive(v) {
+  const perimeter = loopPerimeter();
+  const nearestRail = centreToNearestRail();
+
+  // GameController.BiteInterval
+  const biteInterval = v.tongueOut + v.tongueBack + 0.05;
+
+  // GameController.WinSequence: winDelay, then the silhouette, then
+  // max(0, winPanelDelay - winSilhouette) before the panel.
+  const panelExtraWait = Math.max(0, v.winPanelDelay - v.winSilhouette);
+  const winPanelAt = v.winDelay + v.winSilhouette + panelExtraWait;
+
+  const settle = rate => (rate > 0 ? Math.log(100) / rate : Infinity);
+
+  return {
+    perimeter,
+    nearestRail,
+    lapTime: v.railSpeed > 0 ? perimeter / v.railSpeed : Infinity,
+    biteInterval,
+    bitesPerSecond: biteInterval > 0 ? 1 / biteInterval : Infinity,
+    reachMargin: v.biteRange - nearestRail,
+    centreReachable: v.biteRange >= nearestRail,
+    winFlashPeakAt: v.winDelay + v.winFlash * 0.4,
+    winSilhouetteEndsAt: v.winDelay + v.winSilhouette,
+    winPanelAt,
+    panelExtraWait,
+    squashSettle: settle(v.squashDecay),
+    recoilSettle: settle(v.recoilDecay),
+    maxSqueezePercent: 12,
+  };
+}
+
+/** Problems worth stopping for, plus settings that quietly do nothing. */
+function validate(v) {
+  const d = derive(v);
+  const issues = [];
+
+  for (const f of FIELDS) {
+    if (!f.range) continue;
+    const [lo, hi] = f.range;
+    if (v[f.name] < lo || v[f.name] > hi)
+      issues.push({ level: "bad", text: `${f.name} is ${v[f.name]}, outside its [Range(${lo}, ${hi})] — Unity clamps it on load.` });
+  }
+
+  if (!d.centreReachable)
+    issues.push({ level: "bad", text: `biteRange ${v.biteRange} cannot reach the picture's centre (${d.nearestRail} from the nearest rail). The level would stall.` });
+
+  if (v.railSpeed <= 0)
+    issues.push({ level: "bad", text: "railSpeed is 0 — carts never move." });
+
+  if (v.tongueOut + v.tongueBack <= 0)
+    issues.push({ level: "bad", text: "tongueOut + tongueBack is 0 — the bite has no duration." });
+
+  if (v.winPanelDelay <= v.winSilhouette)
+    issues.push({ level: "warn", text: `winPanelDelay (${v.winPanelDelay}) is not above winSilhouette (${v.winSilhouette}), so it changes nothing: the panel already appears when the silhouette ends.` });
+
+  if (v.squashDecay <= 0 || v.recoilDecay <= 0)
+    issues.push({ level: "warn", text: "A decay rate of 0 never settles — the effect stays on screen." });
+
+  if (v.recoilImpulse <= 0)
+    issues.push({ level: "warn", text: "recoilImpulse is 0 — carts show no kick when they bite." });
+
+  if (!issues.length)
+    issues.push({ level: "ok", text: "Nothing out of range, nothing that quietly does nothing." });
+
+  return issues;
+}
+
+/* ---------- C# emit, so tuned numbers can go back to the source ---------- */
+
+function csharpLiteral(field, value) {
+  if (field.type === "bool") return value ? "true" : "false";
+  if (field.type === "int") return String(Math.round(value));
+  const text = formatUnityFloat(value);
+  return text.includes(".") ? `${text}f` : `${text}f`;
+}
+
+function toCSharp(values) {
+  const lines = [];
+  for (const group of GROUPS) {
+    lines.push(`// ${group.title}`);
+    for (const f of group.fields) {
+      const attrs = f.range
+        ? `[Range(${csharpLiteral(f, f.range[0]).replace(/f$/, f.type === "int" ? "" : "f")}, ` +
+          `${csharpLiteral(f, f.range[1]).replace(/f$/, f.type === "int" ? "" : "f")})] `
+        : "";
+      const type = f.type === "bool" ? "bool" : f.type === "int" ? "int" : "float";
+      lines.push(`${attrs}public ${type} ${f.name} = ${csharpLiteral(f, values[f.name])};`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n").trim() + "\n";
+}
+
+/* ==========================================================================
+   SELF-TEST
+   ========================================================================== */
+
+const SAMPLE_CONFIG = `%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ${CONFIG_SCRIPT_GUID}, type: 3}
+  m_Name: Config
+  m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig
+  railSpeed: 64
+  biteRange: 190
+  cartLaunch: 0.5
+  chainDelay: 0.09
+  shakeEvery: 10
+  vibrate: 1
+  tongueOut: 0.42
+  tongueBack: 0.2
+  squashDecay: 9
+  recoilDecay: 11
+  recoilImpulse: 9
+  cartExit: 0.34
+  cartEnter: 0.3
+  emptyToExit: 0.38
+  exitToDock: 0.34
+  queueShift: 0.3
+  winDelay: 0.26
+  loseDelay: 0.34
+  startLoseCheckDelay: 0.4
+  winFlash: 0.5
+  winSilhouette: 1.2
+  winPanelDelay: 1.1
+  shakeDuration: 0.28
+  wobbleDuration: 0.34
+  numberPop: 0.22
+  panelAppear: 0.3
+  progressTween: 0.18
+`;
+
+function runSelfTest() {
+  const results = [];
+  const check = (name, fn) => {
+    try { fn(); results.push({ ok: true, name }); }
+    catch (e) { results.push({ ok: false, name, message: e.message }); }
+  };
+  const eq = (actual, expected, what) => {
+    if (actual !== expected)
+      throw new Error(`${what || "value"}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  };
+  const near = (actual, expected, tol, what) => {
+    if (Math.abs(actual - expected) > tol)
+      throw new Error(`${what}: expected ~${expected}, got ${actual}`);
+  };
+
+  check("config round-trips byte for byte", () => {
+    eq(serialiseConfigAsset(parseConfigAsset(SAMPLE_CONFIG)), SAMPLE_CONFIG, "round trip");
+  });
+
+  check("every field parses with its type", () => {
+    const c = parseConfigAsset(SAMPLE_CONFIG);
+    eq(Object.keys(c.values).length, FIELDS.length, "field count");
+    eq(c.values.railSpeed, 64, "railSpeed");
+    eq(c.values.shakeEvery, 10, "shakeEvery is a number");
+    eq(c.values.vibrate, true, "vibrate is a bool");
+    eq(c.values.tongueBack, 0.2, "tongueBack");
+  });
+
+  check("the sample matches the C# defaults", () => {
+    const c = parseConfigAsset(SAMPLE_CONFIG);
+    for (const f of FIELDS) eq(c.values[f.name], f.def, f.name);
+  });
+
+  check("an edit changes only its own line", () => {
+    const c = parseConfigAsset(SAMPLE_CONFIG);
+    c.values.railSpeed = 72;
+    const before = SAMPLE_CONFIG.split("\n");
+    const after = serialiseConfigAsset(c).split("\n");
+    eq(after.length, before.length, "line count");
+    eq(after.filter((l, i) => l !== before[i]).join("|"), "  railSpeed: 72", "the one changed line");
+  });
+
+  check("bool serialises as 0 / 1", () => {
+    const c = parseConfigAsset(SAMPLE_CONFIG);
+    c.values.vibrate = false;
+    eq(serialiseConfigAsset(c).includes("  vibrate: 0"), true, "false");
+    c.values.vibrate = true;
+    eq(serialiseConfigAsset(c).includes("  vibrate: 1"), true, "true");
+  });
+
+  check("int never picks up a decimal point", () => {
+    const c = parseConfigAsset(SAMPLE_CONFIG);
+    c.values.shakeEvery = 12.7;
+    eq(serialiseConfigAsset(c).includes("  shakeEvery: 13"), true, "rounded");
+  });
+
+  check("float formatting matches Unity", () => {
+    eq(formatUnityFloat(0.2), "0.2", "0.2");
+    eq(formatUnityFloat(0.09), "0.09", "0.09");
+    eq(formatUnityFloat(64), "64", "integer");
+    eq(formatUnityFloat(1 / 3), "0.33333334", "float32 shortest");
+  });
+
+  check("a field missing from the asset gets its default", () => {
+    const stripped = SAMPLE_CONFIG.replace("  progressTween: 0.18\n", "");
+    const c = parseConfigAsset(stripped);
+    eq(c.values.progressTween, 0.18, "filled in");
+    eq(serialiseConfigAsset(c).includes("  progressTween: 0.18"), true, "written back");
+  });
+
+  check("unknown keys survive a round trip", () => {
+    const withExtra = SAMPLE_CONFIG.replace("  railSpeed: 64\n", "  railSpeed: 64\n  futureField: 7\n");
+    const c = parseConfigAsset(withExtra);
+    eq(serialiseConfigAsset(c), withExtra, "untouched");
+  });
+
+  check("a fresh asset is well formed", () => {
+    const text = serialiseConfigAsset(newConfigAsset());
+    eq(text.includes("  railSpeed: 64"), true, "defaults written");
+    eq(serialiseConfigAsset(parseConfigAsset(text)), text, "re-parse stable");
+  });
+
+  check("CRLF input is accepted", () => {
+    eq(serialiseConfigAsset(parseConfigAsset(SAMPLE_CONFIG.replace(/\n/g, "\r\n"))), SAMPLE_CONFIG, "normalised");
+  });
+
+  check("loop geometry matches LoopPath", () => {
+    near(loopPerimeter(), 264 * 2 + 464 * 2 + 4 * (48 * Math.PI / 2), 0.001, "perimeter");
+    eq(boardCentre().x, 195, "centre x");
+    eq(boardCentre().y, 348, "centre y");
+    eq(centreToNearestRail(), 180, "the 180 that biteRange's floor comes from");
+  });
+
+  check("bite interval mirrors GameController", () => {
+    const d = derive(defaultConfig());
+    near(d.biteInterval, 0.42 + 0.20 + 0.05, 1e-9, "tongueOut + tongueBack + 0.05");
+    near(d.bitesPerSecond, 1 / 0.67, 1e-6, "bites per second");
+  });
+
+  check("lap time follows railSpeed", () => {
+    const d = derive({ ...defaultConfig(), railSpeed: 64 });
+    near(d.lapTime, loopPerimeter() / 64, 1e-9, "lap");
+    eq(derive({ ...defaultConfig(), railSpeed: 0 }).lapTime, Infinity, "stopped");
+  });
+
+  check("win panel timing mirrors WinSequence", () => {
+    const d = derive(defaultConfig());
+    // winPanelDelay 1.1 <= winSilhouette 1.2, so the extra wait clamps to zero.
+    near(d.panelExtraWait, 0, 1e-9, "extra wait");
+    near(d.winPanelAt, 0.26 + 1.2, 1e-9, "panel appears when the silhouette ends");
+
+    const later = derive({ ...defaultConfig(), winPanelDelay: 2.0 });
+    near(later.panelExtraWait, 0.8, 1e-9, "extra wait when the delay is longer");
+    near(later.winPanelAt, 0.26 + 2.0, 1e-9, "panel at winDelay + winPanelDelay");
+  });
+
+  check("decay settle time", () => {
+    near(derive(defaultConfig()).squashSettle, Math.log(100) / 9, 1e-9, "squash");
+    eq(derive({ ...defaultConfig(), squashDecay: 0 }).squashSettle, Infinity, "never settles");
+  });
+
+  check("defaults raise no problems", () => {
+    const issues = validate(defaultConfig());
+    eq(issues.some(i => i.level === "bad"), false, "no errors");
+    // winPanelDelay 1.1 vs winSilhouette 1.2 is a real no-op in the shipped defaults.
+    eq(issues.some(i => i.level === "warn" && i.text.includes("winPanelDelay")), true, "the no-op is reported");
+  });
+
+  check("out-of-range values are caught", () => {
+    const issues = validate({ ...defaultConfig(), biteRange: 100 });
+    eq(issues.some(i => i.level === "bad" && i.text.includes("Range(180, 600)")), true, "range");
+    eq(issues.some(i => i.level === "bad" && i.text.includes("cannot reach")), true, "unreachable centre");
+  });
+
+  check("a stopped rail is caught", () => {
+    eq(validate({ ...defaultConfig(), railSpeed: 0 }).some(i => i.text.includes("never move")), true, "stopped");
+  });
+
+  check("C# emit round-trips through the parser", () => {
+    const code = toCSharp(defaultConfig());
+    eq(code.includes("public float railSpeed = 64f;"), true, "float");
+    eq(code.includes("public bool vibrate = true;"), true, "bool");
+    eq(code.includes("public int shakeEvery = 10;"), true, "int");
+    eq(code.includes("[Range(180f, 600f)] public float biteRange = 190f;"), true, "range attribute");
+  });
+
+  return results;
+}
+
+/* ==========================================================================
+   BROWSER LAYER
+   ========================================================================== */
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  dir: null,
+  handle: null,
+  config: null,
+  dirty: false,
+  undo: [],
+  autoSave: false,
+  canWrite: typeof window.showDirectoryPicker === "function",
+};
+
+const values = () => state.config.values;
+
+function setStatus(text, kind) {
+  const el = $("status");
+  el.textContent = text;
+  el.className = kind || "";
+}
+
+function banner(text) {
+  $("banner").textContent = text;
+  $("banner").classList.toggle("show", Boolean(text));
+}
+
+function markDirty() {
+  state.dirty = true;
+  $("btnSave").disabled = false;
+  setStatus("Config.asset — unsaved changes", "dirty");
+  scheduleAutoSave();
+}
+
+/* ---------- auto-save ----------
+   Debounced rather than immediate: a dragged slider fires continuously, and
+   without a delay the file would be rewritten — and reimported by Unity —
+   dozens of times a second. */
+
+const AUTOSAVE_KEY = "frogcart-game-settings-autosave";
+const AUTOSAVE_MS = 600;
+
+let saveTimer = null;
+let saveRunning = false;
+let saveQueued = false;
+
+function scheduleAutoSave() {
+  if (!state.autoSave || !state.dir) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runAutoSave, AUTOSAVE_MS);
+}
+
+async function runAutoSave() {
+  if (!state.autoSave || !state.dir || !state.dirty) return;
+  if (saveRunning) { saveQueued = true; return; }
+  saveRunning = true;
+  try {
+    await save(true);
+  } finally {
+    saveRunning = false;
+    if (saveQueued) { saveQueued = false; scheduleAutoSave(); }
+  }
+}
+
+/** Write now instead of waiting out the debounce — used when focus leaves the page. */
+function flushAutoSave() {
+  if (!state.autoSave) return;
+  clearTimeout(saveTimer);
+  runAutoSave();
+}
+
+function clockNow() {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map(n => String(n).padStart(2, "0")).join(":");
+}
+
+function pushUndo() {
+  state.undo.push(JSON.stringify(values()));
+  if (state.undo.length > 100) state.undo.shift();
+  $("btnUndo").disabled = false;
+}
+
+function undo() {
+  if (!state.undo.length) return;
+  state.config.values = JSON.parse(state.undo.pop());
+  $("btnUndo").disabled = !state.undo.length;
+  markDirty();
+  renderAll();
+}
+
+/* ---------- file access ---------- */
+
+const DB_NAME = "frogcart-game-settings";
+
+function idb(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(DB_NAME, 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("handles");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const tx = open.result.transaction("handles", mode);
+      const request = fn(tx.objectStore("handles"));
+      tx.oncomplete = () => resolve(request && request.result);
+      tx.onerror = () => reject(tx.error);
+    };
+  });
+}
+
+async function openFolder(handle) {
+  try {
+    if (!handle) handle = await window.showDirectoryPicker({ id: "frogcart-data", mode: "readwrite" });
+    if (await handle.requestPermission({ mode: "readwrite" }) !== "granted") {
+      setStatus("Write permission denied.", "err");
+      return;
+    }
+    state.dir = handle;
+    await idb("readwrite", store => store.put(handle, "dir")).catch(() => {});
+    await loadConfig();
+  } catch (e) {
+    if (e.name !== "AbortError") setStatus("Could not open the folder: " + e.message, "err");
+  }
+}
+
+async function loadConfig() {
+  try {
+    state.handle = await state.dir.getFileHandle("Config.asset");
+    state.config = parseConfigAsset(await (await state.handle.getFile()).text());
+    banner("");
+  } catch (e) {
+    if (e.name === "NotFoundError") {
+      state.handle = null;
+      state.config = newConfigAsset();
+      banner("Config.asset is not in this folder. Showing the C# defaults — saving will create the file.");
+    } else {
+      setStatus("Could not read Config.asset: " + e.message, "err");
+      return;
+    }
+  }
+
+  state.dirty = false;
+  state.undo.length = 0;
+  setStatus(`Config.asset from ${state.dir.name}`);
+  renderAll();
+  $("btnSave").disabled = true;
+  $("btnUndo").disabled = true;
+  $("btnResetAll").disabled = false;
+  $("btnCode").disabled = false;
+}
+
+async function save(auto) {
+  if (!state.config) return;
+  const text = serialiseConfigAsset(state.config);
+
+  if (!state.canWrite || !state.dir) {
+    if (auto) return;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([text], { type: "text/yaml" }));
+    link.download = "Config.asset";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    setStatus("Downloaded Config.asset — copy it back into Assets/Game/Data");
+    return;
+  }
+
+  try {
+    if (!state.handle) state.handle = await state.dir.getFileHandle("Config.asset", { create: true });
+    const writable = await state.handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    state.dirty = false;
+    $("btnSave").disabled = true;
+    setStatus(auto ? `Auto-saved at ${clockNow()}` : "Saved Config.asset — switch to Unity to reimport",
+              auto ? "saved" : "");
+  } catch (e) {
+    setStatus("Save failed: " + e.message, "err");
+  }
+}
+
+/* ---------- fields ---------- */
+
+function isChanged(field) {
+  return values()[field.name] !== field.def;
+}
+
+function renderFields() {
+  const host = $("fields");
+  host.textContent = "";
+  if (!state.config) return;
+
+  for (const group of GROUPS) {
+    const section = document.createElement("section");
+    section.className = "group";
+    section.id = "g-" + group.id;
+
+    const title = document.createElement("h2");
+    title.textContent = group.title;
+    section.append(title);
+
+    if (group.sub) {
+      const sub = document.createElement("div");
+      sub.className = "sub";
+      sub.textContent = group.sub;
+      section.append(sub);
+    }
+
+    for (const field of group.fields) section.append(renderField(field));
+    host.append(section);
+  }
+}
+
+function renderField(field) {
+  const box = document.createElement("div");
+  box.className = "field";
+  box.dataset.name = field.name;
+
+  const head = document.createElement("div");
+  head.className = "head";
+  const name = document.createElement("span");
+  name.className = "name";
+  name.textContent = field.name;
+  head.append(name);
+
+  if (field.unit) {
+    const unit = document.createElement("span");
+    unit.className = "unit";
+    unit.textContent = field.unit;
+    head.append(unit);
+  }
+
+  const reset = document.createElement("button");
+  reset.className = "reset";
+  reset.textContent = "reset";
+  reset.title = `Back to the C# default (${field.def})`;
+  reset.onclick = () => { pushUndo(); values()[field.name] = field.def; markDirty(); renderAll(); };
+  head.append(reset);
+  box.append(head);
+
+  if (field.help) {
+    const help = document.createElement("div");
+    help.className = "help";
+    help.textContent = field.help;
+    box.append(help);
+  }
+
+  const ctl = document.createElement("div");
+  ctl.className = "ctl";
+
+  if (field.type === "bool") {
+    const label = document.createElement("label");
+    label.className = "toggle";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(values()[field.name]);
+    input.onchange = () => { pushUndo(); values()[field.name] = input.checked; markDirty(); renderAll(); };
+    const text = document.createElement("span");
+    text.textContent = input.checked ? "on" : "off";
+    label.append(input, text);
+    ctl.append(label);
+  } else {
+    const [lo, hi] = field.range || field.soft;
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = lo; slider.max = hi; slider.step = field.step;
+    slider.value = Math.min(hi, Math.max(lo, values()[field.name]));
+
+    const number = document.createElement("input");
+    number.type = "number";
+    number.step = field.step;
+    number.value = values()[field.name];
+
+    const commit = (raw, fromSlider) => {
+      let v = parseFloat(raw);
+      if (!Number.isFinite(v)) return;
+      if (field.type === "int") v = Math.round(v);
+      // The C# [Range] is authoritative — Unity would clamp it anyway.
+      if (field.range) v = Math.min(field.range[1], Math.max(field.range[0], v));
+      pushUndo();
+      values()[field.name] = v;
+      markDirty();
+      if (fromSlider) { number.value = v; renderReadouts(); markFieldState(); }
+      else renderAll();
+    };
+
+    slider.oninput = () => commit(slider.value, true);
+    number.onchange = () => commit(number.value, false);
+
+    const bounds = document.createElement("span");
+    bounds.className = "bounds";
+    if (field.range) bounds.innerHTML = `<b>[Range ${lo} … ${hi}]</b>`;
+    else bounds.textContent = `slider ${lo} … ${hi}`;
+    bounds.title = field.range
+      ? "Enforced by the C# [Range] attribute — Unity clamps to it."
+      : "Editor-side slider span only; the box takes any value.";
+
+    const was = document.createElement("span");
+    was.className = "was";
+    was.textContent = `default ${field.def}`;
+
+    ctl.append(slider, number, bounds, was);
+  }
+
+  box.append(ctl);
+  if (isChanged(field)) box.classList.add("changed");
+  return box;
+}
+
+function markFieldState() {
+  for (const field of FIELDS) {
+    const box = document.querySelector(`.field[data-name="${field.name}"]`);
+    if (box) box.classList.toggle("changed", isChanged(field));
+  }
+  renderNav();
+}
+
+function renderNav() {
+  const nav = $("nav");
+  nav.textContent = "";
+  for (const group of GROUPS) {
+    const changed = state.config ? group.fields.filter(isChanged).length : 0;
+    const a = document.createElement("a");
+    a.className = changed ? "changed" : "";
+    a.textContent = group.title;
+    if (changed) {
+      const n = document.createElement("span");
+      n.className = "n";
+      n.textContent = `${changed} changed`;
+      a.append(n);
+    }
+    a.onclick = () => $("g-" + group.id).scrollIntoView({ behavior: "smooth", block: "start" });
+    nav.append(a);
+  }
+}
+
+/* ---------- readouts and previews ---------- */
+
+function statLine(host, label, value, level) {
+  const row = document.createElement("div");
+  row.className = "stat" + (level ? " " + level : "");
+  const a = document.createElement("span");
+  a.className = "muted";
+  a.textContent = label;
+  const b = document.createElement("span");
+  b.textContent = value;
+  row.append(a, b);
+  host.append(row);
+}
+
+const secs = v => (Number.isFinite(v) ? v.toFixed(2) + " s" : "never");
+
+function renderReadouts() {
+  if (!state.config) return;
+  const v = values();
+  const d = derive(v);
+
+  const board = $("boardStats");
+  board.textContent = "";
+  statLine(board, "Rail perimeter", d.perimeter.toFixed(0) + " units");
+  statLine(board, "One full lap", secs(d.lapTime), Number.isFinite(d.lapTime) ? "" : "bad");
+  statLine(board, "Centre of picture", d.nearestRail + " from the rail");
+  statLine(board, "Reach margin", (d.reachMargin >= 0 ? "+" : "") + d.reachMargin.toFixed(0) + " units",
+           d.centreReachable ? "" : "bad");
+
+  const tongue = $("tongueStats");
+  tongue.textContent = "";
+  statLine(tongue, "Bite interval", secs(d.biteInterval));
+  statLine(tongue, "Bites per second", d.bitesPerSecond.toFixed(2));
+  statLine(tongue, "Formula", "out + back + 0.05");
+
+  const decay = $("decayStats");
+  decay.textContent = "";
+  statLine(decay, "Squash settles in", secs(d.squashSettle), Number.isFinite(d.squashSettle) ? "" : "warn");
+  statLine(decay, "Recoil settles in", secs(d.recoilSettle), Number.isFinite(d.recoilSettle) ? "" : "warn");
+  statLine(decay, "Max visual squeeze", d.maxSqueezePercent + " %");
+
+  const warn = $("warnings");
+  warn.textContent = "";
+  for (const issue of validate(v)) {
+    const row = document.createElement("div");
+    row.className = issue.level === "bad" ? "bad" : issue.level === "warn" ? "warn" : "ok";
+    row.textContent = (issue.level === "bad" ? "✕ " : issue.level === "warn" ? "! " : "✓ ") + issue.text;
+    warn.append(row);
+  }
+}
+
+/* --- canvas previews, all driven by the live values --- */
+
+function loopPointAt(distance) {
+  const { RL, RR, RT, RB, RAD } = LOOP;
+  const h = (RR - RAD) - (RL + RAD);
+  const v = (RB - RAD) - (RT + RAD);
+  const arc = RAD * Math.PI / 2;
+  const total = loopPerimeter();
+  let s = ((distance % total) + total) % total;
+
+  // Top edge travelling left, then anticlockwise on screen.
+  if (s < h) return { x: (RR - RAD) - s, y: RT };
+  s -= h;
+  if (s < arc) { const t = (s / arc) * (Math.PI / 2); return { x: RL + RAD - Math.sin(t) * RAD, y: RT + RAD - Math.cos(t) * RAD }; }
+  s -= arc;
+  if (s < v) return { x: RL, y: RT + RAD + s };
+  s -= v;
+  if (s < arc) { const t = (s / arc) * (Math.PI / 2); return { x: RL + RAD - Math.cos(t) * RAD, y: RB - RAD + Math.sin(t) * RAD }; }
+  s -= arc;
+  if (s < h) return { x: RL + RAD + s, y: RB };
+  s -= h;
+  if (s < arc) { const t = (s / arc) * (Math.PI / 2); return { x: RR - RAD + Math.sin(t) * RAD, y: RB - RAD + Math.cos(t) * RAD }; }
+  s -= arc;
+  if (s < v) return { x: RR, y: RB - RAD - s };
+  s -= v;
+  const t = (s / arc) * (Math.PI / 2);
+  return { x: RR - RAD + Math.cos(t) * RAD, y: RT + RAD - Math.sin(t) * RAD };
+}
+
+function drawBoard(time) {
+  const canvas = $("cvBoard");
+  const ctx = canvas.getContext("2d");
+  const v = values();
+  const d = derive(v);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const pad = 14;
+  const scale = Math.min((canvas.width - pad * 2) / (LOOP.RR - LOOP.RL + 40),
+                         (canvas.height - pad * 2) / (LOOP.RB - LOOP.RT + 40));
+  const ox = pad + 20 * scale - LOOP.RL * scale;
+  const oy = pad + 20 * scale - LOOP.RT * scale;
+  const P = p => [ox + p.x * scale, oy + p.y * scale];
+
+  // The rail loop.
+  ctx.strokeStyle = "#4a5262";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const steps = 160;
+  for (let i = 0; i <= steps; i++) {
+    const [x, y] = P(loopPointAt(d.perimeter * i / steps));
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  const centre = boardCentre();
+  const [cx, cy] = P(centre);
+
+  // Where the cart is right now, at the configured speed.
+  const cart = loopPointAt(v.railSpeed * time);
+  const [px, py] = P(cart);
+
+  // Reach, drawn to scale — the point of the picture is whether it covers the centre.
+  ctx.fillStyle = d.centreReachable ? "#5bc23622" : "#ef413622";
+  ctx.strokeStyle = d.centreReachable ? "#5bc23688" : "#ef4136aa";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px, py, v.biteRange * scale, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // The 180 floor, as a ring around the centre.
+  ctx.strokeStyle = "#ffffff33";
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, d.nearestRail * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = d.centreReachable ? "#5bc236" : "#ef4136";
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffd52e";
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#8b93a3";
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.fillText("centre", cx + 6, cy - 5);
+}
+
+function drawTongue(time) {
+  const canvas = $("cvTongue");
+  const ctx = canvas.getContext("2d");
+  const v = values();
+  const d = derive(v);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const y = canvas.height / 2;
+  const x0 = 26;
+  const x1 = canvas.width - 26;
+
+  const phase = d.biteInterval > 0 ? (time % d.biteInterval) : 0;
+  let extend = 0;
+  if (phase < v.tongueOut) extend = v.tongueOut > 0 ? phase / v.tongueOut : 1;
+  else if (phase < v.tongueOut + v.tongueBack)
+    extend = v.tongueBack > 0 ? 1 - (phase - v.tongueOut) / v.tongueBack : 0;
+
+  ctx.strokeStyle = "#333844";
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const tip = x0 + (x1 - x0) * extend;
+  ctx.strokeStyle = "#ef4136";
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(tip, y); ctx.stroke();
+
+  ctx.fillStyle = "#5bc236";
+  ctx.beginPath(); ctx.arc(x0, y, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ef4136";
+  ctx.beginPath(); ctx.arc(tip, y, 5, 0, Math.PI * 2); ctx.fill();
+
+  // Phase bar: out, back, then the fixed 0.05 breather.
+  const total = d.biteInterval || 1;
+  const bar = canvas.height - 12;
+  const seg = [[v.tongueOut, "#ef4136"], [v.tongueBack, "#2e93e6"], [0.05, "#4a5262"]];
+  let x = x0;
+  for (const [len, colour] of seg) {
+    const w = (len / total) * (x1 - x0);
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, bar, Math.max(0, w - 1), 4);
+    x += w;
+  }
+  ctx.fillStyle = "#8b93a3";
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.fillText("out", x0, bar - 3);
+  ctx.fillText("back", x0 + (v.tongueOut / total) * (x1 - x0), bar - 3);
+}
+
+function drawWin(time) {
+  const canvas = $("cvWin");
+  const ctx = canvas.getContext("2d");
+  const v = values();
+  const d = derive(v);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const span = Math.max(d.winPanelAt * 1.15, 0.5);
+  const x0 = 8, x1 = canvas.width - 8;
+  const X = t => x0 + (t / span) * (x1 - x0);
+
+  const rows = [
+    { label: "winDelay", from: 0, to: v.winDelay, colour: "#4a5262" },
+    { label: "winFlash", from: v.winDelay, to: v.winDelay + v.winFlash, colour: "#ffd52e" },
+    { label: "winSilhouette", from: v.winDelay, to: d.winSilhouetteEndsAt, colour: "#2e93e6" },
+    { label: "panel", from: d.winPanelAt, to: d.winPanelAt + v.panelAppear, colour: "#5bc236" },
+  ];
+
+  ctx.font = "10px ui-monospace, monospace";
+  rows.forEach((row, i) => {
+    const y = 14 + i * 22;
+    ctx.fillStyle = "#333844";
+    ctx.fillRect(x0, y, x1 - x0, 10);
+    ctx.fillStyle = row.colour;
+    ctx.fillRect(X(row.from), y, Math.max(2, X(row.to) - X(row.from)), 10);
+    ctx.fillStyle = "#dfe3ea";
+    ctx.fillText(row.label, x0 + 2, y - 2);
+  });
+
+  // Playhead, looping over the whole sequence.
+  const head = X(time % span);
+  ctx.strokeStyle = "#ffffff66";
+  ctx.beginPath();
+  ctx.moveTo(head, 6); ctx.lineTo(head, canvas.height - 12); ctx.stroke();
+
+  ctx.fillStyle = "#8b93a3";
+  ctx.fillText(`panel at ${d.winPanelAt.toFixed(2)} s`, x0, canvas.height - 2);
+  if (d.panelExtraWait === 0) {
+    ctx.fillStyle = "#ffd52e";
+    ctx.fillText("winPanelDelay inactive", x1 - 118, canvas.height - 2);
+  }
+}
+
+function drawDecay() {
+  const canvas = $("cvDecay");
+  const ctx = canvas.getContext("2d");
+  const v = values();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const x0 = 8, x1 = canvas.width - 8, yTop = 10, yBot = canvas.height - 16;
+  const span = 1.0;
+
+  ctx.strokeStyle = "#333844";
+  ctx.beginPath(); ctx.moveTo(x0, yBot); ctx.lineTo(x1, yBot); ctx.stroke();
+
+  const curve = (rate, colour) => {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i++) {
+      const t = (i / 120) * span;
+      const value = Math.exp(-rate * t);
+      const x = x0 + (i / 120) * (x1 - x0);
+      const y = yBot - value * (yBot - yTop);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  };
+
+  curve(v.squashDecay, "#5bc236");
+  curve(v.recoilDecay, "#2e93e6");
+
+  ctx.fillStyle = "#8b93a3";
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.fillText("0", x0, canvas.height - 4);
+  ctx.fillText("1 s", x1 - 16, canvas.height - 4);
+  ctx.fillStyle = "#5bc236"; ctx.fillText("squash", x0 + 4, yTop + 8);
+  ctx.fillStyle = "#2e93e6"; ctx.fillText("recoil", x0 + 52, yTop + 8);
+}
+
+let animStart = null;
+
+function frame(now) {
+  if (state.config) {
+    if (animStart === null) animStart = now;
+    const time = (now - animStart) / 1000;
+    drawBoard(time);
+    drawTongue(time);
+    drawWin(time);
+    drawDecay();
+  }
+  requestAnimationFrame(frame);
+}
+
+function renderAll() {
+  renderFields();
+  renderNav();
+  renderReadouts();
+}
+
+/* ---------- wiring ---------- */
+
+function bindUi() {
+  $("btnOpen").onclick = () => openFolder();
+  $("btnSave").onclick = () => save();
+  $("btnUndo").onclick = undo;
+
+  const auto = $("autoSave");
+  auto.checked = localStorage.getItem(AUTOSAVE_KEY) === "1";
+  auto.parentElement.classList.toggle("on", auto.checked);
+  state.autoSave = auto.checked;
+  auto.onchange = () => {
+    state.autoSave = auto.checked;
+    localStorage.setItem(AUTOSAVE_KEY, auto.checked ? "1" : "0");
+    auto.parentElement.classList.toggle("on", auto.checked);
+    if (auto.checked) scheduleAutoSave();
+    else clearTimeout(saveTimer);
+  };
+
+  // Switching to Unity is exactly when the file needs to be on disk already.
+  window.addEventListener("blur", flushAutoSave);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushAutoSave(); });
+
+  $("btnResetAll").onclick = () => {
+    pushUndo();
+    state.config.values = defaultConfig();
+    markDirty();
+    renderAll();
+    setStatus("All fields back to the C# defaults — not saved yet", "dirty");
+  };
+
+  $("btnCode").onclick = () => {
+    $("codeOut").textContent = toCSharp(values());
+    $("codeDlg").showModal();
+  };
+  $("codeCopy").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($("codeOut").textContent);
+      $("codeCopy").textContent = "Copied";
+      setTimeout(() => { $("codeCopy").textContent = "Copy"; }, 1200);
+    } catch { $("codeCopy").textContent = "Select it manually"; }
+  };
+  $("codeClose").onclick = () => $("codeDlg").close();
+
+  $("btnTests").onclick = () => {
+    const results = runSelfTest();
+    const failed = results.filter(r => !r.ok);
+    $("testOut").textContent = results
+      .map(r => (r.ok ? "PASS  " : "FAIL  ") + r.name + (r.ok ? "" : "\n        " + r.message))
+      .join("\n") + `\n\n${results.length - failed.length}/${results.length} passed`;
+    $("testDlg").showModal();
+  };
+  $("testClose").onclick = () => $("testDlg").close();
+
+  document.onkeydown = e => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const key = e.key.toLowerCase();
+    if (key === "s") { e.preventDefault(); save(); }
+    else if (key === "z") { e.preventDefault(); undo(); }
+  };
+
+  window.onbeforeunload = e => {
+    flushAutoSave();
+    if (state.dirty) e.preventDefault();
+  };
+}
+
+async function boot() {
+  bindUi();
+  requestAnimationFrame(frame);
+
+  if (!state.canWrite) {
+    banner("This browser has no File System Access API — open in Chrome or Edge to edit the file in place. " +
+           "Saving falls back to a download.");
+    $("btnOpen").disabled = true;
+  }
+
+  // A handle stored last session usually still carries permission, so the tool
+  // reopens where you left it instead of asking for the folder every time.
+  try {
+    const handle = await idb("readonly", store => store.get("dir"));
+    if (handle && (await handle.queryPermission({ mode: "readwrite" })) === "granted") {
+      state.dir = handle;
+      await loadConfig();
+    } else if (handle) {
+      setStatus("Click “Open Data folder…” to reconnect.");
+    }
+  } catch { /* first run, or the handle went stale */ }
+}
+
+boot();
+</script>
+</body>
+</html>

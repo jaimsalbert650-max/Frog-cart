@@ -121,8 +121,21 @@ public static class FrogCartSetup
             throw new System.InvalidOperationException($"Сборка не удалась: {summary.result}");
     }
 
+    /// <summary>
+    /// Палитра создаётся один раз и дальше живёт своей жизнью: её правит веб-редактор
+    /// (tools/level-editor), и пересборка ассетов не имеет права затирать эти правки.
+    /// Список ниже — первичное заполнение, а не источник истины. Чтобы вернуть
+    /// заводские цвета, удалите Palette.asset и запустите пересборку снова.
+    /// </summary>
     static ColorPalette CreatePalette()
     {
+        var existing = AssetDatabase.LoadAssetAtPath<ColorPalette>($"{DataDir}/Palette.asset");
+        if (existing != null)
+        {
+            Debug.Log("[FrogCartSetup] Palette.asset уже есть — оставлен как есть.");
+            return existing;
+        }
+
         var palette = ScriptableObject.CreateInstance<ColorPalette>();
 
         palette.SetAll(new[]
@@ -162,8 +175,26 @@ public static class FrogCartSetup
         return color;
     }
 
+    /// <summary>
+    /// Как и палитра, конфиг создаётся один раз. Его крутят в вебе
+    /// (tools/game-settings), и пересборка не должна сбрасывать настройку
+    /// обратно к значениям полей GameConfig. Заводские числа вернутся, если
+    /// удалить Config.asset и запустить пересборку снова.
+    ///
+    /// Числа по-прежнему живут в спеке: настроил в вебе — перенеси обратно
+    /// в GameConfig.cs и docs/unity-spec кнопкой «Copy as C#».
+    /// </summary>
     static GameConfig CreateConfig()
-        => Save(ScriptableObject.CreateInstance<GameConfig>(), $"{DataDir}/Config.asset");
+    {
+        var existing = AssetDatabase.LoadAssetAtPath<GameConfig>($"{DataDir}/Config.asset");
+        if (existing != null)
+        {
+            Debug.Log("[FrogCartSetup] Config.asset уже есть — оставлен как есть.");
+            return existing;
+        }
+
+        return Save(ScriptableObject.CreateInstance<GameConfig>(), $"{DataDir}/Config.asset");
+    }
 
     static LevelData.CartDef[] LoopCarts() => new[]
     {

@@ -469,9 +469,9 @@ namespace FrogCart.Runtime
         /// </summary>
         public int DepartingCount { get; private set; }
 
-        public void Depart(int index, Vector2 toSpec, float duration)
+        public float Depart(int index, Vector2 toSpec, float toAngleDeg, float duration)
         {
-            if (index < 0 || index >= _minis.Count) return;
+            if (index < 0 || index >= _minis.Count) return 0f;
 
             // Уезжает сама мини-вагонетка, а не её копия: копию пришлось бы держать
             // поверх пула, а пул тут же перекладывается — два объекта спорили бы за
@@ -493,28 +493,53 @@ namespace FrogCart.Runtime
             // дуги: sin(t*PI) при t > 1 уходит в минус, дуга схлопывается, и
             // вагонетка вместо полёта ныряет под доску. На снимках это выглядело
             // так, будто выезда нет вовсе.
+            var toRotation = Space3D.RotationFromSpecAngle(toAngleDeg);
+
             _tween.Run(duration, null,
                 t =>
                 {
                     if (leaving.Root == null) return;
 
+                    // По горизонтали — с замедлением к концу: бросок начинается
+                    // резко и мягко доводится до места. Равномерное движение
+                    // читалось перемещением фишки, а не выездом.
+                    float travel = 1f - (1f - t) * (1f - t);
+
                     // Высота дуги зажата с двух сторон, и обе границы настоящие.
                     // Снизу — доска: путь к дальнему месту проходит прямо над ней.
                     // Сверху — кадрируемый объём, у него потолок 112 (11.2 мира),
                     // и выше этого вагонетка уходит за верхний край экрана.
-                    Vector3 point = Vector3.Lerp(from, to, t);
-                    point.y += Mathf.Sin(t * Mathf.PI) * Space3D.Size(70f);
+                    Vector3 point = Vector3.Lerp(from, to, travel);
+                    point.y += Mathf.Sin(t * Mathf.PI) * Space3D.Size(90f);
                     leaving.Root.position = point;
 
-                    // К концу пути истончается: на контуре её место занимает
-                    // настоящая вагонетка, и две одинаковые в одной точке видны.
-                    leaving.Root.localScale = Vector3.one * Mathf.Lerp(fromScale, 0.15f, t * t);
+                    // Размер сводится к размеру вагонетки на контуре, а не к нулю.
+                    // Раньше она истончалась до 0.15 — это пряталось от того, что
+                    // на рельсе уже стояла вторая такая же. Теперь та появляется
+                    // только в момент приземления, и прятать нечего.
+                    float scale = Mathf.Lerp(fromScale, 1f, travel);
+
+                    // Приседание на взлёте и на приземлении: по вертикали сжимается,
+                    // по горизонтали расходится. Это и читается как «оттолкнулась».
+                    float crouch = Mathf.Sin(t * Mathf.PI * 2f) * 0.12f;
+                    leaving.Root.localScale = new Vector3(scale * (1f + crouch),
+                                                          scale * (1f - crouch),
+                                                          scale * (1f + crouch));
+
+                    // Доворот к направлению рельса — вагонетка приземляется вдоль
+                    // пути, а не поперёк. Плюс задранный нос в полёте, который
+                    // выравнивается к посадке.
+                    leaving.Root.rotation =
+                        Quaternion.Slerp(Quaternion.identity, toRotation, travel)
+                      * Quaternion.Euler(-Mathf.Sin(t * Mathf.PI) * 16f, 0f, 0f);
                 },
                 () =>
                 {
                     DepartingCount--;
                     if (leaving.Root != null) Object.Destroy(leaving.Root.gameObject);
                 });
+
+            return duration;
         }
 
         /// <summary>Где сейчас уезжающая вагонетка — для проверки, что она правда едет.</summary>

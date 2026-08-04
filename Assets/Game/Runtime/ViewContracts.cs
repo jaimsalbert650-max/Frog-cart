@@ -100,7 +100,12 @@ namespace FrogCart.Runtime
         /// тот же миг появлялась на рельсе. Связи между тем, куда ткнули, и тем, что
         /// поехало, на экране не было.
         /// </summary>
-        void Depart(int index, UnityEngine.Vector2 toSpec, float duration);
+        /// <summary>
+        /// Возвращает, сколько на самом деле займёт выезд. Ноль означает «не показываю»:
+        /// плоская раскладка выезда не рисует, и контроллеру нужно знать это, чтобы не
+        /// держать вагонетку невидимой в ожидании полёта, которого не будет.
+        /// </summary>
+        float Depart(int index, UnityEngine.Vector2 toSpec, float toAngleDeg, float duration);
     }
 
     public interface IFlashOverlay

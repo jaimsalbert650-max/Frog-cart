@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Data.GameConfig
   railSpeed: 34
   biteRange: 190
+  cartLaunch: 0.5
   chainDelay: 0.09
   shakeEvery: 10
   vibrate: 1

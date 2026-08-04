@@ -310,16 +310,16 @@ namespace FrogCart.Runtime
             if (slot < 0) return false;
 
             // Выезд показывается до того, как вагонетка выпадет из списка: очередь
-            // должна успеть снять с её места копию, которая и поедет на контур.
+            // должна успеть снять её со своего места, чтобы она поехала на контур.
             // Иначе ход игрока не виден — вагонетка исчезает здесь и появляется там.
-            Sample(slot, out var slotPos, out _);
-            Queue.Depart(index - _queueIndex, slotPos, Config.cartEnter);
+            Sample(slot, out var slotPos, out float slotAngle);
+            float flight = Queue.Depart(index - _queueIndex, slotPos, slotAngle, Config.cartLaunch);
 
             // Из середины очереди брать можно: игрок сам решает, какой цвет нужен
             // сейчас. Взятая вагонетка выпадает из списка, остальные сдвигаются.
             _queue.RemoveAt(index);
 
-            DockCart(slot, def);
+            DockCart(slot, def, flight);
             Queue.Rebuild(_queue, _queueIndex);
             return true;
         }
@@ -332,7 +332,7 @@ namespace FrogCart.Runtime
             return -1;
         }
 
-        void DockCart(int slot, LevelData.CartDef def)
+        void DockCart(int slot, LevelData.CartDef def, float flight)
         {
             _slots[slot] = new Slot
             {
@@ -358,11 +358,34 @@ namespace FrogCart.Runtime
 
             Tongues[slot].Stop();
 
-            StartCoroutine(EnterSlot(slot));
+            StartCoroutine(EnterSlot(slot, flight));
         }
 
-        IEnumerator EnterSlot(int slot)
+        /// <summary>
+        /// Появление вагонетки на контуре.
+        ///
+        /// Если очередь показывает выезд, вагонетка всё это время невидима
+        /// (EnterT = 1) и возникает ровно в момент приземления. Отдельная анимация
+        /// появления ей тогда не нужна — ею и был полёт; остаётся удар о рельс.
+        ///
+        /// Если выезда нет — так в плоской раскладке, — работает прежнее появление
+        /// масштабом, иначе вагонетка возникала бы из ниоткуда рывком.
+        /// </summary>
+        IEnumerator EnterSlot(int slot, float flight)
         {
+            for (float waited = 0f; waited < flight; )
+            {
+                if (State != GameState.Pause) waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (flight > 0f)
+            {
+                _slots[slot].EnterT = 0f;
+                _slots[slot].Squash = 1f;
+                yield break;
+            }
+
             float elapsed = 0f;
 
             while (elapsed < Config.cartEnter)

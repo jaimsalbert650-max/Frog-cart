@@ -16,66 +16,116 @@ namespace FrogCart.Runtime
     public sealed class Queue3DView : MonoBehaviour, IQueueView
     {
         /// <summary>
-        /// Мест в ряду очереди. Было пять — по числу вагонеток на контуре из спеки.
-        /// Теперь вагонетки уровня целиком лежат в очереди, и на уровне 106 их семь,
-        /// поэтому ряд рассчитан на девять: столько же, сколько цветов в палитре.
-        /// </summary>
-        /// <summary>
-        /// Очередь стоит столбиками, а не одной шеренгой.
+        /// Очередь стоит вразброс и целиком, а не строем и не первыми пятнадцатью.
         ///
-        /// Шеренгой она упиралась в ширину экрана: девять мест по 42 занимали
-        /// почти всю его ширину, и больше уже не помещалось. Столбиками на том же
-        /// месте помещается пятнадцать, и видно, что за передними кто-то стоит —
-        /// когда переднюю забирают, задние подъезжают ближе.
+        /// Шеренгой она упиралась в ширину экрана, столбиками помещалось пятнадцать,
+        /// но и то и другое читалось как склад, а не как толпа ждущих. А главное —
+        /// остальные были не видны вовсе, хотя выбор игрока в том и состоит, чтобы
+        /// смотреть, кто есть в запасе.
+        ///
+        /// Поэтому мест столько, сколько вагонеток на уровне, а раскладка —
+        /// подрагивающая сетка: строгая сетка внутри, случайное на вид смещение
+        /// поверх. Настоящей случайности здесь нет, смещение считается от номера
+        /// места, иначе уровень выглядел бы по-разному при каждом запуске.
         /// </summary>
-        const int Columns = 5;
-        const int Depth = 3;
-        const int Visible = Columns * Depth;
+        const float AreaLeft = 24f;
+        const float AreaRight = 366f;
+        const float AreaTop = 652f;
+        const float AreaBottom = 800f;
 
-        const float SlotY = 664f;    // spec-координата переднего ряда очереди
-        const float Step = 56f;      // шаг между столбиками
         /// <summary>
-        /// Шаг вглубь. Считается не от корпуса вагонетки, а от таблички с ёмкостью:
-        /// она висит над вагонеткой, и при шаге по корпусу (42) её закрывала соседка
-        /// из ближнего ряда — числа читались только у последнего ряда, то есть
-        /// очередь переставала быть выбором.
+        /// Потолок на число мини-вагонеток. Не про вкус, а про здравый смысл:
+        /// на 116 вагонетках уровня 283 их и так не разглядеть, а строить тысячу
+        /// объектов из-за кривых данных не нужно.
         /// </summary>
-        const float RowStep = 56f;
-        const float DockCenterX = 195f;
+        const int MaxMinis = 128;
+
+        /// <summary>
+        /// Доля клетки, на которую место может уехать от центра.
+        ///
+        /// 0.28 давало живой разброс, но соседи сходились вплотную и таблички с
+        /// ёмкостью наезжали друг на друга — числа переставали читаться, а ради них
+        /// очередь и показывают. 0.18 держит строй достаточно рыхлым, чтобы он не
+        /// выглядел сеткой, и достаточно ровным, чтобы всё было видно.
+        /// </summary>
+        const float Jitter = 0.18f;
 
         /// <summary>Цвет ледяной таблички — тот же, что у вагонеток на контуре.</summary>
         static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
 
         /// <summary>
-        /// Место слота на доке. Ряд центрируется по числу занятых слотов, а не
-        /// выкладывается от левого края: на уровне с тремя вагонетками в очереди
-        /// ряд жался к левому краю и выглядел обрубленным.
+        /// Сколько столбиков и рядов нужно, чтобы разложить столько мест по площадке.
+        /// Считается от её пропорций, поэтому места распределяются равномерно, а не
+        /// вытягиваются в длинную ленту.
         /// </summary>
-        /// <summary>
-        /// Место слота в spec-координатах. Заполнение идёт **по столбикам**:
-        /// первые <see cref="Depth"/> мест — передний столбик сверху вниз, затем
-        /// следующий. Так забранная вагонетка освобождает место в своём столбике,
-        /// и задние подъезжают вперёд, а не разъезжаются по всей ширине.
-        /// </summary>
-        static Vector2 SlotPos(int index, int count)
+        static void GridFor(int places, out int columns, out int rows)
         {
-            int column = index / Depth;
-            int row = index % Depth;
+            places = Mathf.Max(places, 1);
 
-            return new Vector2(DockCenterX - (UsedColumns(count) - 1) * Step * 0.5f + column * Step,
-                               SlotY + row * RowStep);
+            float aspect = (AreaRight - AreaLeft) / (AreaBottom - AreaTop);
+            columns = Mathf.Clamp(Mathf.CeilToInt(Mathf.Sqrt(places * aspect)), 1, places);
+            rows = Mathf.CeilToInt(places / (float)columns);
         }
 
-        /// <summary>Сколько столбиков занято — очередь центруется по ним, а не по пустым.</summary>
-        static int UsedColumns(int count)
-            => Mathf.Clamp(Mathf.CeilToInt(count / (float)Depth), 1, Columns);
+        /// <summary>
+        /// Место в spec-координатах: центр клетки плюс смещение, считанное от номера.
+        ///
+        /// Раскладка берётся от **начального** числа вагонеток уровня, а не от
+        /// текущего. Иначе каждый забранный кубик пересчитывал бы всю толпу, и она
+        /// перетасовывалась бы целиком на каждый ход; так же места просто сдвигаются
+        /// на одно, и соседи подходят ближе.
+        /// </summary>
+        static Vector2 SlotPos(int index, int places)
+        {
+            GridFor(places, out int columns, out int rows);
 
-        /// <summary>Сколько мест занято в конкретном столбике.</summary>
-        static int RowsInColumn(int column, int count)
-            => Mathf.Clamp(count - column * Depth, 0, Depth);
+            float cellW = (AreaRight - AreaLeft) / columns;
+            float cellH = (AreaBottom - AreaTop) / rows;
+
+            int column = index % columns;
+            int row = index / columns;
+
+            return new Vector2(
+                AreaLeft + (column + 0.5f) * cellW + Wobble(index, 17) * cellW * Jitter,
+                AreaTop + (row + 0.5f) * cellH + Wobble(index, 31) * cellH * Jitter);
+        }
+
+        /// <summary>
+        /// Смещение в диапазоне -1..1, одинаковое при каждом запуске.
+        ///
+        /// Случайность здесь была бы ошибкой: уровень выглядел бы по-разному при
+        /// каждом входе, а сравнить два кадра между сборками стало бы нечем.
+        /// </summary>
+        static float Wobble(int index, int salt)
+        {
+            unchecked
+            {
+                int hash = (index + 1) * salt * 1103515245 + 12345;
+                hash ^= hash >> 13;
+
+                return (hash & 1023) / 511.5f - 1f;
+            }
+        }
+
+        /// <summary>
+        /// Мельче ли делать вагонетки, чтобы они помещались. На двух десятках
+        /// масштаб остаётся единичным, на сотне с лишним — падает, иначе толпа
+        /// слипается в кашу.
+        /// </summary>
+        static float MiniScale(int places)
+        {
+            GridFor(places, out int columns, out int rows);
+
+            float cellW = (AreaRight - AreaLeft) / columns;
+            float cellH = (AreaBottom - AreaTop) / rows;
+
+            // 56 на 52 — габарит мини-вагонетки вместе с табличкой и запасом под
+            // разброс. По голому корпусу (52 на 46) соседи сходились вплотную.
+            return Mathf.Clamp(Mathf.Min(cellW / 56f, cellH / 52f), 0.35f, 1f);
+        }
 
         static int VisibleCount(List<LevelData.CartDef> queue, int startIndex)
-            => Mathf.Clamp(queue.Count - startIndex, 0, Visible);
+            => Mathf.Clamp(queue.Count - startIndex, 0, MaxMinis);
 
         sealed class Mini
         {
@@ -86,7 +136,14 @@ namespace FrogCart.Runtime
             public GameObject Ice;
         }
 
-        readonly Mini[] _minis = new Mini[Visible];
+        readonly List<Mini> _minis = new List<Mini>();
+
+        /// <summary>
+        /// Сколько мест в раскладке. Берётся по самой длинной очереди, какую
+        /// показывали, и больше не уменьшается: раскладка обязана быть устойчивой,
+        /// иначе толпа перетасовывается на каждый ход.
+        /// </summary>
+        int _places;
         readonly Dictionary<Text, Image> _plateImages = new Dictionary<Text, Image>();
         ColorPalette _palette;
         Tweener _tween;
@@ -102,83 +159,18 @@ namespace FrogCart.Runtime
             _root = new GameObject("Queue3D").transform;
             _root.SetParent(parent, false);
 
-            BuildDockRail();
-
-            for (int i = 0; i < Visible; i++) _minis[i] = BuildMini(i);
+            // Дока больше нет: короткий рельс имел смысл под шеренгой, а под толпой
+            // вразброс он превращался в доску, торчащую из-под ног у половины.
+            // Вагонетки стоят прямо на столе, как и полагается ждущим.
         }
 
         /// <summary>
-        /// Короткий прямой рельс под очередью — чтобы вагонетки не висели в воздухе.
-        ///
-        /// Меши строятся на условную длину 400, а реальная длина задаётся масштабом
-        /// в <see cref="FitDock"/>: док обязан быть ровно под занятыми слотами.
-        /// Фиксированные 400 торчали из-под контура рельсов пустой доской.
+        /// Мини-вагонетки строятся под фактическую длину очереди, а не под
+        /// фиксированное число мест: сколько вагонеток у уровня, столько и видно.
         /// </summary>
-        const float DockMeshLength = 400f;
-
-        /// <summary>Части дока по рядам: свой отрезок пути под каждым рядом очереди.</summary>
-        readonly List<Transform>[] _dockRows = new List<Transform>[Depth];
-
-        void BuildDockRail()
+        void EnsurePool(int count)
         {
-            for (int row = 0; row < Depth; row++)
-            {
-                _dockRows[row] = new List<Transform>();
-                float y = SlotY + row * RowStep + 6f;
-
-                var plank = NewPiece($"DockPlank{row}", _root,
-                    ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(4f), Space3D.Size(34f),
-                                        Space3D.Size(3f), "dockPlank3D"),
-                    ProcMesh.Glossy(ProcSprite.Hex("9A6A38"), "mat_dockPlank", 0.1f));
-                plank.transform.position = Space3D.ToWorld(DockCenterX, y, Space3D.Size(1f));
-                _dockRows[row].Add(plank.transform);
-
-                foreach (float offset in new[] { -8f, 8f })
-                {
-                    var rail = NewPiece($"DockRail{row}_{offset}", _root,
-                        ProcMesh.RoundedBox(Space3D.Size(DockMeshLength), Space3D.Size(3f), Space3D.Size(3f),
-                                            Space3D.Size(1f), "dockRail3D"),
-                        ProcMesh.Metal(ProcSprite.Hex("CFD6DA"), "mat_rail"));
-                    rail.transform.position =
-                        Space3D.ToWorld(DockCenterX, y + offset, Space3D.Size(3f));
-                    _dockRows[row].Add(rail.transform);
-                }
-            }
-
-            FitDock(Visible);
-        }
-
-        /// <summary>Сколько столбиков дотягиваются до этого ряда.</summary>
-        static int ColumnsInRow(int row, int count)
-            => count > row ? (count - 1 - row) / Depth + 1 : 0;
-
-        /// <summary>
-        /// Каждый ряд дока подгоняется под свои занятые места и прячется, когда их
-        /// нет. Фиксированная длина торчала бы из-под очереди пустой доской —
-        /// на неполном ряду это особенно заметно.
-        /// </summary>
-        void FitDock(int count)
-        {
-            for (int row = 0; row < Depth; row++)
-            {
-                int columns = ColumnsInRow(row, count);
-                bool has = columns > 0;
-
-                float length = has ? (columns - 1) * Step + 68f : 0f;
-                float centerX = has
-                    ? (SlotPos(row, count).x + SlotPos(row + (columns - 1) * Depth, count).x) * 0.5f
-                    : DockCenterX;
-
-                foreach (var part in _dockRows[row])
-                {
-                    part.gameObject.SetActive(has);
-                    part.localScale = new Vector3(length / DockMeshLength, 1f, 1f);
-
-                    var position = part.position;
-                    position.x = Space3D.ToWorld(centerX, 0f).x;
-                    part.position = position;
-                }
-            }
+            while (_minis.Count < count) _minis.Add(BuildMini(_minis.Count));
         }
 
         Mini BuildMini(int index)
@@ -187,7 +179,7 @@ namespace FrogCart.Runtime
 
             var root = new GameObject($"QueueCart_{index}").transform;
             root.SetParent(_root, false);
-            root.position = Space3D.ToWorld(SlotPos(index, Visible));
+            root.position = Space3D.ToWorld(SlotPos(index, Mathf.Max(_places, index + 1)));
             mini.Root = root;
 
             // Корпус ужат под шаг 42: при прежних 1.2 вагонетка шириной 53
@@ -384,33 +376,50 @@ namespace FrogCart.Runtime
         int _shown;
 
         /// <summary>
-        /// Номер слота под точкой, или -1. Считается по расстоянию до центра слота:
-        /// коллайдеров у очереди нет, а слоты стоят ровным рядом с известным шагом.
+        /// Номер слота под точкой, или -1. Коллайдеров у очереди нет, поэтому
+        /// попадание считается по расстоянию до места.
+        ///
+        /// Ищем ближайшее, а не первое подходящее: места стоят вразброс и на плотной
+        /// толпе перекрываются, и «первое в списке» отдавало бы соседа, а не того,
+        /// по кому ткнули.
         /// </summary>
         public int SlotAt(Vector2 spec, float radius)
         {
+            int best = -1;
+            float bestDistance = radius * radius;
+
             for (int i = 0; i < _shown; i++)
             {
-                var center = SlotPos(i, _shown);
-                if (Vector2.SqrMagnitude(spec - center) <= radius * radius) return i;
+                float distance = Vector2.SqrMagnitude(spec - SlotPos(i, _places));
+                if (distance > bestDistance) continue;
+
+                bestDistance = distance;
+                best = i;
             }
 
-            return -1;
+            return best;
         }
 
         public void Rebuild(List<LevelData.CartDef> queue, int startIndex)
         {
             int count = VisibleCount(queue, startIndex);
             _shown = count;
-            FitDock(count);
 
-            for (int i = 0; i < Visible; i++)
+            // Раскладка запоминается по самой длинной очереди: она не должна
+            // пересчитываться на каждый забранный кубик, иначе толпа перетасуется.
+            _places = Mathf.Max(_places, count);
+            EnsurePool(count);
+
+            float scale = MiniScale(_places);
+
+            for (int i = 0; i < _minis.Count; i++)
             {
                 int source = startIndex + i;
-                bool has = source < queue.Count;
+                bool has = source < queue.Count && i < count;
 
                 _minis[i].Root.gameObject.SetActive(has);
-                _minis[i].Root.position = Space3D.ToWorld(SlotPos(i, count));
+                _minis[i].Root.position = Space3D.ToWorld(SlotPos(i, _places));
+                _minis[i].Root.localScale = Vector3.one * scale;
 
                 if (!has) continue;
 
@@ -442,21 +451,20 @@ namespace FrogCart.Runtime
         /// <summary>Сдвиг влево за 0.30 c с ease back, затем пересборка — как в спеке.</summary>
         public void Shift(List<LevelData.CartDef> queue, int startIndex, float duration)
         {
-            var from = new Vector3[Visible];
-            for (int i = 0; i < Visible; i++) from[i] = _minis[i].Root.position;
-
-            int count = VisibleCount(queue, startIndex);
+            int pool = _minis.Count;
+            var from = new Vector3[pool];
+            for (int i = 0; i < pool; i++) from[i] = _minis[i].Root.position;
 
             _tween.Run(duration, Tweener.QueueShift,
                 t =>
                 {
-                    for (int i = 0; i < Visible; i++)
+                    for (int i = 0; i < pool; i++)
                     {
-                        // Слот уезжает на место предыдущего: нулевой уходит вперёд
-                        // с дока, остальные подтягиваются — задние в своём столбике
-                        // подъезжают ближе, а первый из следующего столбика
-                        // перебирается в освободившийся хвост предыдущего.
-                        Vector3 target = Space3D.ToWorld(SlotPos(i - 1, count));
+                        // Каждый занимает место предыдущего: забранный уходит вперёд,
+                        // остальные подтягиваются на одно. Раскладка при этом не
+                        // пересчитывается, поэтому подходят ближе именно соседи, а не
+                        // перетасовывается вся толпа.
+                        Vector3 target = Space3D.ToWorld(SlotPos(i - 1, _places));
                         _minis[i].Root.position = Vector3.Lerp(from[i], target, t);
                     }
                 },

@@ -172,6 +172,15 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>
+        /// Плоская версия выезд не показывает.
+        ///
+        /// Пустой метод здесь честнее заглушки с анимацией: в плоской раскладке
+        /// очередь и контур лежат в одной плоскости и вагонетка «выезжала» бы
+        /// скольжением по экрану, а не выездом. Объём для того и делался.
+        /// </summary>
+        public void Depart(int index, Vector2 toSpec, float duration) { }
+
         /// <summary>Сдвиг очереди влево за 0.30 c с ease back, затем пересборка.</summary>
         public void Shift(List<LevelData.CartDef> queue, int startIndex, float duration)
         {

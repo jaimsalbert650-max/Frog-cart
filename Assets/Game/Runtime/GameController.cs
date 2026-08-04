@@ -309,6 +309,12 @@ namespace FrogCart.Runtime
             int slot = FindFreeSlot();
             if (slot < 0) return false;
 
+            // Выезд показывается до того, как вагонетка выпадет из списка: очередь
+            // должна успеть снять с её места копию, которая и поедет на контур.
+            // Иначе ход игрока не виден — вагонетка исчезает здесь и появляется там.
+            Sample(slot, out var slotPos, out _);
+            Queue.Depart(index - _queueIndex, slotPos, Config.cartEnter);
+
             // Из середины очереди брать можно: игрок сам решает, какой цвет нужен
             // сейчас. Взятая вагонетка выпадает из списка, остальные сдвигаются.
             _queue.RemoveAt(index);

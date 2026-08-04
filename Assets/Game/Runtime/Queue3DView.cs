@@ -40,15 +40,6 @@ namespace FrogCart.Runtime
         /// </summary>
         const int MaxMinis = 128;
 
-        /// <summary>
-        /// Доля клетки, на которую место может уехать от центра.
-        ///
-        /// 0.28 давало живой разброс, но соседи сходились вплотную и таблички с
-        /// ёмкостью наезжали друг на друга — числа переставали читаться, а ради них
-        /// очередь и показывают. 0.18 держит строй достаточно рыхлым, чтобы он не
-        /// выглядел сеткой, и достаточно ровным, чтобы всё было видно.
-        /// </summary>
-        const float Jitter = 0.18f;
 
         /// <summary>Цвет ледяной таблички — тот же, что у вагонеток на контуре.</summary>
         static readonly Color IceColor = new Color(0.71f, 0.90f, 0.98f, 1f);
@@ -68,12 +59,16 @@ namespace FrogCart.Runtime
         }
 
         /// <summary>
-        /// Место в spec-координатах: центр клетки плюс смещение, считанное от номера.
+        /// Место в spec-координатах — центр клетки ровной сетки.
+        ///
+        /// Пробовал разброс: живее, но таблички с ёмкостью наезжали друг на друга,
+        /// а числа на них и есть весь смысл очереди. Ровные ряды читаются лучше и
+        /// совпадают с подачей оригинала.
         ///
         /// Раскладка берётся от **начального** числа вагонеток уровня, а не от
-        /// текущего. Иначе каждый забранный кубик пересчитывал бы всю толпу, и она
-        /// перетасовывалась бы целиком на каждый ход; так же места просто сдвигаются
-        /// на одно, и соседи подходят ближе.
+        /// текущего. Иначе каждый забранный кубик пересчитывал бы всю сетку, и она
+        /// перекладывалась бы целиком на каждый ход; так же места просто сдвигаются
+        /// на одно, и задние подходят ближе.
         /// </summary>
         static Vector2 SlotPos(int index, int places)
         {
@@ -85,26 +80,8 @@ namespace FrogCart.Runtime
             int column = index % columns;
             int row = index / columns;
 
-            return new Vector2(
-                AreaLeft + (column + 0.5f) * cellW + Wobble(index, 17) * cellW * Jitter,
-                AreaTop + (row + 0.5f) * cellH + Wobble(index, 31) * cellH * Jitter);
-        }
-
-        /// <summary>
-        /// Смещение в диапазоне -1..1, одинаковое при каждом запуске.
-        ///
-        /// Случайность здесь была бы ошибкой: уровень выглядел бы по-разному при
-        /// каждом входе, а сравнить два кадра между сборками стало бы нечем.
-        /// </summary>
-        static float Wobble(int index, int salt)
-        {
-            unchecked
-            {
-                int hash = (index + 1) * salt * 1103515245 + 12345;
-                hash ^= hash >> 13;
-
-                return (hash & 1023) / 511.5f - 1f;
-            }
+            return new Vector2(AreaLeft + (column + 0.5f) * cellW,
+                               AreaTop + (row + 0.5f) * cellH);
         }
 
         /// <summary>
@@ -449,6 +426,75 @@ namespace FrogCart.Runtime
         }
 
         /// <summary>Сдвиг влево за 0.30 c с ease back, затем пересборка — как в спеке.</summary>
+        /// <summary>
+        /// Выезд выбранной вагонетки из сетки на контур.
+        ///
+        /// Место в сетке освобождается сразу, поэтому едет не сам слот, а его копия:
+        /// иначе выезжающая вагонетка и подтягивающиеся соседи спорили бы за один и
+        /// тот же объект, и на середине хода она прыгнула бы на чужое место.
+        /// </summary>
+        /// <summary>
+        /// Сколько вагонеток сейчас в пути из очереди на контур.
+        ///
+        /// Открыто ради проверки. Поймать выезд снимком экрана не вышло: он длится
+        /// 0.3 c, а снималка берёт один кадр, и попасть в него не удалось ни разу
+        /// за несколько попыток. Счётчик проверяется тестом, и это надёжнее кадра.
+        /// </summary>
+        public int DepartingCount { get; private set; }
+
+        public void Depart(int index, Vector2 toSpec, float duration)
+        {
+            if (index < 0 || index >= _minis.Count) return;
+
+            // Уезжает сама мини-вагонетка, а не её копия: копию пришлось бы держать
+            // поверх пула, а пул тут же перекладывается — два объекта спорили бы за
+            // одно место. Выведенная из списка вагонетка Rebuild-у больше не видна,
+            // поэтому спокойно доигрывает свой выезд.
+            var leaving = _minis[index];
+            _minis.RemoveAt(index);
+
+            Vector3 from = leaving.Root.position;
+            Vector3 to = Space3D.ToWorld(toSpec);
+            float fromScale = leaving.Root.localScale.x;
+
+            DepartingCount++;
+            _departingRoot = leaving.Root;
+
+            // Сглаживание здесь линейное, и это не мелочь. QueueShift — кривая с
+            // перелётом (cubic-bezier(.3, 1.4, .5, 1)), она заходит за единицу.
+            // Для сдвига в ряду перелёт и нужен, а здесь по нему считается высота
+            // дуги: sin(t*PI) при t > 1 уходит в минус, дуга схлопывается, и
+            // вагонетка вместо полёта ныряет под доску. На снимках это выглядело
+            // так, будто выезда нет вовсе.
+            _tween.Run(duration, null,
+                t =>
+                {
+                    if (leaving.Root == null) return;
+
+                    // Высота дуги зажата с двух сторон, и обе границы настоящие.
+                    // Снизу — доска: путь к дальнему месту проходит прямо над ней.
+                    // Сверху — кадрируемый объём, у него потолок 112 (11.2 мира),
+                    // и выше этого вагонетка уходит за верхний край экрана.
+                    Vector3 point = Vector3.Lerp(from, to, t);
+                    point.y += Mathf.Sin(t * Mathf.PI) * Space3D.Size(70f);
+                    leaving.Root.position = point;
+
+                    // К концу пути истончается: на контуре её место занимает
+                    // настоящая вагонетка, и две одинаковые в одной точке видны.
+                    leaving.Root.localScale = Vector3.one * Mathf.Lerp(fromScale, 0.15f, t * t);
+                },
+                () =>
+                {
+                    DepartingCount--;
+                    if (leaving.Root != null) Object.Destroy(leaving.Root.gameObject);
+                });
+        }
+
+        /// <summary>Где сейчас уезжающая вагонетка — для проверки, что она правда едет.</summary>
+        Transform _departingRoot;
+
+        public Vector3 DepartingPos => _departingRoot != null ? _departingRoot.position : Vector3.zero;
+
         public void Shift(List<LevelData.CartDef> queue, int startIndex, float duration)
         {
             int pool = _minis.Count;

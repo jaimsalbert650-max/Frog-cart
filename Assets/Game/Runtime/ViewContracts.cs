@@ -92,6 +92,15 @@ namespace FrogCart.Runtime
     {
         void Rebuild(System.Collections.Generic.List<LevelData.CartDef> queue, int startIndex);
         void Shift(System.Collections.Generic.List<LevelData.CartDef> queue, int startIndex, float duration);
+
+        /// <summary>
+        /// Показать, как выбранная вагонетка выезжает из очереди на контур.
+        ///
+        /// Без этого ход игрока не виден: вагонетка просто исчезала из очереди и в
+        /// тот же миг появлялась на рельсе. Связи между тем, куда ткнули, и тем, что
+        /// поехало, на экране не было.
+        /// </summary>
+        void Depart(int index, UnityEngine.Vector2 toSpec, float duration);
     }
 
     public interface IFlashOverlay

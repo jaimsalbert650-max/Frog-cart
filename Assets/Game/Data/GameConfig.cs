@@ -10,7 +10,7 @@ namespace FrogCart.Data
     public sealed class GameConfig : ScriptableObject
     {
         [Header("Движение")]
-        [Range(0f, 60f)] public float railSpeed = 42f;
+        [Range(0f, 60f)] public float railSpeed = 52f;
 
         /// <summary>
         /// Как далеко вагонетка достаёт языком, в spec-единицах.

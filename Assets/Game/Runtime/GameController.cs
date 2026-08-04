@@ -407,6 +407,16 @@ namespace FrogCart.Runtime
             int bestR = -1, bestC = -1;
             float bestDistance = float.MaxValue;
 
+            // Дальше своего радиуса вагонетка не достаёт. Язык через всю картинку
+            // читался как выстрел из ниоткуда: вагонетка стоит в одном углу доски,
+            // а блок исчезает в другом, и связи между ними не видно.
+            //
+            // Радиус не может быть каким угодно. Контур окружает доску, и середина
+            // картинки отстоит от ближней нитки рельса на 180 spec-единиц: при
+            // меньшем радиусе центр не достать ни с одной точки контура, и уровень
+            // запирается насмерть. Проверено тестом BiteRangeReachesBoardCentre.
+            float rangeSq = Config.biteRange * Config.biteRange;
+
             for (int r = 0; r < _grid.Rows; r++)
             for (int c = 0; c < _grid.Cols; c++)
             {
@@ -416,6 +426,7 @@ namespace FrogCart.Runtime
                 if (!_exposure.IsExposed(r, c)) continue;
 
                 float distance = Vector2.SqrMagnitude(Grid.CellCenter(r, c) - cartPos);
+                if (distance > rangeSq) continue;
                 if (distance >= bestDistance) continue;
 
                 bestDistance = distance;

@@ -88,6 +88,10 @@ namespace FrogCart.Runtime
             _stuck = false;
             Active = true;
 
+            // Жаба доворачивается ртом к цели на время выстрела: иначе её голова
+            // закрывает начало языка, когда цель за спиной.
+            if (_frog != null) _frog.AimAt(target);
+
             _line.enabled = true;
             _tip.gameObject.SetActive(true);
         }
@@ -100,6 +104,10 @@ namespace FrogCart.Runtime
 
         public void UpdateFrame(float dt, Vector2 mouth)
         {
+            // Доворот жабы считается и после того, как язык убран: ей надо плавно
+            // вернуться лицом к камере, а не щёлкнуть обратно в кадре завершения.
+            if (_frog != null) _frog.AdvanceAim(dt);
+
             if (!Active) return;
 
             _t += dt;
@@ -183,6 +191,9 @@ namespace FrogCart.Runtime
         {
             Active = false;
             _stuck = false;
+
+            // Null здесь настоящий: Build зовёт Hide до того, как жабу назначили.
+            if (_frog != null) _frog.ReleaseAim();
 
             _line.enabled = false;
             _tip.gameObject.SetActive(false);

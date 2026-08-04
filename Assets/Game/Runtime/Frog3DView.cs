@@ -36,6 +36,53 @@ namespace FrogCart.Runtime
 
         public Vector2 MouthSpecPos { get; private set; }
 
+        /// <summary>Сколько секунд занимает доворот к цели и обратно.</summary>
+        const float TurnTime = 0.15f;
+
+        /// <summary>
+        /// Насколько сильно жаба доворачивается к цели. Единица — строго рот в цель,
+        /// и это оказалось хуже, чем ничего: камера смотрит сверху, и когда цель за
+        /// спиной, полный доворот показывает игроку затылок, а корень языка остаётся
+        /// закрыт головой — та же беда, только с другой стороны.
+        ///
+        /// Вполоборота рот остаётся на кромке силуэта: и морду видно, и язык выходит
+        /// именно из неё.
+        /// </summary>
+        const float MaxTurn = 0.55f;
+
+        Vector2 _aimSpec;
+        bool _aiming;
+        float _aimWeight;
+
+        /// <summary>
+        /// Целиться ртом в клетку, пока язык в полёте.
+        ///
+        /// Без этого корень языка формально во рту, а видно его не всегда: жаба
+        /// развёрнута лицом к камере, и когда цель у неё за спиной, голова —
+        /// сплошной шар — закрывает начало языка. Снаружи читается, будто язык
+        /// растёт из-за затылка.
+        ///
+        /// Разворот именно временный. Постоянный сделал бы жабу осмысленной, но
+        /// половину партии игрок смотрел бы ей в затылок, а лицо — это весь
+        /// характер персонажа.
+        /// </summary>
+        public void AimAt(Vector2 specTarget)
+        {
+            _aimSpec = specTarget;
+            _aiming = true;
+        }
+
+        /// <summary>Отпустить цель — жаба поедет обратно лицом к камере.</summary>
+        public void ReleaseAim() => _aiming = false;
+
+        /// <summary>
+        /// Ход доворота. Отдельно от <see cref="PlaceOnRail"/>, потому что тому
+        /// неоткуда взять dt: он приходит из общего контракта видов без времени.
+        /// Зовётся из языка — у него dt уже правильный, замирающий на паузе.
+        /// </summary>
+        public void AdvanceAim(float dt)
+            => _aimWeight = Mathf.MoveTowards(_aimWeight, _aiming ? MaxTurn : 0f, dt / TurnTime);
+
         /// <summary>
         /// Рот в мировых координатах — точка, из которой обязан выходить язык.
         /// Плоской проекции для этого мало: она теряет высоту головы, а именно
@@ -218,12 +265,34 @@ namespace FrogCart.Runtime
             _root.position = Space3D.ToWorld(bodyC, Space3D.Size(28f));
 
             // Лицом к камере, но строго вертикально: наклонять жабу нельзя.
+            // Рот у модели смотрит в локальный -Z, поэтому forward берётся
+            // «от камеры», а не «к камере».
             if (_camera != null)
             {
                 Vector3 toCamera = _camera.transform.position - _root.position;
                 toCamera.y = 0f;
+
                 if (toCamera.sqrMagnitude > 0.0001f)
-                    _root.rotation = Quaternion.LookRotation(-toCamera, Vector3.up);
+                {
+                    var facing = Quaternion.LookRotation(-toCamera, Vector3.up);
+
+                    // Доворот к цели поверх посадки лицом к камере. Слерп, а не
+                    // подмена: на середине укуса жаба стоит вполоборота, и это
+                    // единственное положение, в котором видно и морду, и язык.
+                    if (_aimWeight > 0.001f)
+                    {
+                        Vector3 fromTarget = _root.position - Space3D.ToWorld(_aimSpec);
+                        fromTarget.y = 0f;
+
+                        if (fromTarget.sqrMagnitude > 0.0001f)
+                            facing = Quaternion.Slerp(
+                                facing,
+                                Quaternion.LookRotation(fromTarget, Vector3.up),
+                                _aimWeight);
+                    }
+
+                    _root.rotation = facing;
+                }
             }
 
             float sx = (1f + _squash * 0.30f + _clap) * scale;

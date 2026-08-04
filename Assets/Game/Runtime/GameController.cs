@@ -70,6 +70,13 @@ namespace FrogCart.Runtime
         /// способ узнать, где на самом деле лежит блок.
         /// </summary>
         public string[] Rows => _rows;
+
+        /// <summary>
+        /// Цвет клетки на доске прямо сейчас, 0 — пусто. `Rows` для этого не годится:
+        /// там картинка, какой она была на старте, и съеденное в ней остаётся.
+        /// </summary>
+        public int Cell(int r, int c) => _grid.Get(r, c);
+
         Slot[] _slots;
         List<LevelData.CartDef> _queue;
         int _queueIndex;
@@ -265,7 +272,13 @@ namespace FrogCart.Runtime
         /// </summary>
         float BiteInterval => Config.tongueOut + Config.tongueBack + 0.05f;
 
-        readonly float[] _nextBite = new float[8];
+        /// <summary>
+        /// Сколько ещё ждать до укуса в каждом слоте. Именно остаток, а не момент
+        /// по часам: абсолютная отметка продолжает протухать в паузе, и контур,
+        /// простоявший под панелью минуту, разряжался залпом на первом же кадре
+        /// после снятия.
+        /// </summary>
+        readonly float[] _biteCooldown = new float[8];
 
         /// <summary>
         /// Отправить вагонетку из очереди на контур. Это единственное действие игрока.
@@ -324,7 +337,7 @@ namespace FrogCart.Runtime
                 EnterT = 1f,
             };
 
-            _nextBite[slot] = Time.unscaledTime + BiteInterval;
+            _biteCooldown[slot] = BiteInterval;
 
             Carts[slot].SetVisible(true);
             Carts[slot].SetColor(Palette, def.colorId);
@@ -364,7 +377,7 @@ namespace FrogCart.Runtime
         /// на двести мест снесла бы свой цвет за один кадр, и игрок не понял бы,
         /// что вообще произошло.
         /// </summary>
-        void AutoBite()
+        void AutoBite(float dt)
         {
             if (!AutoBiteEnabled) return;
             if (State != GameState.Play) return;
@@ -373,9 +386,13 @@ namespace FrogCart.Runtime
             {
                 if (!_slots[slot].Live || _slots[slot].Exiting) continue;
                 if (_slots[slot].Count <= 0) continue;
-                if (Time.unscaledTime < _nextBite[slot]) continue;
 
-                _nextBite[slot] = Time.unscaledTime + BiteInterval;
+                // Ожидание идёт только пока идёт игра: ранний выход по State выше и
+                // делает паузу непроходимой для отсчёта.
+                _biteCooldown[slot] -= dt;
+                if (_biteCooldown[slot] > 0f) continue;
+
+                _biteCooldown[slot] = BiteInterval;
 
                 if (!TryBite(slot)) continue;
             }
@@ -535,10 +552,18 @@ namespace FrogCart.Runtime
         /// предыдущий, сбрасывает первый, и его событие не наступает никогда. Клетка
         /// остаётся помеченной «в полёте» навсегда, блок больше не тапается, а победа
         /// не наступает — ровно это и случилось на 87 блоках из 88. Таймер потерять нельзя.
+        ///
+        /// Но и просто ждать по часам нельзя: `WaitForSecondsRealtime` тикал в паузе,
+        /// и блок, за которым язык уже вылетел, исчезал с доски под панелью паузы.
+        /// Отсчёт стоит вместе с игрой — придержать укус пауза вправе, отменить нет.
         /// </summary>
         IEnumerator RemoveBlockWhenTongueArrives(int r, int c, int key, int color, int slot)
         {
-            yield return new WaitForSecondsRealtime(Config.tongueOut);
+            for (float elapsed = 0f; elapsed < Config.tongueOut; )
+            {
+                if (State != GameState.Pause) elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
 
             bool broken = _layers.Damage(r, c);
 
@@ -844,11 +869,16 @@ namespace FrogCart.Runtime
 
             float dt = Time.unscaledDeltaTime;
 
+            // Пауза замораживает кадр целиком, исходы — нет. На победе и поражении
+            // отдача и язык обязаны доиграть и осесть, иначе поза останется застывшей
+            // до конца экрана.
+            float liveDt = State == GameState.Pause ? 0f : dt;
+
             // dist растёт только в Play: в паузе и на исходах контур стоит.
             if (State == GameState.Play) _dist += Config.railSpeed * dt;
 
             // Работающие вагонетки едят сами — в этом теперь весь игровой процесс.
-            AutoBite();
+            AutoBite(dt);
 
             if (State == GameState.Win) _clapPhase += dt;
 
@@ -856,8 +886,8 @@ namespace FrogCart.Runtime
             {
                 if (!_slots[i].Live) continue;
 
-                _slots[i].Recoil = Decay(_slots[i].Recoil, Config.recoilDecay, dt);
-                _slots[i].Squash = Decay(_slots[i].Squash, Config.squashDecay, dt);
+                _slots[i].Recoil = Decay(_slots[i].Recoil, Config.recoilDecay, liveDt);
+                _slots[i].Squash = Decay(_slots[i].Squash, Config.squashDecay, liveDt);
 
                 Sample(i, out var pos, out float angle);
 
@@ -875,7 +905,7 @@ namespace FrogCart.Runtime
                 Frogs[i].SetAlpha(alpha);
                 Frogs[i].PlaceOnRail(pos, angle, lift, scale);
 
-                Tongues[i].UpdateFrame(dt, Frogs[i].MouthSpecPos);
+                Tongues[i].UpdateFrame(liveDt, Frogs[i].MouthSpecPos);
             }
         }
 

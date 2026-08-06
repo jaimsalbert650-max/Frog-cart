@@ -16,6 +16,58 @@ namespace FrogCart.Runtime
         const int Segments = 20;
         const float Height = 0.55f;   // над плоскостью доски, в единицах мира
 
+        // ── физика языка ────────────────────────────────────────────────────────
+        //
+        // Язык больше не выкладывается по кривой целиком. По кривой идут только его
+        // концы: корень сидит во рту, кончик — там, где ему положено по расписанию
+        // выстрела. Всё между ними — верёвка, которую считает Верле.
+        //
+        // Концы кинематические не ради простоты, а потому что от них зависит игра.
+        // Момент прилипания и весь темп автоукуса завязаны на tongueOut и
+        // tongueBack (GameController.BiteInterval), и кончик обязан приходить в
+        // цель ровно тогда же, когда приходил раньше. Физике оставлено то, что
+        // ни на что не влияет, — форма языка между ртом и целью.
+
+        /// <summary>
+        /// Притяжение. Заметно слабее настоящего: язык летит две десятых секунды,
+        /// и при 9.8 провис за это время не успел бы прочитаться, зато на возврате,
+        /// когда верёвка провисает, лишний вес утянул бы её в доску.
+        /// </summary>
+        const float Gravity = -6.5f;
+
+        /// <summary>
+        /// Сколько скорости точка уносит в следующий шаг. Ниже — язык вялый и
+        /// висит тряпкой, выше — звенит и не успокаивается за время возврата.
+        /// </summary>
+        const float Damping = 0.87f;
+
+        /// <summary>Проходов натяжения за шаг. Меньше пяти верёвка тянется.</summary>
+        const int RelaxPasses = 8;
+
+        /// <summary>
+        /// Насколько верёвка длиннее прямой от рта до кончика. Ровно по прямой она
+        /// была бы строго натянута и физика ничего бы не дала — весь провис и всё
+        /// хлёсткое движение живут в этих восьми процентах запаса.
+        /// </summary>
+        const float Slack = 1.08f;
+
+        /// <summary>
+        /// Потолок шага. Кадр может провалиться — на загрузке уровня или на
+        /// первом кадре после паузы, — и Верле от большого шага взрывается:
+        /// точки разлетаются, язык на кадр становится звездой. Длинный кадр
+        /// дробится на несколько коротких.
+        /// </summary>
+        const float MaxStep = 1f / 60f;
+
+        readonly Vector3[] _points = new Vector3[Segments + 1];
+        readonly Vector3[] _prev = new Vector3[Segments + 1];
+
+        /// <summary>
+        /// Разложена ли верёвка. На выстреле она собирается в точку рта, иначе
+        /// первый кадр протянул бы её от старой цели к новой через пол-экрана.
+        /// </summary>
+        bool _ropeReady;
+
         public event Action OnStick;
         public event Action OnDone;
 
@@ -86,6 +138,7 @@ namespace FrogCart.Runtime
             _backDuration = backDuration;
             _t = 0f;
             _stuck = false;
+            _ropeReady = false;
             Active = true;
 
             // Жаба доворачивается ртом к цели на время выстрела: иначе её голова
@@ -138,10 +191,10 @@ namespace FrogCart.Runtime
                 p = 1f - u * u;
             }
 
-            Draw(mouth, p);
+            Draw(mouth, p, dt);
         }
 
-        void Draw(Vector2 mouth, float p)
+        void Draw(Vector2 mouth, float p, float dt)
         {
             // Язык растёт изо рта, а рот у жабы поднят над доской. Плоскую точку из
             // контракта используем только как запасную: без жабы взять высоту негде.
@@ -155,36 +208,104 @@ namespace FrogCart.Runtime
             Vector2 perp = new Vector2(-d.y, d.x).normalized;
             Vector2 ctrl = (mouthSpec + _target) * 0.5f + perp * d.magnitude * 0.17f * _side;
 
-            Vector2 ctrl1 = Vector2.Lerp(mouthSpec, ctrl, p);
+            // Кривая осталась ровно для одного — пути кончика. Форму языка она
+            // больше не задаёт, ею занят Simulate. Боковой вынос по `_side` тем
+            // самым сохранён: язык по-прежнему уходит к цели дугой, а не по прямой.
             Vector2 tipSpec = Quad(mouthSpec, ctrl, _target, p);
 
-            for (int i = 0; i <= Segments; i++)
+            float tipLift = Mathf.Lerp(mouthHeight, Height, p);
+            Vector3 tipWorld = Space3D.ToWorld(tipSpec, tipLift);
+
+            // На выстреле верёвка собрана в точку рта: язык выстреливает изо рта,
+            // а не проявляется натянутым от старой цели к новой.
+            if (!_ropeReady)
             {
-                float t = i / (float)Segments;
-                Vector2 point = Quad(mouthSpec, ctrl1, tipSpec, t);
+                for (int i = 0; i <= Segments; i++)
+                    _prev[i] = _points[i] = mouthWorld;
 
-                // Высота спускается ото рта к доске. Считать её надо по доле **всей**
-                // кривой, а не нарисованного куска: `t` пробегает 0..1 по тому, что
-                // видно сейчас, и на коротком языке спуск до доски случился бы весь
-                // сразу — язык нырял бы вниз, едва высунувшись.
-                float lift = Mathf.Lerp(mouthHeight, Height, t * p)
-                           + Mathf.Sin(t * Mathf.PI) * 0.25f;
-
-                _line.SetPosition(i, Space3D.ToWorld(point, lift));
+                _ropeReady = true;
             }
+
+            Simulate(mouthWorld, tipWorld, dt);
+
+            for (int i = 0; i <= Segments; i++) _line.SetPosition(i, _points[i]);
 
             float width = Space3D.Size(8f - 2f * p);
             _line.startWidth = width;
             _line.endWidth = width * 0.75f;
 
-            float tipHeight = Mathf.Lerp(mouthHeight, Height, p);
-            _tip.position = Space3D.ToWorld(tipSpec, tipHeight);
+            _tip.position = tipWorld;
 
             if (_stuck)
             {
-                _carried.position = Space3D.ToWorld(tipSpec, tipHeight);
+                _carried.position = tipWorld;
                 _carried.localScale = Vector3.one * Mathf.Max(0.25f, p);
             }
+        }
+
+        /// <summary>
+        /// Шаг верёвки: свободный полёт точек, потом натяжение звеньев.
+        ///
+        /// Хлёст берётся не из отдельного правила, а отсюда же. Кончик срывается
+        /// с места быстрее, чем середина успевает за ним: у середины есть инерция,
+        /// и звенья дотягивают её следом уже после того, как кончик ушёл. На
+        /// возврате наоборот — кончик идёт домой, верёвка обвисает, и её ведёт
+        /// по дуге. Обе повадки настоящего языка получаются даром, их не пишут.
+        /// </summary>
+        void Simulate(Vector3 mouth, Vector3 tip, float dt)
+        {
+            if (dt <= 0f) { PinEnds(mouth, tip); return; }
+
+            int steps = Mathf.Clamp(Mathf.CeilToInt(dt / MaxStep), 1, 4);
+            float h = dt / steps;
+
+            // Длина звена считается от текущей прямой рот-кончик, а не от полной
+            // длины языка: язык и правда становится короче, когда его втягивают,
+            // и верёвка обязана укорачиваться вместе с ним. Иначе на возврате
+            // остался бы моток, которому некуда деться.
+            float rest = Vector3.Distance(mouth, tip) * Slack / Segments;
+
+            for (int step = 0; step < steps; step++)
+            {
+                for (int i = 1; i < Segments; i++)
+                {
+                    Vector3 velocity = (_points[i] - _prev[i]) * Damping;
+
+                    _prev[i] = _points[i];
+                    _points[i] += velocity + new Vector3(0f, Gravity, 0f) * h * h;
+                }
+
+                for (int pass = 0; pass < RelaxPasses; pass++)
+                {
+                    PinEnds(mouth, tip);
+
+                    for (int i = 0; i < Segments; i++)
+                    {
+                        Vector3 delta = _points[i + 1] - _points[i];
+                        float length = delta.magnitude;
+
+                        if (length < 1e-5f) continue;
+
+                        Vector3 shift = delta * ((length - rest) / length) * 0.5f;
+
+                        _points[i] += shift;
+                        _points[i + 1] -= shift;
+                    }
+                }
+
+                PinEnds(mouth, tip);
+
+                // Пол. Провисшая верёвка иначе уходит под доску и язык на середине
+                // пропадает: блоки рисуются поверх, и снаружи это выглядит разрывом.
+                for (int i = 1; i < Segments; i++)
+                    if (_points[i].y < Height) _points[i].y = Height;
+            }
+        }
+
+        void PinEnds(Vector3 mouth, Vector3 tip)
+        {
+            _points[0] = mouth;
+            _points[Segments] = tip;
         }
 
         void Hide()

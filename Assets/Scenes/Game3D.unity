@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &813903732
+--- !u!1 &621430779
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,9 +127,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 813903735}
-  - component: {fileID: 813903734}
-  - component: {fileID: 813903733}
+  - component: {fileID: 621430782}
+  - component: {fileID: 621430781}
+  - component: {fileID: 621430780}
   m_Layer: 0
   m_Name: Game3DBootstrap
   m_TagString: Untagged
@@ -137,25 +137,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &813903733
+--- !u!114 &621430780
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 813903732}
+  m_GameObject: {fileID: 621430779}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 08c96863706f3d44583c5c08f4f307d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FrogCart.Runtime::FrogCart.Runtime.AutoScreenshot
---- !u!114 &813903734
+--- !u!114 &621430781
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 813903732}
+  m_GameObject: {fileID: 621430779}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 882c5f1635404364f9f5eab8a8848967, type: 3}
@@ -165,13 +165,38 @@ MonoBehaviour:
   palette: {fileID: 11400000, guid: 4202009a096e3c64293abd08fc77715d, type: 2}
   level: {fileID: 11400000, guid: db578706e013af0163b3c18b5633fc30, type: 2}
   showcaseLevel: {fileID: 11400000, guid: 581ce591a1792f544a8b6a66887e209b, type: 2}
---- !u!4 &813903735
+  levels:
+  - {fileID: 11400000, guid: db578706e013af0163b3c18b5633fc30, type: 2}
+  - {fileID: 11400000, guid: 280e875db67fc7ce44882a5771298a07, type: 2}
+  - {fileID: 11400000, guid: fec6a7e95a94d88a053c815e1dc77b6e, type: 2}
+  - {fileID: 11400000, guid: 4e491c3b4956285a2a9066142496ae21, type: 2}
+  - {fileID: 11400000, guid: 3083dadc1fedf4d3ca5467d02735299b, type: 2}
+  - {fileID: 11400000, guid: a3fa52ec7554f93b62d43038a3d1aea2, type: 2}
+  - {fileID: 11400000, guid: 696c6e664c796afa8b5f6021d689855d, type: 2}
+  - {fileID: 11400000, guid: 743d04b7983699b225919071ba4d7aa8, type: 2}
+  - {fileID: 11400000, guid: 554b387f1d548e9b5ff62fe3b2306fe5, type: 2}
+  - {fileID: 11400000, guid: 74053c057c898f92e7da3cbfb74e40c4, type: 2}
+  - {fileID: 11400000, guid: b5b5e858bf883a7fc8b0391b7d4d8688, type: 2}
+  - {fileID: 11400000, guid: 584cde801161d3e780988dccb14798b7, type: 2}
+  - {fileID: 11400000, guid: db90d09457640eb4299f367829c247f3, type: 2}
+  - {fileID: 11400000, guid: 1128fbdf129bc9e48eddd30400dfa773, type: 2}
+  - {fileID: 11400000, guid: a848332ab5ad35c0f2c4b475be856978, type: 2}
+  - {fileID: 11400000, guid: 2537b1aeeb1a56735e1bb0044115cd07, type: 2}
+  - {fileID: 11400000, guid: 581ce591a1792f544a8b6a66887e209b, type: 2}
+  - {fileID: 11400000, guid: 8949b16104c8f4847b483409d7701640, type: 2}
+  - {fileID: 11400000, guid: 9bc97ebc309040fd8a01b70d25cf2d4a, type: 2}
+  - {fileID: 11400000, guid: 5afb2a87542279d43ec4c0331f814120, type: 2}
+  - {fileID: 11400000, guid: 4dcec2f54c018c957cfec5326af41d2c, type: 2}
+  - {fileID: 11400000, guid: ef5b9e88ce7707243b1bfb157733c980, type: 2}
+  - {fileID: 11400000, guid: 6004e576f3da37c5f1a70324a789ed83, type: 2}
+  - {fileID: 11400000, guid: a41cd568e82a7c0b0a98a38f49fe3835, type: 2}
+--- !u!4 &621430782
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 813903732}
+  m_GameObject: {fileID: 621430779}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -184,4 +209,4 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 813903735}
+  - {fileID: 621430782}

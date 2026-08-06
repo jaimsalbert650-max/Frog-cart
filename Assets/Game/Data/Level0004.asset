@@ -44,7 +44,36 @@ MonoBehaviour:
   - 0000000000000000000000000
   - 0000000000000000000000000
   hpRows: []
-  hiddenRows: []
+  hiddenRows:
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
+  - 0000000000000000000000000
   loopCarts:
   - colorId: 1
     capacity: 0
@@ -95,80 +124,20 @@ MonoBehaviour:
     capacity: 3
     frozenCount: 0
     linkGroup: 0
-  - colorId: 3
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 6
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 2
     capacity: 12
     frozenCount: 0
     linkGroup: 0
-  - colorId: 3
-    capacity: 6
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 2
     capacity: 6
     frozenCount: 0
     linkGroup: 0
-  - colorId: 3
-    capacity: 8
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 14
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 2
     capacity: 8
     frozenCount: 0
     linkGroup: 0
-  - colorId: 3
-    capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 14
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 4
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 2
     capacity: 5
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 3
-    capacity: 14
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 4
-    capacity: 4
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 9
     frozenCount: 0
     linkGroup: 0
   - colorId: 2
@@ -176,31 +145,59 @@ MonoBehaviour:
     frozenCount: 0
     linkGroup: 0
   - colorId: 3
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
     capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 3
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 6
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 4
+    capacity: 4
     frozenCount: 0
     linkGroup: 0
   - colorId: 4
     capacity: 9
     frozenCount: 0
     linkGroup: 0
-  - colorId: 5
-    capacity: 3
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 4
     capacity: 3
     frozenCount: 0
     linkGroup: 0
-  - colorId: 5
-    capacity: 12
-    frozenCount: 0
-    linkGroup: 0
   - colorId: 4
     capacity: 12
-    frozenCount: 0
-    linkGroup: 0
-  - colorId: 5
-    capacity: 7
     frozenCount: 0
     linkGroup: 0
   - colorId: 4
@@ -225,5 +222,37 @@ MonoBehaviour:
     linkGroup: 0
   - colorId: 4
     capacity: 10
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 8
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 5
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 14
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 4
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 9
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 3
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 12
+    frozenCount: 0
+    linkGroup: 0
+  - colorId: 5
+    capacity: 7
     frozenCount: 0
     linkGroup: 0

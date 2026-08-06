@@ -49,6 +49,12 @@ namespace FrogCart.Runtime
         public Tweener Tween;
         public IFlashOverlay Flash;
 
+        /// <summary>
+        /// Табличка отказа. Может остаться пустой: плоская раскладка её не строит,
+        /// потому что там контур заполнен с самого начала и запускать некого.
+        /// </summary>
+        public INoticeView Notice;
+
         public ICartView[] Carts;
         public IFrogView[] Frogs;
         public ITongueView[] Tongues;
@@ -307,7 +313,16 @@ namespace FrogCart.Runtime
             }
 
             int slot = FindFreeSlot();
-            if (slot < 0) return false;
+
+            // Контур занят целиком. Молчать здесь нельзя: тап по вагонетке ничем
+            // не отличается от тапа, который сработал, и без ответа игрок решит,
+            // что игра не заметила его пальца. Мест на контуре меньше, чем
+            // вагонеток в очереди, — значит, отказ это обычный ход игры, а не сбой.
+            if (slot < 0)
+            {
+                Notice?.NoRoom();
+                return false;
+            }
 
             // Выезд показывается до того, как вагонетка выпадет из списка: очередь
             // должна успеть снять её со своего места, чтобы она поехала на контур.
@@ -930,6 +945,21 @@ namespace FrogCart.Runtime
 
             for (int i = 0; i < _slots.Length; i++)
             {
+                // Свободное место не пропускается, а едет по контуру наравне с
+                // занятыми и показывает метку. Мест меньше, чем вагонеток в
+                // очереди, поэтому «сколько я могу поставить» — вопрос, который
+                // игрок задаёт себе перед каждым тапом. Отвечать на него отказом
+                // после тапа поздно: ход уже сделан.
+                //
+                // Правило то же, что в FindFreeSlot, и это не совпадение: метка
+                // обязана обещать ровно то, что сделает следующий тап.
+                if (!_slots[i].Live && !_slots[i].Exiting)
+                {
+                    Sample(i, out var freePos, out float freeAngle);
+                    Carts[i].PlaceEmpty(freePos, freeAngle);
+                    continue;
+                }
+
                 if (!_slots[i].Live) continue;
 
                 _slots[i].Recoil = Decay(_slots[i].Recoil, Config.recoilDecay, liveDt);

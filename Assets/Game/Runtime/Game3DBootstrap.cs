@@ -370,6 +370,17 @@ namespace FrogCart.Runtime
             }
         }
 
+        /// <summary>
+        /// Мест на контуре. Их меньше, чем вагонеток в очереди, и в этом весь ход
+        /// игры: выбирать приходится не «кого запустить», а «кого запустить сейчас».
+        /// Пятая вагонетка получает отказ и табличку над очередью — см. NoticeView.
+        ///
+        /// Число заодно задаёт расстановку: слоты разносятся по контуру поровну
+        /// (GameController.Sample), поэтому четыре стоят реже пяти и не толкаются
+        /// в поворотах.
+        /// </summary>
+        const int LoopPlaces = 4;
+
         void BuildGameplay()
         {
             var tween = gameObject.AddComponent<Tweener>();
@@ -380,11 +391,11 @@ namespace FrogCart.Runtime
             var rows = LevelCrop.Trim(level.Rows);
             _grid.Build(_world, palette, tween, rows.Length, rows[0].Length);
 
-            var carts = new Cart3DView[5];
-            var frogs = new Frog3DView[5];
-            var tongues = new Tongue3DView[5];
+            var carts = new Cart3DView[LoopPlaces];
+            var frogs = new Frog3DView[LoopPlaces];
+            var tongues = new Tongue3DView[LoopPlaces];
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < LoopPlaces; i++)
             {
                 var cartGo = new GameObject($"Cart3D_{i}");
                 cartGo.transform.SetParent(transform, false);
@@ -410,6 +421,7 @@ namespace FrogCart.Runtime
 
             var hud = gameObject.AddComponent<HudView>();
             var panel = gameObject.AddComponent<PanelView>();
+            var notice = gameObject.AddComponent<NoticeView>();
             // Очередь теперь тоже объёмная: стоит на своём рельсе перед доской.
             var queue = gameObject.AddComponent<Queue3DView>();
             queue.Build(_world, palette, tween, _camera);
@@ -426,6 +438,7 @@ namespace FrogCart.Runtime
             _controller.Confetti = gameObject.AddComponent<ConfettiBurst>();
             _controller.Tween = tween;
             _controller.Flash = new ImageFlash(flash);
+            _controller.Notice = notice;
             _controller.Carts = carts;
             _controller.Frogs = frogs;
             _controller.Tongues = tongues;
@@ -436,6 +449,10 @@ namespace FrogCart.Runtime
 
             hud.Build(canvas, tween, () => _controller.TogglePause());
             panel.Build(canvas, palette, tween, () => _controller.Restart(), () => _controller.Resume());
+
+            // Табличка строится после панелей: она обязана оказаться поверх них
+            // в списке детей, иначе панель паузы накрыла бы её собой.
+            notice.Build(canvas);
 
             // Ввод по вагонеткам, а не по блокам: игрок запускает вагонетку,
             // дальше она ест сама. Grid3DInput остался в проекте — им пользуется

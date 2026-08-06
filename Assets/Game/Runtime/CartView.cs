@@ -125,6 +125,13 @@ namespace FrogCart.Runtime
             _plate.localEulerAngles = new Vector3(0f, 0f, railAngle);
         }
 
+        /// <summary>
+        /// Пусто намеренно. В плоской раскладке контур занят с самого начала и
+        /// пустых мест на нём не бывает — показывать нечего. Та же причина, по
+        /// которой плоская сцена не строит табличку отказа.
+        /// </summary>
+        public void PlaceEmpty(Vector2 railPos, float railAngle) { }
+
         public void SetColor(ColorPalette palette, int colorId)
         {
             var entry = palette.Get(colorId);

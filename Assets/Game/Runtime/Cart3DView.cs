@@ -14,6 +14,24 @@ namespace FrogCart.Runtime
     public sealed class Cart3DView : MonoBehaviour, ICartView
     {
         Transform _root;
+
+        /// <summary>
+        /// Сама вагонетка — всё, что скрывается, когда место стоит пустым.
+        ///
+        /// Отдельный слой под <see cref="_root"/> нужен из-за метки. Раньше
+        /// прятали `_root`, но на нём же держится и метка свободного места:
+        /// гасить их вместе означало бы, что свободное место не видно вовсе.
+        /// Теперь `_root` только едет по контуру, а выключается этот слой.
+        /// </summary>
+        Transform _solid;
+
+        /// <summary>Метка свободного места: венец из светящихся точек.</summary>
+        Transform _marker;
+        Transform[] _markerDots;
+
+        /// <summary>Видна ли сейчас метка свободного места. Открыто ради проверки.</summary>
+        public bool ShowingEmptyPlace => _marker != null && _marker.gameObject.activeSelf;
+
         Transform _body;
         Transform _plate;
         Transform _stripe;
@@ -45,7 +63,7 @@ namespace FrogCart.Runtime
         void BuildFromModel(Mesh mesh)
         {
             var go = new GameObject("CartModel", typeof(MeshFilter), typeof(MeshRenderer));
-            go.transform.SetParent(_root, false);
+            go.transform.SetParent(_solid, false);
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
             go.transform.localScale = Vector3.one * Space3D.Size(44f * 1.5f);
 
@@ -73,6 +91,11 @@ namespace FrogCart.Runtime
             _root = new GameObject("Cart3D").transform;
             _root.SetParent(parent, false);
 
+            _solid = new GameObject("Solid").transform;
+            _solid.SetParent(_root, false);
+
+            BuildMarker();
+
             // Готовая модель, если она лежит в Resources. Как и у жабы, это подмена,
             // а не замена: файла нет — собирается прежняя вагонетка из коробок.
             var model = Resources.Load<Mesh>("CartModel");
@@ -91,7 +114,7 @@ namespace FrogCart.Runtime
             // Корпус модели заменяет процедурный, но не всё остальное: цветной полосы
             // и таблички с числом в модели нет, а они несут смысл — цвет вагонетки и
             // её ёмкость. Поэтому подменяются только корпус и колёса.
-            var body = NewPiece("Body", _root,
+            var body = NewPiece("Body", _solid,
                 ProcMesh.RoundedBox(bodyW, bodyH, bodyD, Space3D.Size(6f), "cartBody3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("9C6231"), "mat_cartBody"));
             body.transform.localPosition = new Vector3(0f, Space3D.Size(9f * Bulk), 0f);
@@ -131,7 +154,7 @@ namespace FrogCart.Runtime
                         new Vector3(Space3D.Size(along), Space3D.Size(7f), Space3D.Size(across)));
 
             // Цветная полоса по низу корпуса — по ней цвет читается издалека.
-            var stripe = NewPiece("Stripe", _root,
+            var stripe = NewPiece("Stripe", _solid,
                 ProcMesh.RoundedBox(bodyW * 0.85f, Space3D.Size(3f), bodyD * 1.02f,
                                     Space3D.Size(2f), "cartStripe3D"),
                 ProcMesh.Glossy(Color.white, "mat_cartStripe"));
@@ -153,7 +176,7 @@ namespace FrogCart.Runtime
         /// </summary>
         void BuildIce(float bodyW, float bodyH, float bodyD)
         {
-            var ice = NewPiece("Ice", _root,
+            var ice = NewPiece("Ice", _solid,
                 ProcMesh.RoundedBox(bodyW * 1.12f, bodyH * 1.9f, bodyD * 1.12f,
                                     Space3D.Size(5f), "cartIce3D"),
                 ProcMesh.Glossy(ProcSprite.Hex("BEE6F5"), "mat_cartIce", 0.55f));
@@ -169,7 +192,7 @@ namespace FrogCart.Runtime
         /// </summary>
         void BuildLinkMark(float bodyW, float bodyD)
         {
-            var link = NewPiece("LinkMark", _root,
+            var link = NewPiece("LinkMark", _solid,
                 ProcMesh.RoundedBox(bodyW * 1.5f, Space3D.Size(1.5f), bodyD * 1.5f,
                                     bodyW * 0.7f, "cartLink3D"),
                 ProcMesh.Emissive(ProcSprite.Hex("FFF1B8"), "mat_cartLink"));
@@ -182,7 +205,7 @@ namespace FrogCart.Runtime
         void BuildPlate()
         {
             var plateGo = new GameObject("Plate", typeof(Canvas), typeof(CanvasScaler));
-            plateGo.transform.SetParent(_root, false);
+            plateGo.transform.SetParent(_solid, false);
             _plate = plateGo.transform;
             // Табличка над головой, а не на её высоте. На 30 она стояла ровно там же,
             // где голова жабы, и цифру закрывала сама жаба: из-за головы торчали
@@ -238,7 +261,7 @@ namespace FrogCart.Runtime
             go.name = name;
             Destroy(go.GetComponent<Collider>());
 
-            go.transform.SetParent(_root, false);
+            go.transform.SetParent(_solid, false);
             go.transform.localPosition = localPosition;
             // Цилиндр Unity стоит вдоль Y. Ось колеса идёт поперёк пути, то есть
             // вдоль локального Z, — поворот вокруг X, а не вокруг Z. При повороте
@@ -255,10 +278,105 @@ namespace FrogCart.Runtime
         void CollectFadeTargets()
         {
             _fadeCount = 0;
-            foreach (var renderer in _root.GetComponentsInChildren<Renderer>())
+            foreach (var renderer in _solid.GetComponentsInChildren<Renderer>())
             {
                 if (_fadeCount >= _fadeTargets.Length) break;
                 _fadeTargets[_fadeCount++] = renderer;
+            }
+        }
+
+        /// <summary>Сколько точек в венце свободного места.</summary>
+        const int MarkerDots = 10;
+
+        /// <summary>
+        /// Поперечник точки. 16, а не 11: на первой сборке восемь точек по 11
+        /// стояли с просветом в свой же поперечник, и сверху, где эллипс к тому же
+        /// сплющен перспективой, венец читался рассыпанными крошками, а не меткой.
+        /// Десять точек по 16 смыкаются в кольцо.
+        /// </summary>
+        const float DotSize = 16f;
+
+        /// <summary>
+        /// Метка свободного места — венец из светящихся точек по габариту вагонетки.
+        ///
+        /// Первый заход был плоской пунктирной рамкой в цвет полотна, лежавшей
+        /// на путях. Он провалился ровно потому, что был скромным: тёмное на
+        /// тёмном, вровень с рельсом, длинные стороны рамки легли на нитки и
+        /// слились с ними, а на экране остались четыре точки непонятно чего.
+        ///
+        /// Отсюда три решения, и все три об одном — метку видно только тогда,
+        /// когда она не пытается быть частью путей:
+        ///
+        /// 1. Светится. Не тёмное по дереву, а горячий жёлтый со свечением.
+        /// 2. Поднята над рельсом на 12 — парит, а не лежит.
+        /// 3. Живёт. Венец медленно поворачивается, по точкам бежит волна.
+        ///    Неподвижное пятно глаз отбрасывает как узор стола, движущееся —
+        ///    нет. Это и делает метку заметной, а не размер.
+        /// </summary>
+        void BuildMarker()
+        {
+            _marker = new GameObject("EmptyPlace").transform;
+            _marker.SetParent(_root, false);
+
+            const float Bulk = 1.5f;
+            float radiusAlong = Space3D.Size(44f * Bulk * 0.5f);
+            float radiusAcross = Space3D.Size(27f * Bulk * 0.5f);
+            float lift = Space3D.Size(12f);
+
+            var material = ProcMesh.Emissive(ProcSprite.Hex("FFD34F"), "mat_placeDot");
+
+            _markerDots = new Transform[MarkerDots];
+
+            for (int i = 0; i < MarkerDots; i++)
+            {
+                float angle = i * Mathf.PI * 2f / MarkerDots;
+
+                var dot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                dot.name = $"Dot{i}";
+                Destroy(dot.GetComponent<Collider>());
+
+                dot.transform.SetParent(_marker, false);
+                dot.transform.localPosition = new Vector3(
+                    Mathf.Cos(angle) * radiusAlong, lift, Mathf.Sin(angle) * radiusAcross);
+                dot.transform.localScale = Vector3.one * Space3D.Size(DotSize);
+
+                var renderer = dot.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+
+                // Тени точки не отбрасывают: восемь теней на шпалах превратили бы
+                // ясную метку в грязное пятно.
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+                _markerDots[i] = dot.transform;
+            }
+
+            _marker.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Поворот венца и волна по точкам.
+        ///
+        /// Время неигровое: метка обязана жить и в паузе. Замершая метка читалась
+        /// бы поломкой ровно там, где игрок и остановился подумать, сколько ещё
+        /// вагонеток он может поставить.
+        /// </summary>
+        void AnimateMarker()
+        {
+            float t = Time.unscaledTime;
+
+            // 18°/с, а не 45: под камерой сверху эллипс сплющен, и на быстром
+            // вращении точки то сбегались, то разбегались — кольцо рябило вместо
+            // того, чтобы просто жить.
+            _marker.localRotation = Quaternion.Euler(0f, t * 18f, 0f);
+
+            float size = Space3D.Size(DotSize);
+
+            for (int i = 0; i < _markerDots.Length; i++)
+            {
+                // Сдвиг фазы по номеру точки — это и есть волна: точки дышат не
+                // разом, а по кругу, и венец читается бегущим, а не мигающим.
+                float pulse = 1f + Mathf.Sin(t * 3.2f - i * 0.55f) * 0.28f;
+                _markerDots[i].localScale = Vector3.one * size * pulse;
             }
         }
 
@@ -273,7 +391,29 @@ namespace FrogCart.Runtime
             if (_camera != null)
                 _plate.rotation = Quaternion.LookRotation(_plate.position - _camera.transform.position);
 
-            _root.gameObject.SetActive(alpha > 0.02f);
+            _solid.gameObject.SetActive(alpha > 0.02f);
+            _marker.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Место без вагонетки: едет по контуру и показывает метку.
+        ///
+        /// Отдельный метод, а не Place с нулевой прозрачностью. Place и PlaceEmpty
+        /// задают взаимно исключающие состояния места и каждый определяет его
+        /// целиком; через альфу это читалось бы «вагонетка есть, но невидима» — а
+        /// её здесь нет. Масштаб сбрасывается в единицу: место не приезжает и не
+        /// уезжает, оно просто свободно.
+        /// </summary>
+        public void PlaceEmpty(Vector2 railPos, float railAngle)
+        {
+            _root.position = Space3D.ToWorld(railPos);
+            _root.rotation = Space3D.RotationFromSpecAngle(railAngle);
+            _root.localScale = Vector3.one;
+
+            _solid.gameObject.SetActive(false);
+            _marker.gameObject.SetActive(true);
+
+            AnimateMarker();
         }
 
         public void SetColor(ColorPalette palette, int colorId)
@@ -341,7 +481,7 @@ namespace FrogCart.Runtime
             }, () => _plate.localScale = Vector3.one * Space3D.Scale * 1.5f);
         }
 
-        public void SetVisible(bool visible) => _root.gameObject.SetActive(visible);
+        public void SetVisible(bool visible) => _solid.gameObject.SetActive(visible);
 
         static GameObject NewPiece(string name, Transform parent, Mesh mesh, Material material)
         {

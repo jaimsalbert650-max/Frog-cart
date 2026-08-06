@@ -103,13 +103,17 @@ namespace FrogCart.Tests
         }
 
         [UnityTest]
-        public IEnumerator FiveCartsAndFiveFrogsExist()
+        public IEnumerator LoopHasFourPlaces()
         {
             yield return null;
 
-            Assert.AreEqual(5, Object.FindObjectsByType<Cart3DView>(FindObjectsSortMode.None).Length);
-            Assert.AreEqual(5, Object.FindObjectsByType<Frog3DView>(FindObjectsSortMode.None).Length);
-            Assert.AreEqual(5, Object.FindObjectsByType<Tongue3DView>(FindObjectsSortMode.None).Length);
+            // Четыре, а не пять: мест на контуре меньше, чем вагонеток в очереди,
+            // и выбор игрока держится именно на этом. Число задано одной константой
+            // в Game3DBootstrap — если она разъедется с числом жаб или языков,
+            // слот на контуре останется без своей жабы, и это упадёт здесь.
+            Assert.AreEqual(4, Object.FindObjectsByType<Cart3DView>(FindObjectsSortMode.None).Length);
+            Assert.AreEqual(4, Object.FindObjectsByType<Frog3DView>(FindObjectsSortMode.None).Length);
+            Assert.AreEqual(4, Object.FindObjectsByType<Tongue3DView>(FindObjectsSortMode.None).Length);
         }
 
         [UnityTest]

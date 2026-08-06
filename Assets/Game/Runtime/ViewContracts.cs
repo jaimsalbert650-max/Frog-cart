@@ -37,6 +37,13 @@ namespace FrogCart.Runtime
         /// <param name="railAngle">угол касательной в градусах, экранная система</param>
         void Place(Vector2 railPos, float railAngle, float scale, float alpha);
 
+        /// <summary>
+        /// Место без вагонетки: едет по контуру и показывает метку — сюда можно
+        /// поставить. Мест на контуре меньше, чем вагонеток в очереди, и игрок
+        /// обязан видеть остаток до тапа, а не узнавать о нём из отказа.
+        /// </summary>
+        void PlaceEmpty(Vector2 railPos, float railAngle);
+
         void SetColor(ColorPalette palette, int colorId);
         void SetCount(int count);
 
@@ -106,6 +113,19 @@ namespace FrogCart.Runtime
         /// держать вагонетку невидимой в ожидании полёта, которого не будет.
         /// </summary>
         float Depart(int index, UnityEngine.Vector2 toSpec, float toAngleDeg, float duration);
+    }
+
+    /// <summary>
+    /// Короткое сообщение игроку поверх сцены.
+    ///
+    /// Причину отказа знает только логика, а слова и вид — только представление,
+    /// поэтому договор перечисляет случаи, а не текст. Контроллеру нечего знать
+    /// про то, на каком языке написано и где всплывает табличка.
+    /// </summary>
+    public interface INoticeView
+    {
+        /// <summary>На контуре нет свободного места — запускать пятую некуда.</summary>
+        void NoRoom();
     }
 
     public interface IFlashOverlay

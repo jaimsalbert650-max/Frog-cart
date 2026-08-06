@@ -129,6 +129,107 @@ namespace FrogCart.Tests
             }
         }
 
+        /// <summary>
+        /// Партнёр по связке уходит с контура, но места свои не теряет — они
+        /// возвращаются в очередь.
+        ///
+        /// Это не украшение, а условие проходимости. Ёмкости уровня считаются по
+        /// числу ударов место в место, запаса нет ни у одного цвета, и вагонетка,
+        /// уведённая с контура непустой, уносит свой цвет с уровня насовсем.
+        /// На 106-м уровне так и было: связка забирала партнёра со 117
+        /// несъеденными блоками из 735, и партия кончалась поражением при
+        /// балансе, который сходился на бумаге.
+        ///
+        /// Уровень для проверки собирается здесь же, а не берётся из пака: связка
+        /// в паке одна, на 106-м, и доигрывать до неё пришлось бы сотнями укусов.
+        /// Картинка делается ровно того размера, что уже построило представление —
+        /// доска в сцене собрана под свой уровень и другого размера не переживёт.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LinkedPartnerReturnsItsSeatsToTheQueue()
+        {
+            yield return null;
+
+            int rows = _controller.Grid.Rows;
+            int cols = _controller.Grid.Cols;
+
+            Assert.Greater(cols, 2, "для проверки нужна доска шире двух клеток");
+
+            // Два блока первого цвета в углу, весь остальной лист — второго.
+            // Углы заняты намеренно: обрезка пустых полей оставит картинку
+            // как есть, и она сойдётся с размерами доски.
+            int partnerSeats = rows * cols - 2;
+            var picture = new string[rows];
+
+            for (int r = 0; r < rows; r++)
+                picture[r] = r == 0
+                    ? "11" + new string('2', cols - 2)
+                    : new string('2', cols);
+
+            var level = ScriptableObject.CreateInstance<LevelData>();
+            level.Fill(1, picture, new LevelData.CartDef[0], new[]
+            {
+                new LevelData.CartDef { colorId = 1, capacity = 2, linkGroup = 1 },
+                new LevelData.CartDef { colorId = 2, capacity = partnerSeats, linkGroup = 1 },
+            });
+
+            _controller.Level = level;
+            _controller.Restart();
+
+            // Автоукус выключается до первого кадра: связанная вагонетка второго
+            // цвета иначе начнёт есть сама, и «сколько мест вернулось» станет
+            // числом, зависящим от того, когда именно сработал тест.
+            _controller.AutoBiteEnabled = false;
+            yield return null;
+
+            Assert.IsTrue(_controller.SendCart(0), "первая связанная обязана выехать");
+            Assert.IsTrue(_controller.SendCart(0), "вторая связанная обязана выехать");
+            Assert.AreEqual(0, _controller.QueueCarts.Count,
+                "обе вагонетки уровня стоят на контуре, очередь пуста");
+
+            // Доедаем первый цвет: его вагонетка опустеет и уведёт партнёра,
+            // который не съел ещё ничего.
+            Assert.IsTrue(_controller.Eat(0, 0), "угловой блок обязан быть съедобен");
+            Assert.IsTrue(_controller.Eat(0, 1), "соседний блок тоже");
+
+            float limit = _controller.Config.tongueOut + 2f;
+
+            for (float waited = 0f; waited < limit && !QueueHas(2, partnerSeats); )
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            Assert.IsTrue(QueueHas(2, partnerSeats),
+                $"партнёр ушёл с контура и унёс с собой {partnerSeats} мест. "
+              + "Цвет 2 доесть больше нечем: на уровне ровно столько мест, "
+              + "сколько блоков.");
+
+            // Дожидаемся конца выезда: ёмкость слота пропадает только там, и
+            // проверка проигрыша до этого мгновения права в любом случае.
+            float exit = _controller.Config.emptyToExit
+                       + _controller.Config.cartExit
+                       + _controller.Config.exitToDock + 0.5f;
+
+            for (float waited = 0f; waited < exit; )
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            Assert.AreEqual(GameState.Play, _controller.State,
+                "места вернулись в очередь, значит цвет 2 ещё доедаем "
+              + "и объявлять поражение не за что");
+        }
+
+        bool QueueHas(int color, int capacity)
+        {
+            foreach (var cart in _controller.QueueCarts)
+                if (cart.colorId == color && cart.capacity == capacity) return true;
+
+            return false;
+        }
+
         static void Add(System.Collections.Generic.Dictionary<int, int> map,
                         LevelData.CartDef cart)
         {

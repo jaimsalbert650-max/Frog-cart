@@ -67,6 +67,9 @@ namespace FrogCart.Runtime
         /// </summary>
         int _send;
 
+        /// <summary>Сколько проходов подряд не дали ни одного хода.</summary>
+        int _idlePasses;
+
         IEnumerator SendCarts(GameController controller)
         {
             for (int i = 0; i < _send; i++)
@@ -122,13 +125,28 @@ namespace FrogCart.Runtime
             int done = 0;
             int guard = 0;
 
-            while (done < _taps && guard++ < 40)
+            while (done < _taps && guard++ < 400)
             {
+                // Исход достигнут — доигрывать нечего и незачем.
+                if (controller.State != GameState.Play) break;
+
+                // Подкрепление перед каждым проходом.
+                //
+                // Без него партию до исхода не доиграть. Контур пустеет сам:
+                // вагонетка уезжает, когда возить ей больше нечего, а новую
+                // отправляет игрок. Раньше здесь отправляли только стартовые
+                // -shotsend штук, дальше рельс пустел, проход упирался в
+                // «нет подходящей вагонетки» и всё замирало на середине уровня.
+                // Поэтому ни победу, ни поражение этой снималкой было не увидеть.
+                while (controller.SendCart(0)) { }
+
                 int atPassStart = done;
 
                 for (int r = 0; r < board.Length && done < _taps; r++)
                 for (int c = 0; c < board[r].Length && done < _taps; c++)
                 {
+                    if (controller.State != GameState.Play) break;
+
                     // Считаем только состоявшиеся ходы: тап по пустой или замурованной
                     // клетке языка не выпускает.
                     if (!controller.Eat(r, c)) continue;
@@ -137,10 +155,20 @@ namespace FrogCart.Runtime
                     yield return new WaitForSecondsRealtime(0.05f);
                 }
 
-                if (done == atPassStart) break;   // проход ничего не изменил
+                // Проход ничего не изменил. Это ещё не тупик: вагонетки на контуре
+                // едят сами, и та, что доедает последний свой блок, освобождает
+                // место для подкрепления следующего цвета. Даём ей это время и
+                // пробуем ещё раз; настоящий тупик поймает счётчик пустых проходов.
+                if (done == atPassStart)
+                {
+                    if (++_idlePasses >= 6) break;
+                    yield return new WaitForSecondsRealtime(0.4f);
+                }
+                else _idlePasses = 0;
             }
 
-            Debug.Log($"[AutoScreenshot] Съедено блоков: {done}");
+            Debug.Log($"[AutoScreenshot] Съедено блоков: {done}, "
+                    + $"состояние {controller.State}, прогресс {controller.Eaten}/{controller.Total}");
         }
 
         void ShowPanel()

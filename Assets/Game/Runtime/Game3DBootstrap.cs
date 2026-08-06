@@ -22,14 +22,28 @@ namespace FrogCart.Runtime
         [SerializeField] LevelData level;
         [SerializeField] LevelData showcaseLevel;
 
+        /// <summary>
+        /// Весь пак уровней — чтобы `-uselevel` мог назвать любой из них.
+        ///
+        /// Нужен ради проверки. Уровни различаются не картинкой, а нагрузкой:
+        /// на стартовом в очереди девять вагонеток, на 283-м за сотню, и вопрос
+        /// «как это выглядит и не ложится ли раскладка» без такого уровня не
+        /// задать. Раньше из командной строки открывался ровно один запасной
+        /// уровень, витринный, и всё остальное приходилось смотреть руками из
+        /// редактора — то есть ровно то, чего этот проект избегает.
+        /// </summary>
+        [SerializeField] LevelData[] levels;
+
 #if UNITY_EDITOR
         public void EditorAssign(GameConfig gameConfig, ColorPalette colorPalette,
-                                 LevelData levelData, LevelData showcase)
+                                 LevelData levelData, LevelData showcase,
+                                 LevelData[] allLevels = null)
         {
             config = gameConfig;
             palette = colorPalette;
             level = levelData;
             showcaseLevel = showcase;
+            levels = allLevels;
         }
 
         public bool EditorHasAllRefs => config != null && palette != null && level != null;
@@ -64,6 +78,15 @@ namespace FrogCart.Runtime
             BuildGameplay();
         }
 
+        /// <summary>
+        /// Подмена уровня ключом `-uselevel`.
+        ///
+        /// `showcase` остался как был, всё остальное — имя ассета, с любым
+        /// регистром и без учёта префикса: и `Level0283`, и `0283`, и `283`
+        /// открывают один и тот же уровень. Номер набирают с руки, и требовать
+        /// от него ровно четыре цифры с большой буквы значило бы ловить опечатки
+        /// вместо того, ради чего ключ и заведён.
+        /// </summary>
         void ApplyLevelOverride()
         {
             var args = System.Environment.GetCommandLineArgs();
@@ -71,12 +94,80 @@ namespace FrogCart.Runtime
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] != "-uselevel") continue;
-                if (args[i + 1] != "showcase" || showcaseLevel == null) continue;
 
-                level = showcaseLevel;
-                Debug.Log("[Game3D] Уровень подменён на витринный.");
+                string wanted = args[i + 1];
+
+                if (wanted == "showcase")
+                {
+                    if (showcaseLevel == null) continue;
+
+                    level = showcaseLevel;
+                    Debug.Log("[Game3D] Уровень подменён на витринный.");
+                    return;
+                }
+
+                var found = FindLevel(wanted);
+
+                if (found == null)
+                {
+                    Debug.LogWarning($"[Game3D] Уровень '{wanted}' не найден, остаётся {level?.name}.");
+                    return;
+                }
+
+                level = found;
+                Debug.Log($"[Game3D] Уровень подменён на {found.name}.");
                 return;
             }
+        }
+
+        /// <summary>Уровень по имени ассета, номеру или номеру без ведущих нулей.</summary>
+        LevelData FindLevel(string wanted)
+        {
+            if (levels == null) return null;
+
+            foreach (var candidate in levels)
+            {
+                if (candidate == null) continue;
+                if (SameLevel(candidate.name, wanted)) return candidate;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Совпадают ли имя ассета и то, что набрали в ключе. Открыто ради
+        /// тестов: правило сравнения держится на разборе строки, а строку с
+        /// руки набирают как попало.
+        /// </summary>
+        public static bool SameLevel(string assetName, string wanted)
+        {
+            if (string.Equals(assetName, wanted, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return string.Equals(Number(assetName), Number(wanted),
+                                 System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Числовая часть имени без ведущих нулей: Level0283 и 283 — это одно.
+        /// Пустая строка означает, что цифр в имени нет, и тогда сравнивать
+        /// по номеру нечего — иначе Level01_LoseTest совпал бы с Level01.
+        /// </summary>
+        static string Number(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return string.Empty;
+
+            int start = 0;
+            while (start < name.Length && !char.IsDigit(name[start])) start++;
+
+            int end = start;
+            while (end < name.Length && char.IsDigit(name[end])) end++;
+
+            // Хвост после цифр значим: Level01_LoseTest — не Level01.
+            if (end < name.Length) return string.Empty;
+            if (start == end) return string.Empty;
+
+            return name.Substring(start, end - start).TrimStart('0');
         }
 
         void BuildCameraAndLight()

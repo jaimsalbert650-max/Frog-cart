@@ -93,6 +93,20 @@ public static class Scene3DSetup
         }
         var showcase = AssetDatabase.LoadAssetAtPath<LevelData>($"{DataDir()}/Level01.asset");
 
+        // Весь пак — чтобы `-uselevel` открывал любой уровень, а не только
+        // витринный. Грузится здесь же, после NewScene, по той же причине:
+        // загруженное раньше выгружается как никому не нужное, и в сцену
+        // попал бы массив из null.
+        var levels = new System.Collections.Generic.List<LevelData>();
+
+        foreach (var guid in AssetDatabase.FindAssets("t:LevelData", new[] { DataDir() }))
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<LevelData>(AssetDatabase.GUIDToAssetPath(guid));
+            if (asset != null) levels.Add(asset);
+        }
+
+        levels.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+
         if (palette == null || config == null || level == null)
             throw new System.InvalidOperationException("Ассеты не найдены — сначала Rebuild Assets And Scene");
 
@@ -100,7 +114,7 @@ public static class Scene3DSetup
         var bootstrap = go.AddComponent<Game3DBootstrap>();
         go.AddComponent<AutoScreenshot>();
 
-        bootstrap.EditorAssign(config, palette, level, showcase);
+        bootstrap.EditorAssign(config, palette, level, showcase, levels.ToArray());
 
         if (!bootstrap.EditorHasAllRefs)
             throw new System.InvalidOperationException("Ссылки не присвоились");

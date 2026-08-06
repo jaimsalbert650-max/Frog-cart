@@ -136,6 +136,13 @@ namespace FrogCart.Runtime
             public Transform Root;
             public MeshRenderer Stripe;
             public MeshRenderer Head;
+
+            // Какие слоты материалов головы красятся цветом уровня. У шара слот
+            // один, у модели — тело и рожки: белки и зрачки обязаны остаться
+            // белыми и чёрными при любом цвете.
+            public int HeadBodySlot;
+            public int HeadHornSlot = -1;
+
             public Text Count;
             public GameObject Ice;
         }
@@ -236,22 +243,16 @@ namespace FrogCart.Runtime
                                                Space3D.Size(z * bulk)), bulk);
 
             // Голова жабы над корпусом — по ней цвет очереди читается сразу.
-            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            head.name = "Head";
-            Destroy(head.GetComponent<Collider>());
-            head.transform.SetParent(root, false);
-            head.transform.localPosition = new Vector3(0f, Space3D.Size(30f * bulk), Space3D.Size(-4f));
-            head.transform.localScale = new Vector3(Space3D.Size(26f), Space3D.Size(22f), Space3D.Size(24f));
-            mini.Head = head.GetComponent<MeshRenderer>();
+            //
+            // Та же голова, что на контуре, если она лежит в Resources. Очередь —
+            // это те же персонажи, просто ещё не выехавшие, и шар с приделанными
+            // глазами рядом с вылепленной головой читался не стилизацией, а
+            // недоделкой. Файла нет — собирается прежний шар, как и у вагонетки:
+            // проект обязан оставаться работоспособным без внешних ассетов.
+            var headModel = Resources.Load<Mesh>("FrogHeadModel");
 
-            // Глаза и усики: рядом с жабами на контуре, у которых есть и то и другое,
-            // голый шар читался заготовкой. Очередь — это те же персонажи, просто
-            // ещё не выехавшие.
-            foreach (float side in new[] { -1f, 1f })
-            {
-                BuildQueueEye(root, side, bulk);
-                BuildQueueAntenna(root, side, bulk);
-            }
+            if (headModel != null) BuildModelHead(mini, root, headModel, bulk);
+            else BuildSphereHead(mini, root, bulk);
 
             // Ледяная глыба поверх корпуса — та же, что у вагонеток на контуре.
             var ice = NewPiece("Ice", root,
@@ -327,6 +328,72 @@ namespace FrogCart.Runtime
 
             _plateImages.Add(text, image);
             return text;
+        }
+
+        /// <summary>
+        /// Голова из модели — та же, что у жаб на контуре.
+        ///
+        /// Размер взят не на глаз, а от контура: там голова 46 при вагонетке 66,
+        /// здесь вагонетка 44*bulk, и та же доля даёт голову. Иначе один и тот же
+        /// персонаж стоял бы в очереди и на рельсе в разных пропорциях.
+        ///
+        /// Высота — по низу прежнего шара, а не по его центру: у модели начало
+        /// координат внизу головы, и посадка по центру подняла бы её над корпусом.
+        ///
+        /// Разворот на 180 — тот же, что в <see cref="Frog3DView"/>: у модели лицо
+        /// смотрит в +Z, а перёд в этом проекте — это -Z.
+        /// </summary>
+        static void BuildModelHead(Mini mini, Transform root, Mesh mesh, float bulk)
+        {
+            var go = new GameObject("Head", typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(root, false);
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+
+            go.transform.localScale = Vector3.one * Space3D.Size(46f * bulk / 1.5f);
+            go.transform.localPosition =
+                new Vector3(0f, Space3D.Size(30f * bulk) - Space3D.Size(11f), Space3D.Size(-4f));
+            go.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+            // Порядок подмешей задаёт импортёр: тело, белки глаз, тёмное — зрачки,
+            // рожки и полоса рта, — и сами рожки.
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterials = new[]
+            {
+                ProcMesh.Glossy(Color.green, "mat_frogHeadBody"),
+                ProcMesh.Glossy(Color.white, "mat_frogHeadEye", 0.8f),
+                ProcMesh.Glossy(ProcSprite.Hex("1D2127"), "mat_frogHeadDark", 0.9f),
+                ProcMesh.Glossy(Color.green, "mat_frogHeadHorn"),
+            };
+
+            mini.Head = renderer;
+            mini.HeadBodySlot = 0;
+            mini.HeadHornSlot = 3;
+        }
+
+        /// <summary>
+        /// Прежняя голова из шара с приделанными глазами и усиками — запасной
+        /// вариант на случай, когда модели в Resources нет.
+        /// </summary>
+        static void BuildSphereHead(Mini mini, Transform root, float bulk)
+        {
+            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            head.name = "Head";
+            Destroy(head.GetComponent<Collider>());
+            head.transform.SetParent(root, false);
+            head.transform.localPosition = new Vector3(0f, Space3D.Size(30f * bulk), Space3D.Size(-4f));
+            head.transform.localScale = new Vector3(Space3D.Size(26f), Space3D.Size(22f), Space3D.Size(24f));
+
+            mini.Head = head.GetComponent<MeshRenderer>();
+            mini.HeadBodySlot = 0;
+            mini.HeadHornSlot = -1;
+
+            // Глаза и усики: рядом с жабами на контуре, у которых есть и то и другое,
+            // голый шар читался заготовкой.
+            foreach (float side in new[] { -1f, 1f })
+            {
+                BuildQueueEye(root, side, bulk);
+                BuildQueueAntenna(root, side, bulk);
+            }
         }
 
         /// <summary>Глаз с зрачком и бликом — те же три сферы, что у жаб на контуре.</summary>
@@ -459,8 +526,17 @@ namespace FrogCart.Runtime
 
                 _minis[i].Stripe.sharedMaterial =
                     ProcMesh.Glossy(entry.baseColor, $"mat_stripe{def.colorId}");
-                _minis[i].Head.sharedMaterial =
-                    ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{def.colorId}");
+                // sharedMaterials отдаёт копию массива, и правка элемента на месте
+                // до рендерера не доходит — массив нужно положить обратно целиком.
+                var headMaterial = ProcMesh.Glossy(entry.baseColor, $"mat_frogHead{def.colorId}");
+                var headParts = _minis[i].Head.sharedMaterials;
+
+                headParts[_minis[i].HeadBodySlot] = headMaterial;
+
+                if (_minis[i].HeadHornSlot >= 0)
+                    headParts[_minis[i].HeadHornSlot] = headMaterial;
+
+                _minis[i].Head.sharedMaterials = headParts;
                 // Замороженная вагонетка обязана быть видна ещё в очереди: вся суть
                 // механики в том, чтобы игрок заранее знал, что подкрепление придёт
                 // не сразу. Показываем счётчик льда вместо ёмкости, как на контуре.
